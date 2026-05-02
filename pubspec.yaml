@@ -1,0 +1,35 @@
+name: moni_prayer
+description: Islamic Prayer & Fasting Tracker App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  adhan: ^1.1.0
+  geolocator: ^11.0.0
+  hijri: ^2.0.1
+  intl: ^0.19.0
+  table_calendar: ^3.0.9
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  file_picker: ^8.0.0+1
+  share_plus: ^9.0.0
+  path_provider: ^2.1.2
+  permission_handler: ^11.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

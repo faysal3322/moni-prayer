@@ -16,7 +16,7 @@ dependencies:
   path: ^1.8.3
   adhan: ^1.1.0
   geolocator: ^11.0.0
-  hijri: ^2.0.1
+  hijri: ^3.0.0
   intl: ^0.20.0
   table_calendar: ^3.0.9
   flutter_animate: ^4.5.0

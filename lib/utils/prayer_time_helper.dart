@@ -31,6 +31,7 @@ class PrayerTimeHelper {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return [defaultLat, defaultLng];
       }
+      if (permission == LocationPermission.deniedForever) return [defaultLat, defaultLng];
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 10),

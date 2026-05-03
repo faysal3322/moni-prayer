@@ -474,13 +474,13 @@ class _ClockCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(DateHelper.formatGregorian(now, bangla: isBn),
-                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
                     Text(DateHelper.toHijri(now, bangla: isBn),
-                      style: const TextStyle(color: AppTheme.gold, fontSize: 13)),
+                      style: const TextStyle(color: AppTheme.gold, fontSize: 15, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
                     Text(DateHelper.toBangla(now),
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                   ],
                 ),
               ),
@@ -512,8 +512,8 @@ class _ClockCard extends StatelessWidget {
     return Row(children: [
       Text(icon, style: const TextStyle(fontSize: 12)),
       const SizedBox(width: 4),
-      Text('$label: ', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 11, fontWeight: FontWeight.bold)),
+      Text('$label: ', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 13, fontWeight: FontWeight.bold)),
     ]);
   }
 }

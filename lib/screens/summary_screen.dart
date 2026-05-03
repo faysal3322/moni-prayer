@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/database_helper.dart';
+import 'bulk_qaza_screen.dart';
 
 class SummaryScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -37,6 +38,35 @@ class _SummaryScreenState extends State<SummaryScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Bulk Qaza Button
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => BulkQazaScreen(lang: lang, onDataChanged: _load),
+                  )),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.accent.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.edit_calendar, color: Colors.white, size: 22),
+                        const SizedBox(width: 10),
+                        Text(
+                          lang.isBn ? '⚡ একসাথে কাযা/আদায় করুন' : '⚡ Bulk Entry',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Filter buttons
                 Row(children: [
                   _FilterChip(label: lang.allTime, selected: _period == 'all', onTap: () { _period = 'all'; _load(); }),
                   const SizedBox(width: 8),
@@ -45,13 +75,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   _FilterChip(label: lang.thisMonth, selected: _period == 'month', onTap: () { _period = 'month'; _load(); }),
                 ]),
                 const SizedBox(height: 20),
-                _StatsCard(title: lang.namazHisab, icon: Icons.mosque,
-                  missed: _prayerStats['missed'] ?? 0, prayed: _prayerStats['prayed'] ?? 0,
-                  pending: _prayerStats['pending'] ?? 0, lang: lang),
+
+                // Prayer stats
+                _StatsCard(
+                  title: lang.namazHisab, icon: Icons.mosque,
+                  missed: _prayerStats['missed'] ?? 0,
+                  prayed: _prayerStats['prayed'] ?? 0,
+                  pending: _prayerStats['pending'] ?? 0,
+                  lang: lang,
+                ),
                 const SizedBox(height: 16),
-                _StatsCard(title: lang.rozaHisab, icon: Icons.brightness_3,
-                  missed: _rozaStats['missed'] ?? 0, prayed: _rozaStats['prayed'] ?? 0,
-                  pending: _rozaStats['pending'] ?? 0, lang: lang),
+
+                // Roza stats
+                _StatsCard(
+                  title: lang.rozaHisab, icon: Icons.brightness_3,
+                  missed: _rozaStats['missed'] ?? 0,
+                  prayed: _rozaStats['prayed'] ?? 0,
+                  pending: _rozaStats['pending'] ?? 0,
+                  lang: lang,
+                ),
               ],
             ),
     );
@@ -75,7 +117,8 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: selected ? AppTheme.accent : Colors.white12),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : AppTheme.textSecondary, fontSize: 13)),
+        child: Text(label, style: TextStyle(
+          color: selected ? Colors.white : AppTheme.textSecondary, fontSize: 13)),
       ),
     );
   }
@@ -87,8 +130,11 @@ class _StatsCard extends StatelessWidget {
   final int missed, prayed, pending;
   final AppLanguage lang;
 
-  const _StatsCard({required this.title, required this.icon, required this.missed,
-    required this.prayed, required this.pending, required this.lang});
+  const _StatsCard({
+    required this.title, required this.icon,
+    required this.missed, required this.prayed,
+    required this.pending, required this.lang,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +151,8 @@ class _StatsCard extends StatelessWidget {
           Row(children: [
             Icon(icon, color: AppTheme.gold, size: 22),
             const SizedBox(width: 10),
-            Text(title, style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(title, style: const TextStyle(
+              color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
           ]),
           const SizedBox(height: 16),
           Row(children: [
@@ -118,7 +165,7 @@ class _StatsCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: prayed / missed,
+                value: missed > 0 ? prayed / missed : 0,
                 backgroundColor: AppTheme.missed.withOpacity(0.3),
                 color: AppTheme.completed,
                 minHeight: 8,
@@ -141,7 +188,8 @@ class _StatItem extends StatelessWidget {
     return Expanded(child: Column(children: [
       Text(value, style: TextStyle(color: color, fontSize: 28, fontWeight: FontWeight.bold)),
       const SizedBox(height: 4),
-      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11), textAlign: TextAlign.center),
+      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+        textAlign: TextAlign.center),
     ]));
   }
 }

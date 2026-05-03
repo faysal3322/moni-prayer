@@ -6,13 +6,20 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_language.dart';
+import 'utils/notification_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  await NotificationHelper.init();
+  await NotificationHelper.requestPermission();
+  await NotificationHelper.schedulePrayerNotifications();
+
   final prefs = await SharedPreferences.getInstance();
   final String lang = prefs.getString('language') ?? 'bn';
   final String userName = prefs.getString('user_name') ?? 'FAYSAL';
+
   runApp(MoniPrayerApp(initialLang: lang, userName: userName));
 }
 

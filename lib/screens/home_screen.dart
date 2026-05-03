@@ -1,18 +1,18 @@
 import 'dart:async';
+import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
 import '../utils/database_helper.dart';
 import '../utils/prayer_time_helper.dart';
-import 'package:adhan/adhan.dart';
 import 'calendar_screen.dart';
 import 'summary_screen.dart';
 import 'prayer_time_screen.dart';
 import 'settings_screen.dart';
 import 'missed_list_screen.dart';
+import 'names_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -79,7 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(color: AppTheme.gold),
         ),
         content: Text(
-          AppLanguage(_lang).isBn ? 'আপনি কি MONI PRAYER বন্ধ করতে চান?' : 'Do you want to close MONI PRAYER?',
+          AppLanguage(_lang).isBn
+              ? 'আপনি কি MONI PRAYER বন্ধ করতে চান?'
+              : 'Do you want to close MONI PRAYER?',
           style: const TextStyle(color: AppTheme.textPrimary),
         ),
         actions: [
@@ -102,6 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = AppLanguage(_lang);
+    final isBn = lang.isBn;
+
     final screens = [
       _HomeTab(
         lang: lang,
@@ -114,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       CalendarScreen(lang: lang, onDataChanged: _loadCounts),
       PrayerTimeScreen(lang: lang),
       SummaryScreen(lang: lang),
+      NamesScreen(lang: lang),
       SettingsScreen(lang: lang, onChanged: () {
         _loadPrefs();
         _loadCounts();
@@ -130,11 +135,30 @@ class _HomeScreenState extends State<HomeScreen> {
           onDestinationSelected: (i) => setState(() => _currentIndex = i),
           indicatorColor: AppTheme.primary,
           destinations: [
-            NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: lang.home),
-            NavigationDestination(icon: const Icon(Icons.calendar_month_outlined), selectedIcon: const Icon(Icons.calendar_month), label: lang.calendar),
-            NavigationDestination(icon: const Icon(Icons.access_time_outlined), selectedIcon: const Icon(Icons.access_time), label: lang.prayerTimes),
-            NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), selectedIcon: const Icon(Icons.bar_chart), label: lang.summary),
-            NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: lang.settings),
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
+              label: lang.home),
+            NavigationDestination(
+              icon: const Icon(Icons.calendar_month_outlined),
+              selectedIcon: const Icon(Icons.calendar_month),
+              label: lang.calendar),
+            NavigationDestination(
+              icon: const Icon(Icons.access_time_outlined),
+              selectedIcon: const Icon(Icons.access_time),
+              label: lang.prayerTimes),
+            NavigationDestination(
+              icon: const Icon(Icons.bar_chart_outlined),
+              selectedIcon: const Icon(Icons.bar_chart),
+              label: lang.summary),
+            NavigationDestination(
+              icon: const Icon(Icons.auto_stories_outlined),
+              selectedIcon: const Icon(Icons.auto_stories),
+              label: isBn ? '৯৯ নাম' : '99 Names'),
+            NavigationDestination(
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings),
+              label: lang.settings),
           ],
         ),
       ),
@@ -229,13 +253,13 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final lang = widget.lang;
     final now = widget.now;
+    final isBn = lang.isBn;
 
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Bismillah
             Text(lang.bismillah,
               style: const TextStyle(fontSize: 22, color: AppTheme.gold),
               textAlign: TextAlign.center),
@@ -244,11 +268,9 @@ class _HomeTabState extends State<_HomeTab> {
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             const SizedBox(height: 16),
 
-            // Clock + Dates Card
             _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes),
             const SizedBox(height: 12),
 
-            // Pending Counts
             Row(children: [
               Expanded(child: _PendingCard(
                 label: lang.namazBaki,
@@ -276,7 +298,6 @@ class _HomeTabState extends State<_HomeTab> {
             ]),
             const SizedBox(height: 16),
 
-            // Today's Prayer Tracking
             _todaySection(lang),
           ],
         ),
@@ -308,24 +329,18 @@ class _HomeTabState extends State<_HomeTab> {
           ]),
           const SizedBox(height: 12),
 
-          // Prayers
-          ...prayers.map((prayer) {
-            final status = _todayPrayers[prayer];
-            final time = _prayerTime(prayer);
-            return _TodayPrayerRow(
-              name: _prayerName(prayer),
-              time: time,
-              status: status,
-              lang: lang,
-              onAdai: () => _setPrayer(prayer, 'prayed'),
-              onQaza: () => _setPrayer(prayer, 'missed'),
-            );
-          }),
+          ...prayers.map((prayer) => _TodayPrayerRow(
+            name: _prayerName(prayer),
+            time: _prayerTime(prayer),
+            status: _todayPrayers[prayer],
+            lang: lang,
+            onAdai: () => _setPrayer(prayer, 'prayed'),
+            onQaza: () => _setPrayer(prayer, 'missed'),
+          )),
 
           const Divider(color: Colors.white12),
           const SizedBox(height: 4),
 
-          // Roza
           _TodayPrayerRow(
             name: lang.roza,
             time: '',
@@ -347,12 +362,8 @@ class _TodayPrayerRow extends StatelessWidget {
   final VoidCallback onAdai, onQaza;
 
   const _TodayPrayerRow({
-    required this.name,
-    required this.time,
-    required this.status,
-    required this.lang,
-    required this.onAdai,
-    required this.onQaza,
+    required this.name, required this.time, required this.status,
+    required this.lang, required this.onAdai, required this.onQaza,
   });
 
   @override
@@ -377,7 +388,6 @@ class _TodayPrayerRow extends StatelessWidget {
               ],
             ),
           ),
-          // আদায় button
           GestureDetector(
             onTap: onAdai,
             child: Container(
@@ -397,7 +407,6 @@ class _TodayPrayerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // কাযা button
           GestureDetector(
             onTap: onQaza,
             child: Container(
@@ -463,12 +472,9 @@ class _ClockCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(color: Colors.white12),
           const SizedBox(height: 8),
-
-          // Two column layout: Dates | Sun times
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: Dates
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,20 +490,22 @@ class _ClockCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Divider
               Container(width: 1, height: 70, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 12)),
-              // Right: Sun/Sehri/Iftar times
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--'),
+                    _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
+                      sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--'),
                     const SizedBox(height: 4),
-                    _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
+                    _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
+                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
                     const SizedBox(height: 4),
-                    _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri', fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--'),
+                    _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
+                      fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--'),
                     const SizedBox(height: 4),
-                    _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar', maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
+                    _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
+                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
                   ],
                 ),
               ),
@@ -549,10 +557,12 @@ class _PendingCard extends StatelessWidget {
             Row(children: [
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 6),
-              Expanded(child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold))),
+              Expanded(child: Text(label,
+                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold))),
             ]),
             const SizedBox(height: 8),
-            Text(lang.toLocalNum(count), style: TextStyle(color: color, fontSize: 32, fontWeight: FontWeight.bold)),
+            Text(lang.toLocalNum(count),
+              style: TextStyle(color: color, fontSize: 32, fontWeight: FontWeight.bold)),
             if (suffix.isNotEmpty)
               Text(suffix, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
           ],

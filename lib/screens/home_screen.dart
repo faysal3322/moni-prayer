@@ -7,6 +7,7 @@ import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
 import '../utils/database_helper.dart';
 import '../utils/prayer_time_helper.dart';
+import 'package:adhan/adhan.dart';
 import 'calendar_screen.dart';
 import 'summary_screen.dart';
 import 'prayer_time_screen.dart';

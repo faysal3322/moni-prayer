@@ -31,15 +31,36 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Logo
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.gold, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  '🕌',
+                  style: TextStyle(fontSize: 60),
+                ),
+              ),
+            ).animate().scale(duration: 600.ms),
+            const SizedBox(height: 24),
             const Text(
               'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
-              style: TextStyle(
-                fontSize: 28,
-                color: AppTheme.gold,
-              ),
+              style: TextStyle(fontSize: 22, color: AppTheme.gold),
               textAlign: TextAlign.center,
-            ).animate().fadeIn(duration: 800.ms),
-            const SizedBox(height: 32),
+            ).animate().fadeIn(delay: 400.ms, duration: 800.ms),
+            const SizedBox(height: 16),
             const Text(
               'MONI PRAYER',
               style: TextStyle(
@@ -48,20 +69,17 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: AppTheme.gold,
                 letterSpacing: 4,
               ),
-            ).animate().fadeIn(delay: 400.ms, duration: 800.ms),
+            ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
             const SizedBox(height: 8),
             const Text(
               'ইসলামিক প্রার্থনা ট্র্যাকার',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-              ),
-            ).animate().fadeIn(delay: 600.ms),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            ).animate().fadeIn(delay: 800.ms),
             const SizedBox(height: 48),
             const CircularProgressIndicator(
               color: AppTheme.accent,
               strokeWidth: 2,
-            ).animate().fadeIn(delay: 800.ms),
+            ).animate().fadeIn(delay: 1000.ms),
           ],
         ),
       ),

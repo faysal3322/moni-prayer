@@ -17,27 +17,21 @@ class PrayerTimeHelper {
   }
 
   static Future<List<double>> _getCoordinates() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedLat = prefs.getDouble('lat');
-    final savedLng = prefs.getDouble('lng');
-    if (savedLat != null && savedLng != null) {
-      return [savedLat, savedLng];
-    }
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return [defaultLat, defaultLng];
+
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return [defaultLat, defaultLng];
       }
       if (permission == LocationPermission.deniedForever) return [defaultLat, defaultLng];
+
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 10),
       );
-      await prefs.setDouble('lat', position.latitude);
-      await prefs.setDouble('lng', position.longitude);
       return [position.latitude, position.longitude];
     } catch (_) {
       return [defaultLat, defaultLng];
@@ -48,7 +42,6 @@ class PrayerTimeHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('lat');
     await prefs.remove('lng');
-    await _getCoordinates();
   }
 
   static Map<String, DateTime> getPrayerTimesMap(PrayerTimes times) {

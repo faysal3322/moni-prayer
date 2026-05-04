@@ -479,10 +479,7 @@ class _PendingCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _PrayerTimesCard extends StatelessWidget {
+    class _PrayerTimesCard extends StatelessWidget {
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
   final SunnahTimes? sunnahTimes;
@@ -504,6 +501,14 @@ class _PrayerTimesCard extends StatelessWidget {
       case 'isha': return lang.isha;
       default: return key;
     }
+  }
+
+  Widget _infoChip(String icon, String label, String time) {
+    return Column(children: [
+      Text(icon, style: const TextStyle(fontSize: 16)),
+      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 11, fontWeight: FontWeight.bold)),
+    ]);
   }
 
   @override
@@ -593,12 +598,26 @@ class _PrayerTimesCard extends StatelessWidget {
           }),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(children: [
-              const Divider(color: Colors.white10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _infoChip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(prayerTimes!.sunrise)),
-                  _infoChip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(prayerTimes!.maghrib)),
-                  _infoChip('🍽️', isBn ? 'সেহরি' : 'Sehri', _fmt(prayerTimes!.fajr)),
-                  _infoChip(
+            child: Column(
+              children: [
+                const Divider(color: Colors.white10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _infoChip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(prayerTimes!.sunrise)),
+                    _infoChip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(prayerTimes!.maghrib)),
+                    _infoChip('🍽️', isBn ? 'সেহরি' : 'Sehri', _fmt(prayerTimes!.fajr)),
+                    _infoChip('🌙', isBn ? 'ইফতার' : 'Iftar', _fmt(prayerTimes!.maghrib)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+    }
+  }
+}
+

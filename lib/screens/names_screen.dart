@@ -17,7 +17,6 @@ class _NamesScreenState extends State<NamesScreen> {
   int? _playingGroupIndex;
   int _currentNameIndex = 0;
   bool _ttsReady = false;
-  bool _isRepeating = false;
 
   final List<Map<String, dynamic>> _groups = [
     {'names': [
@@ -203,7 +202,6 @@ class _NamesScreenState extends State<NamesScreen> {
       setState(() {
         _isPlaying = false;
         _currentNameIndex = 0;
-        _isRepeating = false;
       });
       return;
     }
@@ -211,7 +209,6 @@ class _NamesScreenState extends State<NamesScreen> {
       _isPlaying = true;
       _playingGroupIndex = null;
       _currentNameIndex = 0;
-      _isRepeating = false;
     });
     await _speakName(_allNames[0]['arabic']);
   }
@@ -237,7 +234,6 @@ class _NamesScreenState extends State<NamesScreen> {
         _isPlaying = false;
         _playingGroupIndex = null;
         _currentNameIndex = 0;
-        _isRepeating = false;
       });
       return;
     }
@@ -245,7 +241,6 @@ class _NamesScreenState extends State<NamesScreen> {
       _isPlaying = true;
       _playingGroupIndex = groupIndex;
       _currentNameIndex = 0;
-      _isRepeating = true; // group always repeats
     });
     final names = _groups[groupIndex]['names'] as List<Map<String, dynamic>>;
     await _speakName(names[0]['arabic']);
@@ -258,10 +253,10 @@ class _NamesScreenState extends State<NamesScreen> {
     if (_currentNameIndex < names.length) {
       await _speakName(names[_currentNameIndex]['arabic']);
     } else {
-      // Unlimited repeat — go back to first
+      // unlimited repeat — go back to first
       _currentNameIndex = 0;
       await Future.delayed(const Duration(milliseconds: 600));
-      if (_isPlaying && _isRepeating) {
+      if (_isPlaying && _playingGroupIndex != null) {
         await _speakName(names[0]['arabic']);
       }
     }
@@ -296,6 +291,7 @@ class _NamesScreenState extends State<NamesScreen> {
       ),
       body: Column(
         children: [
+          // Bismillah
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -307,19 +303,21 @@ class _NamesScreenState extends State<NamesScreen> {
             ),
           ),
 
+          // TTS warning
           if (!_ttsReady)
             Container(
               padding: const EdgeInsets.all(8),
-              color: AppTheme.pending.withOpacity(0.2),
+              color: AppTheme.pending.withOpacity(0.15),
               child: Text(
                 isBn
-                    ? '⚠️ TTS লোড হচ্ছে... ডিভাইসে আরবি ভাষা install থাকলে সাউন্ড শুনতে পাবেন। Settings > General Management > Language > Add Language > Arabic'
-                    : '⚠️ Loading TTS... Install Arabic language: Settings > General Management > Language > Add Language > Arabic',
+                    ? '⚠️ সাউন্ডের জন্য ডিভাইসে আরবি ভাষা install করুন:\nSettings → General Management → Language → Add Language → Arabic'
+                    : '⚠️ For sound, install Arabic language:\nSettings → General Management → Language → Add Language → Arabic',
                 style: const TextStyle(color: AppTheme.pending, fontSize: 11),
                 textAlign: TextAlign.center,
               ),
             ),
 
+          // Playing all indicator
           if (_isPlaying && _playingGroupIndex == null)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -337,6 +335,7 @@ class _NamesScreenState extends State<NamesScreen> {
               ),
             ),
 
+          // Names list
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
@@ -361,6 +360,7 @@ class _NamesScreenState extends State<NamesScreen> {
                   ),
                   child: Column(
                     children: [
+                      // Arabic text
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
@@ -374,6 +374,7 @@ class _NamesScreenState extends State<NamesScreen> {
                           textDirection: TextDirection.rtl,
                         ),
                       ),
+                      // Bangla pronunciation
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Text(
@@ -386,6 +387,7 @@ class _NamesScreenState extends State<NamesScreen> {
                         ),
                       ),
                       const Divider(color: Colors.white12, height: 1),
+                      // Bottom row
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         child: Row(
@@ -398,6 +400,7 @@ class _NamesScreenState extends State<NamesScreen> {
                               ),
                             ),
                             const Spacer(),
+                            // Repeat button
                             GestureDetector(
                               onTap: _ttsReady ? () => _playGroup(groupIndex) : null,
                               child: Container(

@@ -1,8 +1,11 @@
 import 'package:hijri/hijri_calendar.dart';
 
 class DateHelper {
-  static String toHijri(DateTime date, {bool bangla = true}) {
-    final h = HijriCalendar.fromDate(date);
+  // বাংলাদেশ/ভারতে হিজরি তারিখ সৌদি আরব থেকে ১ দিন পিছিয়ে
+  static String toHijri(DateTime date, {bool bangla = true, int extraAdjust = 0}) {
+    final adjustedDate = date.add(Duration(days: -1 + extraAdjust));
+    final h = HijriCalendar.fromDate(adjustedDate);
+
     final monthsBn = [
       'মুহাররম','সফর','রবিউল আউয়াল','রবিউস সানি',
       'জামাদিউল আউয়াল','জামাদিউস সানি','রজব','শাবান',
@@ -13,27 +16,20 @@ class DateHelper {
       'Jumada al-Awwal','Jumada al-Thani','Rajab','Sha\'ban',
       'Ramadan','Shawwal','Dhu al-Qi\'dah','Dhu al-Hijjah'
     ];
+
     final monthName = bangla ? monthsBn[h.hMonth - 1] : monthsEn[h.hMonth - 1];
     final day = bangla ? _toBangla(h.hDay) : h.hDay.toString();
     final year = bangla ? _toBangla(h.hYear) : h.hYear.toString();
     return '$day $monthName $year';
   }
 
-  // হিজরি তারিখ ±1 দিন adjust (settings থেকে)
-  static String toHijriAdjusted(DateTime date, {bool bangla = true, int adjust = 0}) {
-    final adjusted = date.add(Duration(days: adjust));
-    return toHijri(adjusted, bangla: bangla);
-  }
-
   static String toBangla(DateTime date) {
-    // সঠিক বাংলা সন রূপান্তর
     final bMonths = [
       'বৈশাখ','জ্যৈষ্ঠ','আষাঢ়','শ্রাবণ',
       'ভাদ্র','আশ্বিন','কার্তিক','অগ্রহায়ণ',
       'পৌষ','মাঘ','ফাল্গুন','চৈত্র'
     ];
 
-    // Bangla calendar starts from April 14
     final year = date.year;
     final month = date.month;
     final day = date.day;
@@ -42,35 +38,25 @@ class DateHelper {
     int bMonth;
     int bDay;
 
-    // Bangla month start dates (Gregorian)
     final monthStarts = [
-      DateTime(year, 4, 14),  // বৈশাখ
-      DateTime(year, 5, 15),  // জ্যৈষ্ঠ
-      DateTime(year, 6, 15),  // আষাঢ়
-      DateTime(year, 7, 16),  // শ্রাবণ
-      DateTime(year, 8, 16),  // ভাদ্র
-      DateTime(year, 9, 16),  // আশ্বিন
-      DateTime(year, 10, 16), // কার্তিক
-      DateTime(year, 11, 15), // অগ্রহায়ণ
-      DateTime(year, 12, 15), // পৌষ
-      DateTime(year + 1, 1, 14), // মাঘ
-      DateTime(year + 1, 2, 13), // ফাল্গুন
-      DateTime(year + 1, 3, 14), // চৈত্র
+      DateTime(year, 4, 14),
+      DateTime(year, 5, 15),
+      DateTime(year, 6, 15),
+      DateTime(year, 7, 16),
+      DateTime(year, 8, 16),
+      DateTime(year, 9, 16),
+      DateTime(year, 10, 16),
+      DateTime(year, 11, 15),
+      DateTime(year, 12, 15),
+      DateTime(year + 1, 1, 14),
+      DateTime(year + 1, 2, 13),
+      DateTime(year + 1, 3, 14),
     ];
 
     bYear = year - 593;
     bMonth = 0;
     bDay = 1;
 
-    for (int i = monthStarts.length - 1; i >= 0; i--) {
-      if (!date.isBefore(monthStarts[i])) {
-        bMonth = i;
-        bDay = date.difference(monthStarts[i]).inDays + 1;
-        break;
-      }
-    }
-
-    // চৈত্র মাসের জন্য আগের বছর চেক
     if (date.isBefore(DateTime(year, 4, 14))) {
       bYear = year - 594;
       final prevMonthStarts = [
@@ -94,6 +80,14 @@ class DateHelper {
           break;
         }
       }
+    } else {
+      for (int i = monthStarts.length - 1; i >= 0; i--) {
+        if (!date.isBefore(monthStarts[i])) {
+          bMonth = i;
+          bDay = date.difference(monthStarts[i]).inDays + 1;
+          break;
+        }
+      }
     }
 
     return '${_toBangla(bDay)} ${bMonths[bMonth]} ${_toBangla(bYear)}';
@@ -105,6 +99,14 @@ class DateHelper {
       '5':'৫','6':'৬','7':'৭','8':'৮','9':'৯'
     };
     return n.toString().split('').map((c) => map[c] ?? c).join();
+  }
+
+  static String _toBanglaStr(String s) {
+    const map = {
+      '0':'০','1':'১','2':'২','3':'৩','4':'৪',
+      '5':'৫','6':'৬','7':'৭','8':'৮','9':'৯'
+    };
+    return s.split('').map((c) => map[c] ?? c).join();
   }
 
   static String formatGregorian(DateTime date, {bool bangla = true}) {
@@ -126,14 +128,6 @@ class DateHelper {
       return '${_toBangla(hour)}:${_toBanglaStr(minute)} $period';
     }
     return '$hour:$minute $period';
-  }
-
-  static String _toBanglaStr(String s) {
-    const map = {
-      '0':'০','1':'১','2':'২','3':'৩','4':'৪',
-      '5':'৫','6':'৬','7':'৭','8':'৮','9':'৯'
-    };
-    return s.split('').map((c) => map[c] ?? c).join();
   }
 
   static String dateKey(DateTime date) {

@@ -59,7 +59,8 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM prayer_records WHERE status = 'prayed'");
     final m = Sqflite.firstIntValue(missed) ?? 0;
     final p = Sqflite.firstIntValue(prayed) ?? 0;
-    return {'missed': m, 'prayed': p, 'pending': m - p < 0 ? 0 : m - p};
+    final pending = m - p;
+    return {'missed': m, 'prayed': p, 'pending': pending < 0 ? 0 : pending};
   }
 
   static Future<List<Map<String, dynamic>>> getMissedPrayerDates() async {
@@ -86,7 +87,8 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM prayer_records WHERE status = 'prayed' $w");
     final m = Sqflite.firstIntValue(missed) ?? 0;
     final p = Sqflite.firstIntValue(prayed) ?? 0;
-    return {'missed': m, 'prayed': p, 'pending': m - p < 0 ? 0 : m - p};
+    final pending = m - p;
+    return {'missed': m, 'prayed': p, 'pending': pending < 0 ? 0 : pending};
   }
 
   static Future<void> setRozaStatus(String date, String status) async {
@@ -105,13 +107,24 @@ class DatabaseHelper {
 
   static Future<Map<String, int>> getRozaPendingCount() async {
     final db = await database;
-    final missed = await db.rawQuery(
+    // মোট missed রোজা
+    final missedResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'missed'");
-    final prayed = await db.rawQuery(
+    // মোট prayed রোজা (যেগুলো আদায় করা হয়েছে)
+    final prayedResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'prayed'");
-    final m = Sqflite.firstIntValue(missed) ?? 0;
-    final p = Sqflite.firstIntValue(prayed) ?? 0;
-    return {'missed': m, 'prayed': p, 'pending': m - p < 0 ? 0 : m - p};
+
+    final totalMissed = Sqflite.firstIntValue(missedResult) ?? 0;
+    final totalPrayed = Sqflite.firstIntValue(prayedResult) ?? 0;
+
+    // বাকি = মোট missed - মোট prayed (কারণ missed দিনগুলো পরে আদায় করলে prayed হয়)
+    // কিন্তু একই দিনে missed থাকলে সেটা pending
+    // সঠিক হিসাব: missed status এর count = pending roza
+    final pendingResult = await db.rawQuery(
+      "SELECT COUNT(*) as count FROM roza_records WHERE status = 'missed'");
+    final pending = Sqflite.firstIntValue(pendingResult) ?? 0;
+
+    return {'missed': totalMissed, 'prayed': totalPrayed, 'pending': pending};
   }
 
   static Future<List<String>> getMissedRozaDates() async {
@@ -136,7 +149,7 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'prayed' $w");
     final m = Sqflite.firstIntValue(missed) ?? 0;
     final p = Sqflite.firstIntValue(prayed) ?? 0;
-    return {'missed': m, 'prayed': p, 'pending': m - p < 0 ? 0 : m - p};
+    return {'missed': m, 'prayed': p, 'pending': m};
   }
 
   static Future<String> getDayStatus(String date) async {

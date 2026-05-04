@@ -479,7 +479,7 @@ class _PendingCard extends StatelessWidget {
         ),
       ),
     );
-    class _PrayerTimesCard extends StatelessWidget {
+  class _PrayerTimesCard extends StatelessWidget {
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
   final SunnahTimes? sunnahTimes;

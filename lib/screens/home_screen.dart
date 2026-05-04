@@ -376,8 +376,8 @@ class _ClockCard extends StatelessWidget {
                       DateHelper.formatGregorian(now, bangla: isBn),
                       style: const TextStyle(
                         color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -385,8 +385,8 @@ class _ClockCard extends StatelessWidget {
                       DateHelper.toHijri(now, bangla: isBn),
                       style: const TextStyle(
                         color: AppTheme.gold,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -394,7 +394,8 @@ class _ClockCard extends StatelessWidget {
                       DateHelper.toBangla(now),
                       style: const TextStyle(
                         color: AppTheme.textSecondary,
-                        fontSize: 13,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -444,26 +445,26 @@ class _ClockCard extends StatelessWidget {
   }
 
   Widget _timeRow(String icon, String label, String time) {
+  Widget _timeRow(String icon, String label, String time) {
     return Row(
       children: [
-        Text(icon, style: const TextStyle(fontSize: 12)),
+        Text(icon, style: const TextStyle(fontSize: 14)),
         const SizedBox(width: 4),
         Text(
           '$label: ',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
         ),
         Text(
           time,
           style: const TextStyle(
             color: AppTheme.accent,
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
       ],
     );
   }
-}
 
 class _PendingCard extends StatelessWidget {
   final String label, suffix;

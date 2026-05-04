@@ -17,6 +17,7 @@ class _NamesScreenState extends State<NamesScreen> {
   int? _playingGroupIndex;
   int _currentNameIndex = 0;
   bool _ttsReady = false;
+  bool _isRepeating = false;
 
   final List<Map<String, dynamic>> _groups = [
     {'names': [
@@ -173,13 +174,8 @@ class _NamesScreenState extends State<NamesScreen> {
       await _tts.setVolume(1.0);
       await _tts.setPitch(1.0);
 
-      final languages = await _tts.getLanguages;
-      final hasArabic = languages.toString().contains('ar');
-      if (!hasArabic) {
-        await _tts.setLanguage('ar');
-      }
-
       _tts.setCompletionHandler(() {
+        if (!mounted) return;
         if (_isPlaying) {
           if (_playingGroupIndex != null) {
             _playNextInGroup();
@@ -197,17 +193,26 @@ class _NamesScreenState extends State<NamesScreen> {
 
   Future<void> _speakName(String arabic) async {
     await _tts.stop();
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
     await _tts.speak(arabic);
   }
 
   void _playAll() async {
     if (_isPlaying && _playingGroupIndex == null) {
       await _tts.stop();
-      setState(() { _isPlaying = false; _currentNameIndex = 0; });
+      setState(() {
+        _isPlaying = false;
+        _currentNameIndex = 0;
+        _isRepeating = false;
+      });
       return;
     }
-    setState(() { _isPlaying = true; _playingGroupIndex = null; _currentNameIndex = 0; });
+    setState(() {
+      _isPlaying = true;
+      _playingGroupIndex = null;
+      _currentNameIndex = 0;
+      _isRepeating = false;
+    });
     await _speakName(_allNames[0]['arabic']);
   }
 
@@ -216,30 +221,49 @@ class _NamesScreenState extends State<NamesScreen> {
     if (_currentNameIndex < _allNames.length) {
       await _speakName(_allNames[_currentNameIndex]['arabic']);
     } else {
-      if (mounted) setState(() { _isPlaying = false; _currentNameIndex = 0; });
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _currentNameIndex = 0;
+        });
+      }
     }
   }
 
   void _playGroup(int groupIndex) async {
     if (_isPlaying && _playingGroupIndex == groupIndex) {
       await _tts.stop();
-      setState(() { _isPlaying = false; _playingGroupIndex = null; _currentNameIndex = 0; });
+      setState(() {
+        _isPlaying = false;
+        _playingGroupIndex = null;
+        _currentNameIndex = 0;
+        _isRepeating = false;
+      });
       return;
     }
-    setState(() { _isPlaying = true; _playingGroupIndex = groupIndex; _currentNameIndex = 0; });
+    setState(() {
+      _isPlaying = true;
+      _playingGroupIndex = groupIndex;
+      _currentNameIndex = 0;
+      _isRepeating = true; // group always repeats
+    });
     final names = _groups[groupIndex]['names'] as List<Map<String, dynamic>>;
     await _speakName(names[0]['arabic']);
   }
 
   void _playNextInGroup() async {
+    if (_playingGroupIndex == null) return;
     final names = _groups[_playingGroupIndex!]['names'] as List<Map<String, dynamic>>;
     _currentNameIndex++;
     if (_currentNameIndex < names.length) {
       await _speakName(names[_currentNameIndex]['arabic']);
     } else {
+      // Unlimited repeat — go back to first
       _currentNameIndex = 0;
-      await Future.delayed(const Duration(milliseconds: 500));
-      await _speakName(names[0]['arabic']);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (_isPlaying && _isRepeating) {
+        await _speakName(names[0]['arabic']);
+      }
     }
   }
 
@@ -289,9 +313,9 @@ class _NamesScreenState extends State<NamesScreen> {
               color: AppTheme.pending.withOpacity(0.2),
               child: Text(
                 isBn
-                    ? '⚠️ আরবি TTS লোড হচ্ছে... ডিভাইসে আরবি ভাষা install থাকতে হবে।'
-                    : '⚠️ Loading Arabic TTS... Arabic language must be installed on device.',
-                style: const TextStyle(color: AppTheme.pending, fontSize: 12),
+                    ? '⚠️ TTS লোড হচ্ছে... ডিভাইসে আরবি ভাষা install থাকলে সাউন্ড শুনতে পাবেন। Settings > General Management > Language > Add Language > Arabic'
+                    : '⚠️ Loading TTS... Install Arabic language: Settings > General Management > Language > Add Language > Arabic',
+                style: const TextStyle(color: AppTheme.pending, fontSize: 11),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -329,7 +353,9 @@ class _NamesScreenState extends State<NamesScreen> {
                         : AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isGroupPlaying ? AppTheme.accent : AppTheme.primary.withOpacity(0.3),
+                      color: isGroupPlaying
+                          ? AppTheme.accent
+                          : AppTheme.primary.withOpacity(0.3),
                       width: isGroupPlaying ? 1.5 : 1,
                     ),
                   ),
@@ -339,7 +365,11 @@ class _NamesScreenState extends State<NamesScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
                           names.map((n) => n['arabic']).join('  '),
-                          style: const TextStyle(fontSize: 26, color: AppTheme.textPrimary, height: 2.0),
+                          style: const TextStyle(
+                            fontSize: 26,
+                            color: AppTheme.textPrimary,
+                            height: 2.0,
+                          ),
                           textAlign: TextAlign.center,
                           textDirection: TextDirection.rtl,
                         ),
@@ -348,7 +378,10 @@ class _NamesScreenState extends State<NamesScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Text(
                           names.map((n) => n['bangla']).join(' • '),
-                          style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -359,18 +392,29 @@ class _NamesScreenState extends State<NamesScreen> {
                           children: [
                             Text(
                               isBn ? '${names.length} টি নাম' : '${names.length} names',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                             const Spacer(),
-                            // Repeat group button
                             GestureDetector(
                               onTap: _ttsReady ? () => _playGroup(groupIndex) : null,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isGroupPlaying ? AppTheme.accent : AppTheme.primary.withOpacity(0.3),
+                                  color: isGroupPlaying
+                                      ? AppTheme.missed
+                                      : AppTheme.primary.withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppTheme.accent.withOpacity(0.6)),
+                                  border: Border.all(
+                                    color: isGroupPlaying
+                                        ? AppTheme.missed
+                                        : AppTheme.accent.withOpacity(0.6),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -383,9 +427,13 @@ class _NamesScreenState extends State<NamesScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       isGroupPlaying
-                                          ? (isBn ? 'বন্ধ' : 'Stop')
-                                          : (isBn ? 'রিপিট' : 'Repeat'),
-                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ? (isBn ? 'বন্ধ করুন' : 'Stop')
+                                          : (isBn ? '🔁 রিপিট' : '🔁 Repeat'),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),

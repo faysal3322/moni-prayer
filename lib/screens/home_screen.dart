@@ -93,9 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.missed),
-            child: Text(
-              AppLanguage(_lang).isBn ? 'হ্যাঁ, বন্ধ করুন' : 'Yes, Exit',
-            ),
+            child: Text(AppLanguage(_lang).isBn ? 'হ্যাঁ, বন্ধ করুন' : 'Yes, Exit'),
           ),
         ],
       ),
@@ -167,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// ═══════════════════════════════════════════
 class _HomeTab extends StatefulWidget {
   final AppLanguage lang;
   final DateTime now;
@@ -313,6 +312,7 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
+// ═══════════════════════════════════════════
 class _ClockCard extends StatelessWidget {
   final DateTime now;
   final AppLanguage lang;
@@ -403,7 +403,7 @@ class _ClockCard extends StatelessWidget {
               ),
               Container(
                 width: 1,
-                height: 65,
+                height: 75,
                 color: Colors.white12,
                 margin: const EdgeInsets.symmetric(horizontal: 12),
               ),
@@ -411,29 +411,17 @@ class _ClockCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _timeRow(
-                      '🌅',
-                      isBn ? 'সূর্যোদয়' : 'Sunrise',
-                      sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--',
-                    ),
-                    const SizedBox(height: 4),
-                    _timeRow(
-                      '🌇',
-                      isBn ? 'সূর্যাস্ত' : 'Sunset',
-                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                    ),
-                    const SizedBox(height: 4),
-                    _timeRow(
-                      '🍽️',
-                      isBn ? 'সেহরি' : 'Sehri',
-                      fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--',
-                    ),
-                    const SizedBox(height: 4),
-                    _timeRow(
-                      '🌙',
-                      isBn ? 'ইফতার' : 'Iftar',
-                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                    ),
+                    _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
+                      sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--'),
+                    const SizedBox(height: 6),
+                    _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
+                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
+                    const SizedBox(height: 6),
+                    _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
+                      fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--'),
+                    const SizedBox(height: 6),
+                    _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
+                      maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--'),
                   ],
                 ),
               ),
@@ -443,7 +431,7 @@ class _ClockCard extends StatelessWidget {
       ),
     );
   }
-  Widget _timeRow(String icon, String label, String time) {
+
   Widget _timeRow(String icon, String label, String time) {
     return Row(
       children: [
@@ -451,7 +439,11 @@ class _ClockCard extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '$label: ',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         Text(
           time,
@@ -464,6 +456,9 @@ class _ClockCard extends StatelessWidget {
       ],
     );
   }
+}
+
+// ═══════════════════════════════════════════
 class _PendingCard extends StatelessWidget {
   final String label, suffix;
   final int count;
@@ -524,10 +519,7 @@ class _PendingCard extends StatelessWidget {
             if (suffix.isNotEmpty)
               Text(
                 suffix,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 11,
-                ),
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
               ),
           ],
         ),
@@ -536,6 +528,7 @@ class _PendingCard extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════
 class _PrayerTimesCard extends StatelessWidget {
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
@@ -582,9 +575,7 @@ class _PrayerTimesCard extends StatelessWidget {
     final isBn = lang.isBn;
 
     if (prayerTimes == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppTheme.accent),
-      );
+      return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
     }
 
     final prayers = [
@@ -623,20 +614,14 @@ class _PrayerTimesCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isBn ? 'নামাজ' : 'Prayer',
-                    style: const TextStyle(
-                      color: AppTheme.gold,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold),
                   ),
                 ),
                 SizedBox(
                   width: 85,
                   child: Text(
                     isBn ? 'শুরু' : 'Start',
-                    style: const TextStyle(
-                      color: AppTheme.gold,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -644,10 +629,7 @@ class _PrayerTimesCard extends StatelessWidget {
                   width: 85,
                   child: Text(
                     isBn ? 'শেষ' : 'End',
-                    style: const TextStyle(
-                      color: AppTheme.gold,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -659,12 +641,8 @@ class _PrayerTimesCard extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isNext
-                    ? AppTheme.primary.withOpacity(0.2)
-                    : Colors.transparent,
-                border: const Border(
-                  bottom: BorderSide(color: Colors.white10),
-                ),
+                color: isNext ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
+                border: const Border(bottom: BorderSide(color: Colors.white10)),
               ),
               child: Row(
                 children: [
@@ -672,11 +650,7 @@ class _PrayerTimesCard extends StatelessWidget {
                     child: Row(
                       children: [
                         if (isNext)
-                          const Icon(
-                            Icons.arrow_right,
-                            color: AppTheme.accent,
-                            size: 18,
-                          ),
+                          const Icon(Icons.arrow_right, color: AppTheme.accent, size: 18),
                         Text(
                           _prayerName(p['key'] as String),
                           style: TextStyle(
@@ -703,10 +677,7 @@ class _PrayerTimesCard extends StatelessWidget {
                     width: 85,
                     child: Text(
                       _fmt(p['end'] as DateTime),
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -737,6 +708,7 @@ class _PrayerTimesCard extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════
 class _TodaySection extends StatelessWidget {
   final AppLanguage lang;
   final Map<String, String> todayPrayers;
@@ -833,6 +805,7 @@ class _TodaySection extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════
 class _TodayPrayerRow extends StatelessWidget {
   final String name, time;
   final String? status;
@@ -876,10 +849,7 @@ class _TodayPrayerRow extends StatelessWidget {
                 if (time.isNotEmpty)
                   Text(
                     time,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                   ),
               ],
             ),
@@ -889,9 +859,7 @@ class _TodayPrayerRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isAdai
-                    ? AppTheme.completed
-                    : AppTheme.completed.withOpacity(0.1),
+                color: isAdai ? AppTheme.completed : AppTheme.completed.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppTheme.completed.withOpacity(0.6)),
               ),
@@ -911,9 +879,7 @@ class _TodayPrayerRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isQaza
-                    ? AppTheme.missed
-                    : AppTheme.missed.withOpacity(0.1),
+                color: isQaza ? AppTheme.missed : AppTheme.missed.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppTheme.missed.withOpacity(0.6)),
               ),

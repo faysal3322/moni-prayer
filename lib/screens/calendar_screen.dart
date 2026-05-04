@@ -38,6 +38,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (mounted) setState(() => _dayStatuses = statuses);
   }
 
+  List<DateTime> _getMonthDates(DateTime month) {
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final dates = <DateTime>[];
+    for (int d = 1; d <= daysInMonth; d++) {
+      final date = DateTime(month.year, month.month, d);
+      if (!date.isAfter(DateTime.now())) dates.add(date);
+    }
+    return dates;
+  }
+
   Color? _getDayColor(DateTime day) {
     if (day.isAfter(DateTime.now())) return null;
     final status = _dayStatuses[DateHelper.dateKey(day)];
@@ -64,13 +74,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onDaySelected: (selected, focused) {
               if (selected.isAfter(DateTime.now())) return;
               setState(() { _selectedDay = selected; _focusedDay = focused; });
+
+              final monthDates = _getMonthDates(_focusedDay);
+              final index = monthDates.indexWhere((d) => isSameDay(d, selected));
+
               Navigator.push(context, MaterialPageRoute(
                 builder: (_) => DayScreen(
-                  date: selected, lang: widget.lang,
+                  date: selected,
+                  lang: widget.lang,
                   onDataChanged: () {
                     _loadMonthStatuses(_focusedDay);
                     widget.onDataChanged();
                   },
+                  allDates: monthDates,
+                  initialIndex: index >= 0 ? index : 0,
                 ),
               ));
             },
@@ -110,13 +127,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                   child: Stack(alignment: Alignment.center, children: [
                     if (color != null)
-                      Positioned(bottom: 4, child: Container(width: 6, height: 6,
+                      Positioned(bottom: 4, child: Container(
+                        width: 6, height: 6,
                         decoration: BoxDecoration(color: color, shape: BoxShape.circle))),
                     Center(child: Text('${day.day}', style: TextStyle(
                       color: isFri ? AppTheme.accent : AppTheme.textPrimary,
                       fontWeight: isFri ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 13,
-                    ))),
+                      fontSize: 13))),
                   ]),
                 );
               },

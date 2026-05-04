@@ -205,13 +205,12 @@ class _HomeTabState extends State<_HomeTab> {
     final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
     final roza = await DatabaseHelper.getRozaStatus(dateKey);
     final times = await PrayerTimeHelper.getPrayerTimes();
-    final sunnah = SunnahTimes(times);
     if (mounted) {
       setState(() {
         _todayPrayers = statuses;
         _todayRoza = roza;
         _prayerTimes = times;
-        _sunnahTimes = sunnah;
+        if (times != null) _sunnahTimes = SunnahTimes(times);
       });
     }
   }
@@ -234,7 +233,6 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final lang = widget.lang;
     final now = widget.now;
-    final isBn = lang.isBn;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -479,7 +477,10 @@ class _PendingCard extends StatelessWidget {
         ),
       ),
     );
-  class _PrayerTimesCard extends StatelessWidget {
+  }
+}
+
+class _PrayerTimesCard extends StatelessWidget {
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
   final SunnahTimes? sunnahTimes;
@@ -501,14 +502,6 @@ class _PendingCard extends StatelessWidget {
       case 'isha': return lang.isha;
       default: return key;
     }
-  }
-
-  Widget _infoChip(String icon, String label, String time) {
-    return Column(children: [
-      Text(icon, style: const TextStyle(fontSize: 16)),
-      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
-      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 11, fontWeight: FontWeight.bold)),
-    ]);
   }
 
   @override
@@ -596,28 +589,31 @@ class _PendingCard extends StatelessWidget {
               ]),
             );
           }),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                const Divider(color: Colors.white10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _infoChip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(prayerTimes!.sunrise)),
-                    _infoChip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(prayerTimes!.maghrib)),
-                    _infoChip('🍽️', isBn ? 'সেহরি' : 'Sehri', _fmt(prayerTimes!.fajr)),
-                    _infoChip('🌙', isBn ? 'ইফতার' : 'Iftar', _fmt(prayerTimes!.maghrib)),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
-    }
-  }
 }
 
+class _TodaySection extends StatelessWidget {
+  final AppLanguage lang;
+  final Map<String, String> todayPrayers;
+  final String? todayRoza;
+  final PrayerTimes? prayerTimes;
+  final Function(String, String) onSetPrayer;
+  final Function(String) onSetRoza;
+
+  const _TodaySection({
+    required this.lang,
+    required this.todayPrayers,
+    required this.todayRoza,
+    required this.prayerTimes,
+    required this.onSetPrayer,
+    required this.onSetRoza,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isBn = lang.isBn;
+    return Container(
+      wid

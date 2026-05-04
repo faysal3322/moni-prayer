@@ -443,7 +443,6 @@ class _ClockCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _timeRow(String icon, String label, String time) {
   Widget _timeRow(String icon, String label, String time) {
     return Row(
@@ -465,7 +464,6 @@ class _ClockCard extends StatelessWidget {
       ],
     );
   }
-
 class _PendingCard extends StatelessWidget {
   final String label, suffix;
   final int count;

@@ -47,7 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     widget.onChanged();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(widget.lang.isBn ? 'নাম সেভ হয়েছে' : 'Name saved'),
-      backgroundColor: AppTheme.completed));
+      backgroundColor: AppTheme.completed,
+    ));
   }
 
   void _setLang(String lang) {
@@ -60,6 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('hijri_adjust', val);
     setState(() => _hijriAdjust = val);
+    // Notify parent to rebuild so home page hijri date updates
     widget.onChanged();
   }
 
@@ -158,7 +160,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionTitle(isBn ? 'হিজরি তারিখ সংশোধন' : 'Hijri Date Adjustment'),
           const SizedBox(height: 4),
           Text(
-            isBn ? 'চাঁদ দেখার উপর নির্ভর করে ±১ দিন পরিবর্তন করুন' : 'Adjust ±1 day based on moon sighting',
+            isBn
+                ? 'বাংলাদেশে সাধারণত সৌদি আরব থেকে ১ দিন পিছিয়ে থাকে (ডিফল্ট)। চাঁদ দেখার উপর ভিত্তি করে ±১ দিন পরিবর্তন করুন।'
+                : 'Bangladesh is usually 1 day behind Saudi. Adjust ±1 day based on moon sighting.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -172,55 +176,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // -1 button
-                GestureDetector(
-                  onTap: () => _setHijriAdjust(_hijriAdjust > -1 ? _hijriAdjust - 1 : -1),
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: _hijriAdjust == -1 ? AppTheme.primary : AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.primary),
-                    ),
-                    child: const Center(child: Text('-1', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
-                  ),
-                ),
+                _adjustBtn('-1', -1),
                 const SizedBox(width: 16),
-                // 0 button
-                GestureDetector(
-                  onTap: () => _setHijriAdjust(0),
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: _hijriAdjust == 0 ? AppTheme.primary : AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.primary),
-                    ),
-                    child: Center(child: Text(isBn ? '০' : '0', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
-                  ),
-                ),
+                _adjustBtn('0', 0),
                 const SizedBox(width: 16),
-                // +1 button
-                GestureDetector(
-                  onTap: () => _setHijriAdjust(_hijriAdjust < 1 ? _hijriAdjust + 1 : 1),
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: _hijriAdjust == 1 ? AppTheme.primary : AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.primary),
-                    ),
-                    child: const Center(child: Text('+1', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
-                  ),
-                ),
+                _adjustBtn('+1', 1),
                 const SizedBox(width: 20),
-                Text(
-                  _hijriAdjust == 0
-                      ? (isBn ? 'স্বাভাবিক' : 'Normal')
-                      : _hijriAdjust == 1
-                          ? (isBn ? '১ দিন এগিয়ে' : '1 day ahead')
-                          : (isBn ? '১ দিন পিছিয়ে' : '1 day behind'),
-                  style: const TextStyle(color: AppTheme.gold, fontSize: 14, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    _hijriAdjust == 0
+                        ? (isBn ? 'স্বাভাবিক' : 'Normal')
+                        : _hijriAdjust == 1
+                            ? (isBn ? '১ দিন এগিয়ে' : '1 day ahead')
+                            : (isBn ? '১ দিন পিছিয়ে' : '1 day behind'),
+                    style: const TextStyle(color: AppTheme.gold, fontSize: 14, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),
@@ -234,7 +205,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionTitle(isBn ? 'ব্যাকআপ ও রিস্টোর' : 'Backup & Restore'),
           const SizedBox(height: 8),
           Text(
-            isBn ? 'আপনার সমস্ত ডেটা JSON ফাইলে সেভ করুন বা পুনরুদ্ধার করুন।' : 'Save or restore all your data as a JSON file.',
+            isBn
+                ? 'আপনার সমস্ত ডেটা JSON ফাইলে সেভ করুন বা পুনরুদ্ধার করুন।'
+                : 'Save or restore all your data as a JSON file.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -260,6 +233,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
           )),
         ],
+      ),
+    );
+  }
+
+  Widget _adjustBtn(String label, int val) {
+    final isSelected = _hijriAdjust == val;
+    return GestureDetector(
+      onTap: () => _setHijriAdjust(val),
+      child: Container(
+        width: 44, height: 44,
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary : AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppTheme.accent : AppTheme.primary.withOpacity(0.4)),
+        ),
+        child: Center(child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        )),
       ),
     );
   }

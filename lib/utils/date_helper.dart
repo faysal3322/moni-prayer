@@ -1,9 +1,16 @@
 import 'package:hijri/hijri_calendar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DateHelper {
-  // বাংলাদেশ/ভারতে হিজরি তারিখ সৌদি আরব থেকে ১ দিন পিছিয়ে
-  static String toHijri(DateTime date, {bool bangla = true, int extraAdjust = 0}) {
-    final adjustedDate = date.add(Duration(days: -1 + extraAdjust));
+  static Future<int> _getHijriAdjust() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('hijri_adjust') ?? 0;
+  }
+
+  static String toHijri(DateTime date, {bool bangla = true, int adjust = 0}) {
+    // বাংলাদেশে সৌদি থেকে ১ দিন পিছিয়ে, তারপর user adjust যোগ
+    final totalAdjust = -1 + adjust;
+    final adjustedDate = date.add(Duration(days: totalAdjust));
     final h = HijriCalendar.fromDate(adjustedDate);
 
     final monthsBn = [
@@ -23,6 +30,11 @@ class DateHelper {
     return '$day $monthName $year';
   }
 
+  static Future<String> toHijriWithUserAdjust(DateTime date, {bool bangla = true}) async {
+    final adjust = await _getHijriAdjust();
+    return toHijri(date, bangla: bangla, adjust: adjust);
+  }
+
   static String toBangla(DateTime date) {
     final bMonths = [
       'বৈশাখ','জ্যৈষ্ঠ','আষাঢ়','শ্রাবণ',
@@ -31,9 +43,6 @@ class DateHelper {
     ];
 
     final year = date.year;
-    final month = date.month;
-    final day = date.day;
-
     int bYear;
     int bMonth;
     int bDay;

@@ -228,40 +228,103 @@ class _HomeTabState extends State<_HomeTab> {
     final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
     final zawalEnd = pt.dhuhr;
     final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
-
-    if (now.isAfter(pt.sunrise) && now.isBefore(sunriseForbiddenEnd)) {
-      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় চলছে (সূর্যোদয়কালীন)' : 'Forbidden prayer time (sunrise)', 'color': AppTheme.missed});
-    } else if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
-      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় চলছে (দ্বিপ্রহর)' : 'Forbidden prayer time (noon)', 'color': AppTheme.missed});
-    } else if (now.isAfter(sunsetForbiddenStart) && now.isBefore(pt.maghrib)) {
-      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় চলছে (সূর্যাস্তকালীন)' : 'Forbidden prayer time (sunset)', 'color': AppTheme.missed});
-    }
-
-    final h = _HijriSimple.fromDate(now);
-    if (h >= 13 && h <= 15) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন! রোজা রাখুন।' : 'Today is Ayyam al-Beed! Please fast.', 'color': AppTheme.gold});
-    }
-
     final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
     final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));
-    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
-      alerts.add({'icon': '⭐', 'text': isBn ? 'এখন ইশরাকের নামাজের সময় চলছে (২-৪ রাকাত)' : 'Ishraq prayer time now (2-4 rakats)', 'color': const Color(0xFFFF8F00)});
-    }
-
-    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      alerts.add({'icon': '⭐', 'text': isBn ? 'এখন আওওয়াবিনের নামাজের সময় (৬-২০ রাকাত)' : 'Awwabin prayer time now (6-20 rakats)', 'color': const Color(0xFF26A69A)});
-    }
-
     final lastThird = _sunnahTimes?.lastThirdOfTheNight;
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '⭐', 'text': isBn ? 'এখন তাহাজ্জুদের সর্বোত্তম সময় চলছে!' : 'Best time for Tahajjud now!', 'color': const Color(0xFF7C4DFF)});
+
+    // ১. সেহরি সময় শেষ হতে কত বাকি
+    if (now.isBefore(pt.fajr)) {
+      final diff = pt.fajr.difference(now);
+      if (diff.inMinutes <= 60) {
+        alerts.add({'icon': '🍽️', 'text': isBn ? 'সেহরি শেষ হতে আর মাত্র ${diff.inMinutes} মিনিট বাকি!' : 'Only ${diff.inMinutes} min left for Sehri!', 'color': const Color(0xFF81C784)});
+      }
     }
 
+    // ২. ইফতার কত বাকি
+    if (now.isAfter(pt.fajr) && now.isBefore(pt.maghrib)) {
+      final diff = pt.maghrib.difference(now);
+      if (diff.inMinutes <= 30) {
+        alerts.add({'icon': '🌙', 'text': isBn ? 'ইফতার শুরু হতে আর মাত্র ${diff.inMinutes} মিনিট!' : 'Iftar in ${diff.inMinutes} minutes!', 'color': const Color(0xFF64B5F6)});
+      } else if (diff.inHours <= 2) {
+        alerts.add({'icon': '🌙', 'text': isBn ? 'ইফতার শুরু হতে বাকি ${diff.inHours} ঘন্টা ${diff.inMinutes % 60} মিনিট' : 'Iftar in ${diff.inHours}h ${diff.inMinutes % 60}m', 'color': const Color(0xFF64B5F6)});
+      }
+    }
+
+    // ৩. সূর্যোদয় হচ্ছে
+    if (now.isAfter(pt.sunrise.subtract(const Duration(minutes: 5))) && now.isBefore(pt.sunrise.add(const Duration(minutes: 5)))) {
+      alerts.add({'icon': '🌅', 'text': isBn ? 'এখন সূর্যোদয় হচ্ছে' : 'Sunrise is happening now', 'color': const Color(0xFFFFB300)});
+    }
+
+    // ৪. সূর্যাস্ত হচ্ছে
+    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 5))) && now.isBefore(pt.maghrib.add(const Duration(minutes: 5)))) {
+      alerts.add({'icon': '🌇', 'text': isBn ? 'এখন সূর্যাস্ত হচ্ছে — ইফতারের সময় শুরু হয়েছে!' : 'Sunset now — Iftar time has begun!', 'color': const Color(0xFFFF7043)});
+    }
+
+    // ৫. নামাজের নিষিদ্ধ সময়
+    if (now.isAfter(pt.sunrise) && now.isBefore(sunriseForbiddenEnd)) {
+      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় (সূর্যোদয়কালীন)' : 'Forbidden prayer time (sunrise)', 'color': AppTheme.missed});
+    } else if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
+      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় (দ্বিপ্রহর)' : 'Forbidden prayer time (noon)', 'color': AppTheme.missed});
+    } else if (now.isAfter(sunsetForbiddenStart) && now.isBefore(pt.maghrib)) {
+      alerts.add({'icon': '⛔', 'text': isBn ? 'এখন নামাজের নিষিদ্ধ সময় (সূর্যাস্তকালীন)' : 'Forbidden prayer time (sunset)', 'color': AppTheme.missed});
+    }
+
+    // ৬. ইশরাকের সময়
+    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
+      alerts.add({'icon': '⭐', 'text': isBn ? 'এখন ইশরাকের নামাজের সময় (২-৪ রাকাত) — হজ্জ-উমরার সওয়াব!' : 'Ishraq time now (2-4 rakats) — Hajj & Umrah reward!', 'color': const Color(0xFFFF8F00)});
+    }
+
+    // ৭. দুহা/চাশতের সময়
+    final chashtStart = pt.sunrise.add(const Duration(minutes: 45));
+    final chashtEnd = pt.dhuhr.subtract(const Duration(minutes: 10));
+    if (now.isAfter(chashtStart) && now.isBefore(chashtEnd)) {
+      alerts.add({'icon': '☀️', 'text': isBn ? 'এখন দুহা/চাশতের নামাজের সময় চলছে' : 'Duha/Chasht prayer time now', 'color': const Color(0xFFFDD835)});
+    }
+
+    // ৮. আওওয়াবিনের সময়
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      alerts.add({'icon': '⭐', 'text': isBn ? 'এখন আওওয়াবিনের নামাজের সময় (৬-২০ রাকাত)' : 'Awwabin prayer time (6-20 rakats)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ৯. তাহাজ্জুদের সময়
+    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'এখন তাহাজ্জুদের সর্বোত্তম সময়! আল্লাহ তায়ালা নিচের আসমানে নেমে আসেন।' : 'Best Tahajjud time! Allah descends to the lowest heaven.', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ১০. পরবর্তী নামাজ ১৫ মিনিটের মধ্যে
     final next = PrayerTimeHelper.getNextPrayer(pt);
     final remaining = PrayerTimeHelper.getTimeToNextPrayer(pt);
     if (next != null && remaining != null && remaining.inMinutes <= 15) {
-      final prayerNames = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
-      alerts.add({'icon': '🕌', 'text': isBn ? '${prayerNames[next]} নামাজের সময় হতে মাত্র ${remaining.inMinutes} মিনিট বাকি!' : '${prayerNames[next]} in ${remaining.inMinutes} min!', 'color': AppTheme.accent});
+      final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
+      alerts.add({'icon': '🕌', 'text': isBn ? '${names[next]} নামাজের সময় হতে মাত্র ${remaining.inMinutes} মিনিট বাকি!' : '${names[next]} in ${remaining.inMinutes} min!', 'color': AppTheme.accent});
+    }
+
+    // ১১. আইয়ামে বিজ
+    final h = _HijriSimple.fromDate(now);
+    if (h >= 13 && h <= 15) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.', 'color': AppTheme.gold});
+    } else if (h == 12) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা শুরু (১৩-১৫ তারিখ)' : 'Ayyam al-Beed starts tomorrow (13th-15th)', 'color': AppTheme.gold});
+    }
+
+    // ১২. জুমার দিন
+    if (now.weekday == DateTime.friday) {
+      alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — দরূদ পড়ুন ও দোয়া করুন, জুমার নামাজ আদায় করুন' : 'Today is Friday — Send Salawat, make dua, pray Jumu\'ah', 'color': AppTheme.accent});
+    }
+
+    // ১৩. সোমবার ও বৃহস্পতিবার রোজা মনে করিয়ে দেওয়া
+    if ((now.weekday == DateTime.monday || now.weekday == DateTime.thursday) && now.hour < 10) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজা রাখার দিন!' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Good day for Nafl fast!', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // যদি কোনো alert না থাকে তাহলে default info
+    if (alerts.isEmpty) {
+      final nextPrayer = PrayerTimeHelper.getNextPrayer(pt);
+      final rem = PrayerTimeHelper.getTimeToNextPrayer(pt);
+      if (nextPrayer != null && rem != null) {
+        final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
+        alerts.add({'icon': '🕌', 'text': isBn ? 'পরবর্তী নামাজ: ${names[nextPrayer]} — বাকি ${rem.inHours > 0 ? "${rem.inHours} ঘন্টা ${rem.inMinutes % 60} মিনিট" : "${rem.inMinutes} মিনিট"}' : 'Next: ${names[nextPrayer]} — in ${rem.inHours > 0 ? "${rem.inHours}h ${rem.inMinutes % 60}m" : "${rem.inMinutes}m"}', 'color': AppTheme.accent});
+      }
     }
 
     return alerts;

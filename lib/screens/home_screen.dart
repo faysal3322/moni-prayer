@@ -288,7 +288,20 @@ class _HomeTabState extends State<_HomeTab> {
 
     // ৯. তাহাজ্জুদের সময়
     if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'এখন তাহাজ্জুদের সর্বোত্তম সময়! আল্লাহ তায়ালা নিচের আসমানে নেমে আসেন।' : 'Best Tahajjud time! Allah descends to the lowest heaven.', 'color': const Color(0xFF7C4DFF)});
+      final remaining = pt.fajr.difference(now);
+      final fmt = remaining.inHours > 0
+          ? '${remaining.inHours} ঘন্টা ${remaining.inMinutes % 60} মিনিট'
+          : '${remaining.inMinutes} মিনিট';
+      final fmtEn = remaining.inHours > 0
+          ? '${remaining.inHours}h ${remaining.inMinutes % 60}m'
+          : '${remaining.inMinutes}m';
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn
+            ? 'এখন তাহাজ্জুদের সর্বোত্তম সময়! (${PrayerTimeHelper.formatTime(lastThird)} - ${PrayerTimeHelper.formatTime(pt.fajr)}) — ফজর হতে বাকি $fmt। আল্লাহ নিচের আসমানে নেমে আসেন — দোয়া করুন!'
+            : 'Best Tahajjud time! (${PrayerTimeHelper.formatTime(lastThird)} - ${PrayerTimeHelper.formatTime(pt.fajr)}) — $fmtEn until Fajr. Allah descends to lowest heaven — Make dua!',
+        'color': const Color(0xFF7C4DFF),
+      });
     }
 
     // ১০. পরবর্তী নামাজ ১৫ মিনিটের মধ্যে

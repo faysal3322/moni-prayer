@@ -461,6 +461,7 @@ class _ClockCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Left: 3 dates
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,30 +477,31 @@ class _ClockCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(width: 1, height: 85, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Container(width: 1, height: 95, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 12)),
+              // Right: সূর্যোদয়/সূর্যাস্ত ও সেহরি/ইফতার আলাদা করে
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // সূর্যোদয় — উজ্জ্বল কমলা
+                    // সূর্যোদয় ও সূর্যাস্ত — উজ্জ্বল কমলা
                     _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
                         sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--',
-                        const Color(0xFFFFB300)),
-                    const SizedBox(height: 6),
-                    // সূর্যাস্ত — উজ্জ্বল কমলা (একই রঙ)
+                        const Color(0xFFFFB300), bold: true),
+                    const SizedBox(height: 4),
                     _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
                         maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                        const Color(0xFFFFB300)),
-                    const SizedBox(height: 6),
-                    // সেহরি — উজ্জ্বল সবুজ
+                        const Color(0xFFFFB300), bold: true),
+
+                    const SizedBox(height: 8), // ফাঁকা দেওয়া
+
+                    // সেহরি ও ইফতার — উজ্জ্বল সবুজ
                     _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
                         fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--',
-                        const Color(0xFF00E676)),
-                    const SizedBox(height: 6),
-                    // ইফতার — উজ্জ্বল সবুজ (একই রঙ)
+                        const Color(0xFF00E676), bold: true),
+                    const SizedBox(height: 4),
                     _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
                         maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                        const Color(0xFF00E676)),
+                        const Color(0xFF00E676), bold: true),
                   ],
                 ),
               ),
@@ -510,12 +512,20 @@ class _ClockCard extends StatelessWidget {
     );
   }
 
-  Widget _timeRow(String icon, String label, String time, Color timeColor) {
+  Widget _timeRow(String icon, String label, String time, Color timeColor, {bool bold = false}) {
     return Row(children: [
       Text(icon, style: const TextStyle(fontSize: 13)),
       const SizedBox(width: 4),
-      Text('$label: ', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
-      Text(time, style: TextStyle(color: timeColor, fontSize: 13, fontWeight: FontWeight.bold)),
+      Text('$label: ', style: TextStyle(
+        color: timeColor.withOpacity(0.85),
+        fontSize: 13,
+        fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+      )),
+      Flexible(child: Text(time, style: TextStyle(
+        color: timeColor,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ), overflow: TextOverflow.ellipsis)),
     ]);
   }
 }

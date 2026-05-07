@@ -447,6 +447,11 @@ class _ClockCard extends StatelessWidget {
     final maghrib = prayerTimes?.maghrib;
     final fajr = prayerTimes?.fajr;
 
+    // সূর্যোদয়/সূর্যাস্ত — হিজরি তারিখের রঙ (gold)
+    const sunColor = AppTheme.gold;
+    // সেহরি/ইফতার — উজ্জ্বল সবুজ
+    const fastColor = Color(0xFF00E676);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -474,7 +479,7 @@ class _ClockCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: 3 dates
+              // বাম: ৩টি তারিখ
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,31 +495,29 @@ class _ClockCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(width: 1, height: 95, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 12)),
-              // Right: সূর্যোদয়/সূর্যাস্ত ও সেহরি/ইফতার আলাদা করে
+              Container(width: 1, height: 105, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+              // ডান: সূর্যোদয়/সূর্যাস্ত ও সেহরি/ইফতার
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // সূর্যোদয় ও সূর্যাস্ত — উজ্জ্বল কমলা
+                    // সূর্যোদয় — gold রঙ, মোটা
                     _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
-                        sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--',
-                        const Color(0xFFFFB300), bold: true),
-                    const SizedBox(height: 4),
+                        sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--', sunColor),
+                    const SizedBox(height: 3),
+                    // সূর্যাস্ত — gold রঙ, মোটা
                     _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
-                        maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                        const Color(0xFFFFB300), bold: true),
+                        maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', sunColor),
 
-                    const SizedBox(height: 8), // ফাঁকা দেওয়া
+                    const SizedBox(height: 8), // ফাঁকা
 
-                    // সেহরি ও ইফতার — উজ্জ্বল সবুজ
+                    // সেহরি — সবুজ রঙ, মোটা
                     _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
-                        fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--',
-                        const Color(0xFF00E676), bold: true),
-                    const SizedBox(height: 4),
+                        fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--', fastColor),
+                    const SizedBox(height: 3),
+                    // ইফতার — সবুজ রঙ, মোটা
                     _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
-                        maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                        const Color(0xFF00E676), bold: true),
+                        maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', fastColor),
                   ],
                 ),
               ),
@@ -525,21 +528,30 @@ class _ClockCard extends StatelessWidget {
     );
   }
 
-  Widget _timeRow(String icon, String label, String time, Color timeColor, {bool bold = false}) {
-    return Row(children: [
-      Text(icon, style: const TextStyle(fontSize: 13)),
-      const SizedBox(width: 4),
-      Text('$label: ', style: TextStyle(
-        color: timeColor.withOpacity(0.85),
-        fontSize: 13,
-        fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-      )),
-      Flexible(child: Text(time, style: TextStyle(
-        color: timeColor,
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-      ), overflow: TextOverflow.ellipsis)),
-    ]);
+  Widget _timeRow(String icon, String label, String time, Color color) {
+    return Row(
+      children: [
+        Text(icon, style: const TextStyle(fontSize: 12)),
+        const SizedBox(width: 3),
+        Flexible(
+          child: RichText(
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '$label ',
+                  style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                TextSpan(
+                  text: time,
+                  style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

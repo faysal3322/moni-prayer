@@ -325,9 +325,39 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — দরূদ পড়ুন ও দোয়া করুন, জুমার নামাজ আদায় করুন' : 'Today is Friday — Send Salawat, make dua, pray Jumu\'ah', 'color': AppTheme.accent});
     }
 
-    // ১৩. সোমবার ও বৃহস্পতিবার রোজা মনে করিয়ে দেওয়া
-    if ((now.weekday == DateTime.monday || now.weekday == DateTime.thursday) && now.hour < 10) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজা রাখার দিন!' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Good day for Nafl fast!', 'color': const Color(0xFF7C4DFF)});
+    // ১৩. সোমবার ও বৃহস্পতিবার রোজা — শুধু সেহরির আগে পর্যন্ত দেখাবে
+    final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
+    final prevDayFastDay = now.weekday == DateTime.tuesday || now.weekday == DateTime.friday;
+    final isBeforeFajr = now.isBefore(pt.fajr);
+    final isAfterMaghrib = now.isAfter(pt.maghrib);
+
+    if (isFastDay && isBeforeFajr) {
+      // রোজার দিন সেহরির আগে
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।'
+            : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day! Don\'t miss Sehri.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    } else if (prevDayFastDay && isAfterMaghrib) {
+      // আগের সন্ধ্যায় মনে করিয়ে দেওয়া
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আগামীকাল ${now.weekday == DateTime.tuesday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।'
+            : 'Tomorrow is ${now.weekday == DateTime.tuesday ? "Monday" : "Thursday"} — Nafl fast day! Prepare for Sehri.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // আইয়ামে বিজের আগের দিন সন্ধ্যায় ও রোজার দিন সেহরি পর্যন্ত
+    if (h == 12 && isAfterMaghrib) {
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা শুরু (১৩, ১৪, ১৫ তারিখ)! সেহরির প্রস্তুতি নিন।' : 'Ayyam al-Beed starts tomorrow (13th-15th)! Prepare for Sehri.',
+        'color': AppTheme.gold,
+      });
     }
 
     // যদি কোনো alert না থাকে তাহলে default info

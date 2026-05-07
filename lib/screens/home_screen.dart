@@ -173,6 +173,12 @@ class _HomeTabState extends State<_HomeTab> {
   void initState() {
     super.initState();
     _loadToday();
+    // প্রতি মিনিটে auto-qaza চেক
+    Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) _autoMarkQaza();
+    });
+    // শুরুতেও একবার চেক
+    Future.delayed(const Duration(seconds: 5), _autoMarkQaza);
     _loadHijri();
   }
 
@@ -217,6 +223,36 @@ class _HomeTabState extends State<_HomeTab> {
     widget.onRefresh();
   }
 
+  Future<void> _autoMarkQaza() async {
+    final pt = _prayerTimes;
+    if (pt == null) return;
+    final now = DateTime.now();
+    final dateKey = DateHelper.dateKey(now);
+    final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
+
+    final prayerEndTimes = {
+      'fajr': pt.dhuhr,       // ফজর শেষ হয় যোহরে
+      'dhuhr': pt.asr,        // যোহর শেষ হয় আসরে
+      'asr': pt.maghrib,      // আসর শেষ হয় মাগরিবে
+      'maghrib': pt.isha,     // মাগরিব শেষ হয় ইশায়
+      'isha': pt.fajr.add(const Duration(days: 1)), // ইশা শেষ হয় পরদিন ফজরে
+    };
+
+    for (final entry in prayerEndTimes.entries) {
+      final prayer = entry.key;
+      final endTime = entry.value;
+      final currentStatus = statuses[prayer];
+
+      // যদি নামাজের সময় শেষ হয়ে গেছে এবং কোনো status নেই
+      if (now.isAfter(endTime) && currentStatus == null) {
+        await DatabaseHelper.setPrayerStatus(dateKey, prayer, 'missed');
+      }
+    }
+
+    await _loadToday();
+    widget.onRefresh();
+  }
+  
   List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
     final isBn = lang.isBn;
     final now = DateTime.now();

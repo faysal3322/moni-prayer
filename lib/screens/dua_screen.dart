@@ -1,3 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../utils/app_theme.dart';
+import '../utils/app_language.dart';
+
 // Tab 1: দোয়া সমূহ
 class _DuaListTab extends StatefulWidget {
   final bool isBn;

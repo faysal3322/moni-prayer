@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'missed_list_screen.dart';
 import 'names_screen.dart';
 import 'nafl_screen.dart';
+import 'dua_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       CalendarScreen(lang: lang, onDataChanged: _loadCounts),
       NaflScreen(lang: lang),
+      DuaScreen(lang: lang),
       SummaryScreen(lang: lang),
       NamesScreen(lang: lang),
       SettingsScreen(lang: lang, onChanged: () {
@@ -133,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: lang.home),
             NavigationDestination(icon: const Icon(Icons.calendar_month_outlined), selectedIcon: const Icon(Icons.calendar_month), label: lang.calendar),
             NavigationDestination(icon: const Icon(Icons.mosque_outlined), selectedIcon: const Icon(Icons.mosque), label: isBn ? 'নামাজ' : 'Prayer'),
+            NavigationDestination(icon: const Icon(Icons.menu_book_outlined), selectedIcon: const Icon(Icons.menu_book), label: isBn ? 'দোয়া' : 'Dua'),
             NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), selectedIcon: const Icon(Icons.bar_chart), label: lang.summary),
             NavigationDestination(icon: const Icon(Icons.auto_stories_outlined), selectedIcon: const Icon(Icons.auto_stories), label: isBn ? '৯৯ নাম' : '99 Names'),
             NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: lang.settings),

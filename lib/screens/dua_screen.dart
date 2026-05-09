@@ -798,7 +798,7 @@ class _PlaceCardState extends State<_PlaceCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: const Color(0xFF2E7D32).withOpacity(0.4),

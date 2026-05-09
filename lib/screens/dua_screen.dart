@@ -629,25 +629,242 @@ class _DuaTimeTabState extends State<_DuaTimeTab> {
 }
 
 // ═══════════════════════════════════════════
-// Tab 3: দোয়ার স্থান (placeholder)
+// Tab 3: দোয়ার স্থান
 class _DuaPlaceTab extends StatelessWidget {
   final bool isBn;
   const _DuaPlaceTab({required this.isBn});
 
+  static const List<Map<String, String>> _places = [
+    {
+      'title': 'হারাম শরিফ',
+      'desc': 'হারাম শরিফের সীমা বায়তুল্লাহর পশ্চিমে জেদ্দার পথে শুআইদিয়া পর্যন্ত ১০ মাইল, পূর্বে জেরুসালেমের পথে ৯ মাইল, দক্ষিণে তায়েফের পথে ৭ মাইল এবং উত্তরে মদিনা শরিফের পথে ৫ মাইল। এটি ইবাদতের সর্বশ্রেষ্ঠ স্থান এবং দোয়া কবুলের সর্বোত্তম জায়গা।',
+      'icon': '🕌',
+    },
+    {
+      'title': 'মসজিদুল হারাম',
+      'desc': 'মসজিদুল হারাম হলো কাবা শরিফের চারদিকের বৃত্তাকার মসজিদ। এটি পৃথিবীর সর্বশ্রেষ্ঠ মসজিদ। এখানে দোয়া কবুল হয়।',
+      'icon': '🕋',
+    },
+    {
+      'title': 'কাবা শরিফ',
+      'desc': 'মসজিদুল হারামের কেন্দ্রস্থলে অবস্থিত কৃষ্ণ বর্ণের চতুষ্কোণ আয়তাকার গৃহটিই হলো কাবা শরিফ। কাবা হলো আল্লাহর ঘর এবং মুসলিম জাতির কিবলা। কাবাঘরের ওপর যখন নজর পড়ে, তখন দোয়া কবুল হয়।',
+      'icon': '🕋',
+    },
+    {
+      'title': 'মিজাবে রহমত',
+      'desc': 'কাবাঘরের ছাদের পানি পড়ার জন্য উত্তর পাশে হাতিমের ভেতরে মাঝখান বরাবর একটি সোনার পরনালা রয়েছে। একে মিজাবে রহমত বলে। এটি দোয়া কবুলের স্থান।',
+      'icon': '✨',
+    },
+    {
+      'title': 'হাতিম',
+      'desc': 'কাবাঘর–সংলগ্ন উত্তর দিকে অর্ধবৃত্তাকার দেয়ালঘেরা স্থানকে হাতিম বলা হয়। এই স্থানটুকু আগে কাবাঘরের অন্তর্ভুক্ত ছিল। তাই এখানে নামাজ পড়া মানে কাবার ভেতরে নামাজ পড়া। এটা দোয়া কবুলের সর্বোত্তম স্থান।',
+      'icon': '🌙',
+    },
+    {
+      'title': 'হাজরে আসওয়াদ',
+      'desc': 'কাবাঘরের দক্ষিণ-পূর্ব কোণে দেয়ালে লাগানো জান্নাতি পাথর। এখান থেকে তাওয়াফ শুরু ও শেষ করতে হয়। হাজরে আসওয়াদ চুম্বনে গুনাহ মাফ হয়। ইশারায়ও চুম্বন করা যায়। এটি দোয়া কবুলের স্থান।',
+      'icon': '🪨',
+    },
+    {
+      'title': 'কাবা শরিফের রোকনসমূহ',
+      'desc': 'কাবাঘরের প্রতিটি কোণকে রোকন বলা হয়। দক্ষিণ-পূর্ব কোণে হাজরে আসওয়াদ, উত্তর-পূর্ব কোণ রোকনে ইরাকি, উত্তর-পশ্চিম কোণ রোকনে শামি এবং দক্ষিণ-পশ্চিম কোণ রোকনে ইয়ামানি। এর প্রতিটি কোণ দোয়া কবুলের স্থান।',
+      'icon': '📐',
+    },
+    {
+      'title': 'রোকনে ইয়ামানি ও হাজরে আসওয়াদের মধ্যস্থল',
+      'desc': 'তাওয়াফের প্রতি চক্করে এই স্থানে পড়তে হয়: "রাব্বানা আতিনা ফিদ দুনিয়া হাছানা, ওয়া ফিল আখিরাতি হাছানা; ওয়া কি না আযাবান নার।" হে আল্লাহ, আমাদের দুনিয়াতে ও আখেরাতে কল্যাণ দিন এবং দোজখের আগুন থেকে রক্ষা করুন। (সুরা বাকারা: ২০১)',
+      'icon': '🤲',
+    },
+    {
+      'title': 'মাতাফ',
+      'desc': 'মাতাফ অর্থাৎ তাওয়াফ করার স্থান। কাবা শরিফের চতুর্দিকে তাওয়াফের জন্য খোলা স্থানটিই হলো মাতাফ। এখানে দোয়া কবুল হয়।',
+      'icon': '🔄',
+    },
+    {
+      'title': 'মাকামে ইবরাহিম',
+      'desc': 'কাবা শরিফের পূর্ব দিকে মাতাফ সংলগ্ন যে প্রস্তরখণ্ড সংরক্ষিত আছে, তার ওপর দাঁড়িয়ে হজরত ইবরাহিম (আ.) কাবাঘরের প্রাচীর গাঁথতেন। প্রতি তাওয়াফের পর এখানে দুই রাকাত নামাজ আদায় করতে হয়। এখানে দোয়া কবুল হয়।',
+      'icon': '🪵',
+    },
+    {
+      'title': 'সাফা পাহাড়',
+      'desc': 'কাবা শরিফের পূর্ব পাশের নিকটতম পাহাড়। সাফা পাহাড়ে উঠে কাবাঘরের দিকে মুখ ফিরিয়ে নিয়ত করে সায়ি শুরু করতে হয়। এটাও দোয়া কবুলের জায়গা।',
+      'icon': '⛰️',
+    },
+    {
+      'title': 'মারওয়া পাহাড়',
+      'desc': 'মসজিদুল হারাম শরিফ থেকে ৪৫০ মিটার পশ্চিম-উত্তর দিকে মারওয়া পাহাড় অবস্থিত। এটাও দোয়া কবুলের জায়গা। সায়ির সময় প্রতিবার মারওয়া পর্বতে দোয়া করতে হয়।',
+      'icon': '⛰️',
+    },
+    {
+      'title': 'জমজম',
+      'desc': 'পবিত্র কাবাঘরের পূর্ব দিকে মসজিদুল হারাম শরিফ চত্বরেই জমজম কূপ অবস্থিত। এটি জগতের সবচেয়ে সুপেয় পানির উৎস। এটা দোয়া কবুলের অন্যতম একটি স্থান।',
+      'icon': '💧',
+    },
+    {
+      'title': 'মাসআ',
+      'desc': 'সাফা ও মারওয়া এই দুই পাহাড়ের মধ্যস্থলে বিবি হাজেরা (আ.) তার শিশুপুত্র ইসমাইল (আ.)-এর পানীয়ের সন্ধানে ছোটাছুটি করেছিলেন। হাজিদের এই দুই পাহাড়ের মধ্যে সাতবার যাওয়া-আসা করতে হয়, একে সায়ি বলা হয়। এটিও দোয়া কবুলের জায়গা।',
+      'icon': '🚶',
+    },
+    {
+      'title': 'আরাফাত',
+      'desc': 'আরাফাত ময়দানে হজরত আদম (আ.) ও হাওয়া (আ.)-এর পুনর্মিলন হয় এবং তাঁরা স্বীয় ভুলের জন্য আল্লাহর দরবারে মোনাজাত করেন এবং ওই মোনাজাত কবুল হয়। হাজিরা এই স্থানে সমবেত হয়ে দোয়া করেন। (সুরা আরাফ: ২৩)',
+      'icon': '🌅',
+    },
+    {
+      'title': 'জাবালে রহমত',
+      'desc': 'দয়ার পাহাড়, এই পাহাড় আরাফাত ময়দানে অবস্থিত। এর উচ্চতা ৩০০ ফুট। এর উপরিভাগে একটি শুভ্র স্তম্ভ আছে, যেখান থেকে রাসূল (সা.) বিদায় হজের ভাষণ দিয়েছিলেন। এখানে বাবা আদম (আ.) ও মা হাওয়া (আ.)-এর দোয়া কবুল হয়।',
+      'icon': '🏔️',
+    },
+    {
+      'title': 'মুজদালিফা',
+      'desc': 'মুজদালিফার ময়দানে বাবা আদম (আ.) ও মা হাওয়া (আ.)-এর প্রথম একত্রে রাত্রিবাস হয়েছিল। আরাফাতের দিবস শেষে সূর্যাস্তের পর এখানে এসে হাজিদের রাতযাপন করতে হয়। এখান থেকে শয়তানকে মারার জন্য ৭০টি কঙ্কর নিতে হয়। এখানে দোয়া কবুল হয়।',
+      'icon': '🌃',
+    },
+    {
+      'title': 'মিনা',
+      'desc': 'আল্লাহর আদেশে হজরত ইবরাহিম (আ.) স্বীয় পুত্র হজরত ইসমাইল (আ.)-কে কোরবানির জন্য যে স্থানে নিয়ে গিয়েছিলেন, সেই স্থানের নাম মিনা। মক্কা শরিফ থেকে মিনা পাঁচ কিলোমিটার দূরত্বে অবস্থিত। হজের আগের দিন ও পরে চার দিন তাঁবুতে অবস্থান করতে হয়। এখানে দোয়া কবুল হয়।',
+      'icon': '⛺',
+    },
+    {
+      'title': 'মসজিদে নামিরা',
+      'desc': 'আরাফাতের দিনে এখান থেকে হজের ভাষণ দেওয়া হয়। এই দিন এখানে জোহর ও আসরের নামাজ একত্রে জোহরের ওয়াক্তে পড়তে হয়। এখানে দোয়া কবুল হয়।',
+      'icon': '🕌',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('📍', style: TextStyle(fontSize: 60)),
-          const SizedBox(height: 16),
-          Text(
-            isBn ? 'দোয়ার স্থান\nশীঘ্রই আসছে...' : 'Dua Places\nComing soon...',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
-            textAlign: TextAlign.center,
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B5E20).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF388E3C), width: 1),
           ),
-        ],
+          child: const Text(
+            '💡 দোয়ার সময় বেশি বেশি কান্নাকাটি করার চেষ্টা করবেন। আল্লাহর দিকে মনোযোগী হয়ে দোয়া করবেন। দোয়া আরবিতেই করতে হবে এমন জরুরি নয়— আপনার ভাষায় আপনার সব চাওয়া-পাওয়া আল্লাহর কাছে তুলে ধরুন।',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: _places.length,
+            itemBuilder: (context, index) {
+              final place = _places[index];
+              return _PlaceCard(
+                icon: place['icon']!,
+                title: place['title']!,
+                description: place['desc']!,
+                index: index + 1,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlaceCard extends StatefulWidget {
+  final String icon;
+  final String title;
+  final String description;
+  final int index;
+
+  const _PlaceCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.index,
+  });
+
+  @override
+  State<_PlaceCard> createState() => _PlaceCardState();
+}
+
+class _PlaceCardState extends State<_PlaceCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF2E7D32).withOpacity(0.4),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => setState(() => _expanded = !_expanded),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.icon,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${widget.index}. ${widget.title}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppTheme.textSecondary,
+                    size: 20,
+                  ),
+                ],
+              ),
+              if (_expanded) ...[
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFF2E7D32)),
+                const SizedBox(height: 10),
+                Text(
+                  widget.description,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

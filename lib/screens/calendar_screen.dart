@@ -20,12 +20,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDay;
   Map<String, String> _dayStatuses = {};
 
-  // Bulk entry
   Set<String> _selectedBulkPrayers = {};
   bool _bulkRoza = false;
   Set<DateTime> _bulkSelectedDates = {};
 
-  // Summary
   Map<String, dynamic> _summaryData = {};
   String _summaryFilter = 'all';
 
@@ -111,7 +109,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               : 'Mark selected prayers/fasting as Qaza for ${_bulkSelectedDates.length} days?',
           style: const TextStyle(color: AppTheme.textPrimary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(widget.lang.isBn ? 'না' : 'No')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(widget.lang.isBn ? 'না' : 'No')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.missed),
@@ -157,8 +157,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (_) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: Text(widget.lang.isBn ? 'সাল ও মাস নির্বাচন' : 'Select Year & Month',
-              style: const TextStyle(color: AppTheme.gold)),
+          title: Text(
+            widget.lang.isBn ? 'সাল ও মাস নির্বাচন' : 'Select Year & Month',
+            style: const TextStyle(color: AppTheme.gold)),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
@@ -167,8 +168,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(onPressed: () => setDialogState(() => selectedYear--),
-                        icon: const Icon(Icons.chevron_left, color: AppTheme.gold)),
+                    IconButton(
+                      onPressed: () => setDialogState(() => selectedYear--),
+                      icon: const Icon(Icons.chevron_left, color: AppTheme.gold)),
                     GestureDetector(
                       onTap: () async {
                         final years = List.generate(50, (i) => DateTime.now().year - 49 + i);
@@ -176,17 +178,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           context: context,
                           builder: (_) => AlertDialog(
                             backgroundColor: AppTheme.cardBg,
-                            title: Text(widget.lang.isBn ? 'সাল নির্বাচন' : 'Select Year',
-                                style: const TextStyle(color: AppTheme.gold)),
+                            title: Text(
+                              widget.lang.isBn ? 'সাল নির্বাচন' : 'Select Year',
+                              style: const TextStyle(color: AppTheme.gold)),
                             content: SizedBox(
                               height: 300, width: double.maxFinite,
                               child: ListView.builder(
                                 itemCount: years.length,
                                 itemBuilder: (_, i) => ListTile(
-                                  title: Text(years[i].toString(), style: TextStyle(
-                                    color: years[i] == selectedYear ? AppTheme.gold : AppTheme.textPrimary,
-                                    fontWeight: years[i] == selectedYear ? FontWeight.bold : FontWeight.normal,
-                                  ), textAlign: TextAlign.center),
+                                  title: Text(years[i].toString(),
+                                    style: TextStyle(
+                                      color: years[i] == selectedYear ? AppTheme.gold : AppTheme.textPrimary,
+                                      fontWeight: years[i] == selectedYear ? FontWeight.bold : FontWeight.normal),
+                                    textAlign: TextAlign.center),
                                   onTap: () => Navigator.pop(context, years[i]),
                                 ),
                               ),
@@ -196,21 +200,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         if (picked != null) setDialogState(() => selectedYear = picked);
                       },
                       child: Text(selectedYear.toString(),
-                          style: const TextStyle(color: AppTheme.gold, fontSize: 20, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
-                    IconButton(onPressed: () => setDialogState(() => selectedYear++),
-                        icon: const Icon(Icons.chevron_right, color: AppTheme.gold)),
+                    IconButton(
+                      onPressed: () => setDialogState(() => selectedYear++),
+                      icon: const Icon(Icons.chevron_right, color: AppTheme.gold)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3, childAspectRatio: 2.5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+                    crossAxisCount: 3, childAspectRatio: 2.5,
+                    crossAxisSpacing: 8, mainAxisSpacing: 8),
                   itemCount: 12,
                   itemBuilder: (_, i) {
-                    final monthsBn = ['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'];
-                    final monthsEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    final monthsBn = ['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন',
+                      'জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'];
+                    final monthsEn = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
                     final isSelected = i + 1 == selectedMonth;
                     return GestureDetector(
                       onTap: () => setDialogState(() => selectedMonth = i + 1),
@@ -218,13 +226,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         decoration: BoxDecoration(
                           color: isSelected ? AppTheme.primary : AppTheme.surface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isSelected ? AppTheme.accent : Colors.white12)),
+                          border: Border.all(
+                            color: isSelected ? AppTheme.accent : Colors.white12)),
                         child: Center(child: Text(
                           widget.lang.isBn ? monthsBn[i] : monthsEn[i],
                           style: TextStyle(
                             color: isSelected ? Colors.white : AppTheme.textPrimary,
-                            fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
-                        )),
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal))),
                       ),
                     );
                   },
@@ -233,9 +242,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context),
-                child: Text(widget.lang.isBn ? 'বাতিল' : 'Cancel',
-                    style: const TextStyle(color: AppTheme.textSecondary))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(widget.lang.isBn ? 'বাতিল' : 'Cancel',
+                style: const TextStyle(color: AppTheme.textSecondary))),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -275,7 +285,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
       ),
       body: Column(children: [
-        // Calendar
         TableCalendar(
           firstDay: DateTime(2000),
           lastDay: DateTime(2100),
@@ -292,12 +301,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
               setState(() => _focusedDay = focused);
               return;
             }
-            setState(() { _selectedDay = selected; _focusedDay = focused; });
+            setState(() {
+              _selectedDay = selected;
+              _focusedDay = focused;
+            });
             final allDates = _getAllDatesInYear(_focusedDay);
             final index = allDates.indexWhere((d) => isSameDay(d, selected));
             Navigator.push(context, MaterialPageRoute(
               builder: (_) => DayScreen(
-                date: selected, lang: widget.lang,
+                date: selected,
+                lang: widget.lang,
                 onDataChanged: () {
                   _loadMonthStatuses(_focusedDay);
                   _loadSummary();
@@ -319,16 +332,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
             selectedDecoration: BoxDecoration(
               color: _isBulkMode ? AppTheme.missed.withOpacity(0.7) : AppTheme.primary,
               shape: BoxShape.circle),
-            todayDecoration: BoxDecoration(border: Border.all(color: AppTheme.gold), shape: BoxShape.circle),
+            todayDecoration: BoxDecoration(
+              border: Border.all(color: AppTheme.gold),
+              shape: BoxShape.circle),
             todayTextStyle: const TextStyle(color: AppTheme.gold),
           ),
           headerStyle: HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
-            titleTextStyle: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16),
+            titleTextStyle: const TextStyle(
+              color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16),
             titleTextFormatter: (date, locale) {
-              final monthsBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-              final monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              final monthsBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন',
+                'জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+              final monthsEn = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
               final month = isBn ? monthsBn[date.month - 1] : monthsEn[date.month - 1];
               return '$month ${date.year}';
             },
@@ -347,31 +365,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
               final isBulkSelected = _bulkSelectedDates.any((d) => isSameDay(d, day));
               return GestureDetector(
                 onLongPressStart: _isBulkMode ? (_) {
-                  if (!day.isAfter(DateTime.now()) && !_bulkSelectedDates.any((d) => isSameDay(d, day))) {
+                  if (!day.isAfter(DateTime.now()) &&
+                      !_bulkSelectedDates.any((d) => isSameDay(d, day))) {
                     setState(() => _bulkSelectedDates.add(day));
                   }
                 } : null,
                 child: Container(
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: isBulkSelected ? AppTheme.missed.withOpacity(0.5)
+                    color: isBulkSelected
+                        ? AppTheme.missed.withOpacity(0.5)
                         : isFri ? AppTheme.friday
                         : isSat ? AppTheme.saturday
                         : Colors.transparent,
                     shape: BoxShape.circle,
-                    border: isBulkSelected ? Border.all(color: AppTheme.missed, width: 2) : null,
-                  ),
+                    border: isBulkSelected
+                        ? Border.all(color: AppTheme.missed, width: 2)
+                        : null),
                   child: Stack(alignment: Alignment.center, children: [
                     if (color != null)
                       Positioned(bottom: 4, child: Container(
                         width: 6, height: 6,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      )),
+                        decoration: BoxDecoration(color: color, shape: BoxShape.circle))),
                     Center(child: Text('${day.day}', style: TextStyle(
-                      color: isBulkSelected ? Colors.white : isFri ? AppTheme.accent : AppTheme.textPrimary,
+                      color: isBulkSelected ? Colors.white
+                          : isFri ? AppTheme.accent
+                          : AppTheme.textPrimary,
                       fontWeight: isFri || isBulkSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 13,
-                    ))),
+                      fontSize: 13))),
                   ]),
                 ),
               );
@@ -395,23 +416,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
         const Divider(color: Colors.white12),
 
-        // নিচের অংশ scroll করবে
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Bulk Qaza Section
+                // ══ Bulk Qaza ══
                 Row(children: [
                   const Icon(Icons.edit_calendar, color: AppTheme.gold, size: 20),
                   const SizedBox(width: 8),
                   Text(isBn ? 'বাল্ক কাযা এন্ট্রি' : 'Bulk Qaza Entry',
-                      style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15)),
+                    style: const TextStyle(
+                      color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15)),
                 ]),
                 const SizedBox(height: 6),
                 Text(
-                  isBn ? 'নামাজ/রোজা সিলেক্ট করুন → ক্যালেন্ডারে তারিখ ট্যাপ করুন' : 'Select prayers → Tap dates on calendar',
+                  isBn
+                      ? 'নামাজ/রোজা সিলেক্ট করুন → ক্যালেন্ডারে তারিখ ট্যাপ করুন'
+                      : 'Select prayers → Tap dates on calendar',
                   style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                 const SizedBox(height: 12),
 
@@ -422,33 +445,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       final isSelected = _selectedBulkPrayers.contains(prayer);
                       return GestureDetector(
                         onTap: () => setState(() {
-                          if (isSelected) { _selectedBulkPrayers.remove(prayer); }
-                          else { _selectedBulkPrayers.add(prayer); }
+                          if (isSelected) {
+                            _selectedBulkPrayers.remove(prayer);
+                          } else {
+                            _selectedBulkPrayers.add(prayer);
+                          }
                           _bulkSelectedDates.clear();
                         }),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
                             color: isSelected ? AppTheme.missed : AppTheme.cardBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: isSelected ? AppTheme.missed : AppTheme.primary.withOpacity(0.4))),
-                          child: Text(_prayerDisplayName(prayer), style: TextStyle(
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppTheme.missed
+                                  : AppTheme.primary.withOpacity(0.4))),
+                          child: Text(_prayerDisplayName(prayer),
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : AppTheme.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal)),
                         ),
                       );
                     }),
                     GestureDetector(
-                      onTap: () => setState(() { _bulkRoza = !_bulkRoza; _bulkSelectedDates.clear(); }),
+                      onTap: () => setState(() {
+                        _bulkRoza = !_bulkRoza;
+                        _bulkSelectedDates.clear();
+                      }),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: _bulkRoza ? AppTheme.missed : AppTheme.cardBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _bulkRoza ? AppTheme.missed : AppTheme.primary.withOpacity(0.4))),
-                        child: Text(widget.lang.roza, style: TextStyle(
-                          color: _bulkRoza ? Colors.white : AppTheme.textPrimary,
-                          fontWeight: _bulkRoza ? FontWeight.bold : FontWeight.normal)),
+                          border: Border.all(
+                            color: _bulkRoza
+                                ? AppTheme.missed
+                                : AppTheme.primary.withOpacity(0.4))),
+                        child: Text(widget.lang.roza,
+                          style: TextStyle(
+                            color: _bulkRoza ? Colors.white : AppTheme.textPrimary,
+                            fontWeight: _bulkRoza
+                                ? FontWeight.bold
+                                : FontWeight.normal)),
                       ),
                     ),
                   ],
@@ -462,28 +505,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       color: AppTheme.missed.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.missed.withOpacity(0.4))),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(
-                        isBn ? 'সিলেক্ট করা: ${_bulkSelectedDates.length} দিন' : 'Selected: ${_bulkSelectedDates.length} days',
-                        style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        Expanded(child: OutlinedButton(
-                          onPressed: () => setState(() {
-                            _bulkSelectedDates.clear(); _selectedBulkPrayers.clear(); _bulkRoza = false;
-                          }),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24)),
-                          child: Text(isBn ? 'বাতিল' : 'Cancel',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isBn
+                              ? 'সিলেক্ট করা: ${_bulkSelectedDates.length} দিন'
+                              : 'Selected: ${_bulkSelectedDates.length} days',
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Expanded(child: OutlinedButton(
+                            onPressed: () => setState(() {
+                              _bulkSelectedDates.clear();
+                              _selectedBulkPrayers.clear();
+                              _bulkRoza = false;
+                            }),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24)),
+                            child: Text(isBn ? 'বাতিল' : 'Cancel',
                               style: const TextStyle(color: AppTheme.textSecondary)),
-                        )),
-                        const SizedBox(width: 12),
-                        Expanded(child: ElevatedButton(
-                          onPressed: _bulkSelectedDates.isNotEmpty ? _applyBulkQaza : null,
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.missed),
-                          child: Text(isBn ? 'কাযা করুন' : 'Mark Qaza'),
-                        )),
-                      ]),
-                    ]),
+                          )),
+                          const SizedBox(width: 12),
+                          Expanded(child: ElevatedButton(
+                            onPressed: _bulkSelectedDates.isNotEmpty
+                                ? _applyBulkQaza
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.missed),
+                            child: Text(isBn ? 'কাযা করুন' : 'Mark Qaza'),
+                          )),
+                        ]),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -491,16 +546,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 const Divider(color: Colors.white24, thickness: 1),
                 const SizedBox(height: 8),
 
-                // ══ Summary Section ══
+                // ══ Summary ══
                 Row(children: [
                   const Icon(Icons.bar_chart, color: AppTheme.gold, size: 22),
                   const SizedBox(width: 8),
                   Text(isBn ? 'সারসংক্ষেপ' : 'Summary',
-                      style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: const TextStyle(
+                      color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
                 ]),
                 const SizedBox(height: 12),
 
-                // Filter buttons
                 Row(children: [
                   _filterBtn(isBn ? 'সব সময়' : 'All Time', 'all'),
                   const SizedBox(width: 8),
@@ -510,7 +565,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ]),
                 const SizedBox(height: 14),
 
-                // নামাজ হিসাব
                 _statCard(
                   icon: '🕌',
                   title: isBn ? 'নামাজ হিসাব' : 'Prayer Stats',
@@ -522,7 +576,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // রোজা হিসাব
                 _statCard(
                   icon: '🌙',
                   title: isBn ? 'রোজা হিসাব' : 'Fasting Stats',
@@ -553,7 +606,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primary : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isSelected ? AppTheme.accent : Colors.white12)),
+          border: Border.all(
+            color: isSelected ? AppTheme.accent : Colors.white12)),
         child: Text(label, style: TextStyle(
           color: isSelected ? Colors.white : AppTheme.textSecondary,
           fontSize: 12, fontWeight: FontWeight.bold)),
@@ -561,40 +615,58 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _statCard({required String icon, required String title, required Color color,
-      required bool isBn, required int missed, required int prayed, required int pending}) {
+  Widget _statCard({
+    required String icon,
+    required String title,
+    required Color color,
+    required bool isBn,
+    required int missed,
+    required int prayed,
+    required int pending,
+  }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withOpacity(0.3))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Text(icon, style: const TextStyle(fontSize: 18)),
-          const SizedBox(width: 8),
-          Text(title, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold)),
-        ]),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: _statItem(isBn ? 'মোট মিস' : 'Missed', missed.toString(), AppTheme.missed)),
-          Expanded(child: _statItem(isBn ? 'মোট আদায়' : 'Prayed', prayed.toString(), AppTheme.completed)),
-          Expanded(child: _statItem(isBn ? 'বাকি' : 'Pending', pending.toString(), AppTheme.pending)),
-        ]),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text(icon, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Text(title, style: TextStyle(
+              color: color, fontSize: 15, fontWeight: FontWeight.bold)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _statItem(
+              isBn ? 'মোট মিস' : 'Missed', missed, AppTheme.missed)),
+            Expanded(child: _statItem(
+              isBn ? 'মোট আদায়' : 'Prayed', prayed, AppTheme.completed)),
+            Expanded(child: _statItem(
+              isBn ? 'বাকি' : 'Pending', pending, AppTheme.pending)),
+          ]),
+        ],
+      ),
     );
   }
 
-  Widget _statItem(String label, String value, Color color) {
+  Widget _statItem(String label, int value, Color color) {
     return Column(children: [
-      Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
-      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+      Text(value.toString(),
+        style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+      Text(label,
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
     ]);
   }
 
   Widget _legend(Color color, String label) {
     return Row(children: [
-      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      Container(
+        width: 10, height: 10,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
       const SizedBox(width: 4),
       Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
     ]);

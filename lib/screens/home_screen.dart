@@ -211,7 +211,8 @@ class _HomeTabState extends State<_HomeTab> {
     final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
     bool changed = false;
 
-    final waqts = {
+    // প্রতিটি নামাজের ওয়াক্ত শুরু ও শেষ
+    final waqts = <String, Map<String, DateTime>>{
       'fajr':    {'start': pt.fajr,    'end': pt.sunrise},
       'dhuhr':   {'start': pt.dhuhr,   'end': pt.asr},
       'asr':     {'start': pt.asr,     'end': pt.maghrib},
@@ -221,15 +222,28 @@ class _HomeTabState extends State<_HomeTab> {
 
     for (final entry in waqts.entries) {
       final prayer = entry.key;
-      final start = entry.value['start'] as DateTime;
-      final end = entry.value['end'] as DateTime;
+      final start = entry.value['start']!;
+      final end = entry.value['end']!;
       final currentStatus = statuses[prayer];
 
-      // ওয়াক্ত শুরু হয়েছে AND শেষ হয়েছে AND কোনো status নেই
+      // শর্ত ৩টি একসাথে পূরণ হলেই কাযা হবে:
+      // ১. ওয়াক্ত শুরু হয়েছে (এখন start এর পরে)
+      // ২. ওয়াক্ত শেষ হয়েছে (এখন end এর পরে)
+      // ৩. আদায় দেওয়া হয়নি (status null)
       if (now.isAfter(start) && now.isAfter(end) && currentStatus == null) {
         await DatabaseHelper.setPrayerStatus(dateKey, prayer, 'missed');
         changed = true;
       }
+    }
+
+    // আগের দিনের ইশা চেক — যদি গতকালের ইশা আদায় না হয়
+    // এবং এখন ফজরের ওয়াক্ত চলছে তাহলে গতকালের ইশা কাযা করো
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayKey = DateHelper.dateKey(yesterday);
+    final yesterdayStatuses = await DatabaseHelper.getDayPrayerStatuses(yesterdayKey);
+    if (yesterdayStatuses['isha'] == null && now.isAfter(pt.fajr)) {
+      await DatabaseHelper.setPrayerStatus(yesterdayKey, 'isha', 'missed');
+      changed = true;
     }
 
     if (changed) {

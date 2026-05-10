@@ -3,6 +3,84 @@ import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 
+class DuaScreen extends StatefulWidget {
+  final AppLanguage lang;
+  const DuaScreen({super.key, required this.lang});
+
+  @override
+  State<DuaScreen> createState() => _DuaScreenState();
+}
+
+class _DuaScreenState extends State<DuaScreen> {
+  int _tabIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBn = widget.lang.isBn;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isBn ? 'দোয়া' : 'Dua'),
+      ),
+      body: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.cardBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                _tabBtn(0, '🤲', isBn ? 'দোয়া' : 'Duas', isBn),
+                _tabBtn(1, '⏰', isBn ? 'দোয়ার সময়' : 'Dua Times', isBn),
+                _tabBtn(2, '📍', isBn ? 'দোয়ার স্থান' : 'Dua Places', isBn),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _tabIndex == 0
+                ? _DuaListTab(isBn: isBn)
+                : _tabIndex == 1
+                    ? _DuaTimeTab(isBn: isBn)
+                    : _DuaPlaceTab(isBn: isBn),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabBtn(int index, String icon, String label, bool isBn) {
+    final isSelected = _tabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _tabIndex = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 18)),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Tab 1: দোয়া সমূহ
 class _DuaListTab extends StatefulWidget {
   final bool isBn;

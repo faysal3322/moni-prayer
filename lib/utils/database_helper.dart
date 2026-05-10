@@ -107,23 +107,15 @@ class DatabaseHelper {
 
   static Future<Map<String, int>> getRozaPendingCount() async {
     final db = await database;
-    // মোট missed রোজা
     final missedResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'missed'");
-    // মোট prayed রোজা (যেগুলো আদায় করা হয়েছে)
     final prayedResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'prayed'");
-
     final totalMissed = Sqflite.firstIntValue(missedResult) ?? 0;
     final totalPrayed = Sqflite.firstIntValue(prayedResult) ?? 0;
-
-    // বাকি = মোট missed - মোট prayed (কারণ missed দিনগুলো পরে আদায় করলে prayed হয়)
-    // কিন্তু একই দিনে missed থাকলে সেটা pending
-    // সঠিক হিসাব: missed status এর count = pending roza
     final pendingResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM roza_records WHERE status = 'missed'");
     final pending = Sqflite.firstIntValue(pendingResult) ?? 0;
-
     return {'missed': totalMissed, 'prayed': totalPrayed, 'pending': pending};
   }
 
@@ -189,5 +181,55 @@ class DatabaseHelper {
     for (final r in data['roza_records'] as List) {
       await db.insert('roza_records', Map<String, dynamic>.from(r));
     }
+  }
+
+  // সারসংক্ষেপের জন্য সব stats একসাথে
+  static Future<Map<String, dynamic>> getSummaryStats({String filter = 'all'}) async {
+    final db = await database;
+    final now = DateTime.now();
+
+    List<Map> prayerRows;
+    List<Map> rozaRows;
+
+    if (filter == 'year') {
+      prayerRows = await db.rawQuery(
+          "SELECT status FROM prayer_records WHERE date LIKE '${now.year}%'");
+      rozaRows = await db.rawQuery(
+          "SELECT status FROM roza_records WHERE date LIKE '${now.year}%'");
+    } else if (filter == 'month') {
+      final month = now.month.toString().padLeft(2, '0');
+      prayerRows = await db.rawQuery(
+          "SELECT status FROM prayer_records WHERE date LIKE '${now.year}-$month%'");
+      rozaRows = await db.rawQuery(
+          "SELECT status FROM roza_records WHERE date LIKE '${now.year}-$month%'");
+    } else {
+      prayerRows = await db.rawQuery("SELECT status FROM prayer_records");
+      rozaRows = await db.rawQuery("SELECT status FROM roza_records");
+    }
+
+    int pMissed = 0, pPrayed = 0, pPending = 0;
+    for (final row in prayerRows) {
+      final s = row['status'] as String? ?? '';
+      if (s == 'missed') pMissed++;
+      else if (s == 'prayed') pPrayed++;
+      else pPending++;
+    }
+
+    int rMissed = 0, rPrayed = 0, rPending = 0;
+    for (final row in rozaRows) {
+      final s = row['status'] as String? ?? '';
+      if (s == 'missed') rMissed++;
+      else if (s == 'prayed') rPrayed++;
+      else rPending++;
+    }
+
+    return {
+      'prayer_missed': pMissed,
+      'prayer_prayed': pPrayed,
+      'prayer_pending': pPending,
+      'roza_missed': rMissed,
+      'roza_prayed': rPrayed,
+      'roza_pending': rPending,
+    };
   }
 }

@@ -293,40 +293,32 @@ class _HomeTabState extends State<_HomeTab> {
     final h = _HijriSimple.fromDate(now);
 
     // ১. সেহরি শেষ হতে কত বাকি
-    if (now.isBefore(pt.fajr)) {
-      final diff = pt.fajr.difference(now);
-      if (diff.inMinutes <= 60) {
+    if (diff.inMinutes <= 90) {
+        final h = diff.inHours.toString().padLeft(2, '0');
+        final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
+        final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
         alerts.add({
           'icon': '🍽️',
           'text': isBn
-              ? 'সেহরি শেষ হতে আর মাত্র ${diff.inMinutes} মিনিট বাকি! (শেষ সময়: ${_fmtTime(pt.fajr)})'
-              : 'Only ${diff.inMinutes} min left for Sehri! (Ends: ${_fmtTime(pt.fajr)})',
+              ? 'সেহরি শেষ হতে বাকি $h:$m:$s (শেষ সময়: ${_fmtTime(pt.fajr)})'
+              : 'Sehri ends in $h:$m:$s (${_fmtTime(pt.fajr)})',
           'color': const Color(0xFF81C784),
         });
       }
-    }
 
     // ২. ইফতার কত বাকি
-    if (now.isAfter(pt.fajr) && now.isBefore(pt.maghrib)) {
-      final diff = pt.maghrib.difference(now);
-      if (diff.inMinutes <= 30) {
+    if (diff.inMinutes <= 120) {
+        final h = diff.inHours.toString().padLeft(2, '0');
+        final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
+        final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
         alerts.add({
           'icon': '🌙',
           'text': isBn
-              ? 'ইফতার শুরু হতে আর মাত্র ${diff.inMinutes} মিনিট! (${_fmtTime(pt.maghrib)})'
-              : 'Iftar in ${diff.inMinutes} min! (${_fmtTime(pt.maghrib)})',
-          'color': const Color(0xFF64B5F6),
-        });
-      } else if (diff.inHours <= 2) {
-        alerts.add({
-          'icon': '🌙',
-          'text': isBn
-              ? 'ইফতার শুরু হতে বাকি ${diff.inHours} ঘন্টা ${diff.inMinutes % 60} মিনিট (${_fmtTime(pt.maghrib)})'
-              : 'Iftar in ${diff.inHours}h ${diff.inMinutes % 60}m (${_fmtTime(pt.maghrib)})',
+              ? 'ইফতার শুরু হতে বাকি $h:$m:$s (${_fmtTime(pt.maghrib)})'
+              : 'Iftar in $h:$m:$s (${_fmtTime(pt.maghrib)})',
           'color': const Color(0xFF64B5F6),
         });
       }
-    }
 
     // ৩. সূর্যোদয়
     if (now.isAfter(pt.sunrise.subtract(const Duration(minutes: 5))) && now.isBefore(pt.sunrise.add(const Duration(minutes: 5)))) {
@@ -373,24 +365,24 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
 
-    // ৬. ফজরের পর থেকে সূর্যোদয় পর্যন্ত নিষিদ্ধ
+    // ৬. ফজর ব্যতীত নিষিদ্ধ
     if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
       alerts.add({
         'icon': '⛔',
         'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — ফজরের পর (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})'
-            : 'Forbidden — After Fajr (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})',
+            ? 'নামাজের নিষিদ্ধ সময় — ফজর ব্যতীত (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})'
+            : 'Forbidden — Except Fajr (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})',
         'color': AppTheme.missed,
       });
     }
 
-    // ৭. আসরের পর থেকে মাগরিব পর্যন্ত নিষিদ্ধ
+    // ৭. আসর ব্যতীত নিষিদ্ধ
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib) && !now.isAfter(sunsetForbiddenStart)) {
       alerts.add({
         'icon': '⛔',
         'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — আসরের পর (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})'
-            : 'Forbidden — After Asr (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})',
+            ? 'নামাজের নিষিদ্ধ সময় — আসর ব্যতীত (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})'
+            : 'Forbidden — Except Asr (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})',
         'color': AppTheme.missed,
       });
     }
@@ -480,12 +472,13 @@ class _HomeTabState extends State<_HomeTab> {
         'color': AppTheme.gold,
       });
     }
-
-    // ১৪. সোমবার/বৃহস্পতিবার — শুধু সেহরির আগে বা আগের সন্ধ্যায়
+    // ১৪. সোমবারের আগের দিন = রবিবার, বৃহস্পতিবারের আগের দিন = বুধবার
     final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
-    final prevDayFastDay = now.weekday == DateTime.tuesday || now.weekday == DateTime.friday;
+    final prevDayIsSunday = now.weekday == DateTime.sunday;   // সোমবারের আগের দিন
+    final prevDayIsWed = now.weekday == DateTime.wednesday;   // বৃহস্পতিবারের আগের দিন
 
     if (isFastDay && now.isBefore(pt.fajr)) {
+      // রোজার দিন সেহরির আগে
       alerts.add({
         'icon': '🌿',
         'text': isBn
@@ -493,25 +486,48 @@ class _HomeTabState extends State<_HomeTab> {
             : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day! Don\'t miss Sehri.',
         'color': const Color(0xFF7C4DFF),
       });
-    } else if (prevDayFastDay && now.isAfter(pt.maghrib)) {
+    } else if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
+      // রবিবার সন্ধ্যায়: আগামীকাল সোমবার রোজা
       alerts.add({
         'icon': '🌿',
         'text': isBn
-            ? 'আগামীকাল ${now.weekday == DateTime.tuesday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।'
-            : 'Tomorrow is ${now.weekday == DateTime.tuesday ? "Monday" : "Thursday"} — Nafl fast day! Prepare for Sehri.',
+            ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।'
+            : 'Tomorrow is Monday — Nafl fast day! Prepare for Sehri.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    } else if (prevDayIsWed && now.isAfter(pt.maghrib)) {
+      // বুধবার সন্ধ্যায়: আগামীকাল বৃহস্পতিবার রোজা
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।'
+            : 'Tomorrow is Thursday — Nafl fast day! Prepare for Sehri.',
         'color': const Color(0xFF7C4DFF),
       });
     }
 
-    // ১৫. জুমার দিন
+    // ১৫. জুমার দিন — সময় অনুযায়ী
     if (now.weekday == DateTime.friday) {
-      alerts.add({
-        'icon': '🕌',
-        'text': isBn ? 'আজ জুমার দিন — দরূদ পড়ুন, দোয়া করুন, জুমার নামাজ আদায় করুন।' : 'Today is Friday — Send Salawat, make dua, pray Jumu\'ah.',
-        'color': AppTheme.accent,
-      });
+      // যোহরের আগে পর্যন্ত: জুমার নামাজের reminder
+      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn
+              ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।'
+              : 'Today is Friday — Pray Jumu\'ah. Send Salawat & make dua.',
+          'color': AppTheme.accent,
+        });
+      } else if (now.isBefore(pt.maghrib)) {
+        // দুপুর ১:৩০ এর পর থেকে মাগরিব পর্যন্ত: শুধু দরূদ ও দোয়া
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn
+              ? 'আজ জুমার দিন — বেশি বেশি দরূদ পড়ুন ও দোয়া করুন (${_fmtTime(pt.maghrib)} পর্যন্ত)'
+              : 'Friday — Send Salawat & make dua (until ${_fmtTime(pt.maghrib)})',
+          'color': AppTheme.accent,
+        });
+      }
     }
-
     // যদি কোনো alert না থাকে — পরবর্তী নামাজের সময় দেখাও
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

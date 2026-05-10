@@ -1083,3 +1083,10 @@ class _HijriSimple {
     return d + (153 * mo + 2) ~/ 5 + 365 * yr + yr ~/ 4 - yr ~/ 100 + yr ~/ 400 - 32045;
   }
 }
+
+// ═══════════════════════════════════════════
+class _WaqtRange {
+  final DateTime start;
+  final DateTime end;
+  const _WaqtRange({required this.start, required this.end});
+}

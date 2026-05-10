@@ -65,40 +65,35 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  DateTime? _lastBackPress;
+
   Future<bool> _onWillPop() async {
+    final now = DateTime.now();
+
+    // হোমে না থাকলে হোমে যাও
     if (_currentIndex != 0) {
       setState(() => _currentIndex = 0);
       return false;
     }
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: Text(
-          AppLanguage(_lang).isBn ? 'অ্যাপ বন্ধ করবেন?' : 'Exit App?',
-          style: const TextStyle(color: AppTheme.gold),
-        ),
+
+    // হোমে থাকলে: দুইবার back চাপলে বন্ধ হবে
+    if (_lastBackPress == null ||
+        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+      _lastBackPress = now;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
           AppLanguage(_lang).isBn
-              ? 'আপনি কি MONI PRAYER বন্ধ করতে চান?'
-              : 'Do you want to close MONI PRAYER?',
-          style: const TextStyle(color: AppTheme.textPrimary),
+              ? 'আবার চাপুন অ্যাপ বন্ধ করতে'
+              : 'Press again to exit',
+          style: const TextStyle(fontSize: 14),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(AppLanguage(_lang).isBn ? 'না' : 'No',
-                style: const TextStyle(color: AppTheme.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.missed),
-            child: Text(AppLanguage(_lang).isBn ? 'হ্যাঁ, বন্ধ করুন' : 'Yes, Exit'),
-          ),
-        ],
-      ),
-    );
-    return shouldExit ?? false;
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppTheme.primary,
+      ));
+      return false;
+    }
+
+    return true;
   }
 
   @override

@@ -230,23 +230,26 @@ class _HomeTabState extends State<_HomeTab> {
 
     bool changed = false;
 
-    // প্রতিটি নামাজের ওয়াক্ত শেষ হওয়ার সময়
-    // ওয়াক্ত শেষ = পরের নামাজের শুরু
-    final Map<String, DateTime> waqtEnd = {
-      'fajr': pt.sunrise,      // ফজরের ওয়াক্ত শেষ সূর্যোদয়ে
-      'dhuhr': pt.asr,         // যোহরের ওয়াক্ত শেষ আসরে
-      'asr': pt.maghrib,       // আসরের ওয়াক্ত শেষ মাগরিবে
-      'maghrib': pt.isha,      // মাগরিবের ওয়াক্ত শেষ ইশায়
-      'isha': pt.fajr.add(const Duration(days: 1)), // ইশার ওয়াক্ত শেষ পরদিন ফজরে
+    // শুধুমাত্র সেই নামাজ কাযা হবে যার ওয়াক্ত সত্যিই শেষ হয়েছে
+    // এবং এখন সেই ওয়াক্তের সময় চলছে না
+    final Map<String, _WaqtRange> waqtRanges = {
+      'fajr':   _WaqtRange(start: pt.fajr, end: pt.sunrise),
+      'dhuhr':  _WaqtRange(start: pt.dhuhr, end: pt.asr),
+      'asr':    _WaqtRange(start: pt.asr, end: pt.maghrib),
+      'maghrib':_WaqtRange(start: pt.maghrib, end: pt.isha),
+      'isha':   _WaqtRange(start: pt.isha, end: pt.fajr.add(const Duration(days: 1))),
     };
 
-    for (final entry in waqtEnd.entries) {
+    for (final entry in waqtRanges.entries) {
       final prayer = entry.key;
-      final endTime = entry.value;
+      final range = entry.value;
       final currentStatus = statuses[prayer];
 
-      // শর্ত: ওয়াক্ত শেষ হয়েছে AND কোনো status নেই (আদায়ও না, কাযাও না)
-      if (now.isAfter(endTime) && currentStatus == null) {
+      // শর্ত: ওয়াক্ত শুরু হয়েছে AND ওয়াক্ত শেষ হয়েছে AND কোনো status নেই
+      final waqtStarted = now.isAfter(range.start);
+      final waqtEnded = now.isAfter(range.end);
+
+      if (waqtStarted && waqtEnded && currentStatus == null) {
         await DatabaseHelper.setPrayerStatus(dateKey, prayer, 'missed');
         changed = true;
       }

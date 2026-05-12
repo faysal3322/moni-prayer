@@ -85,6 +85,7 @@ class _DuaListTabState extends State<_DuaListTab> {
   int _cat = 0;
 
   final List<Map<String, dynamic>> _categories = [
+    {'icon': '📜', 'bn': '৩৩ আয়াত', 'en': '33 Ayats'},
     {'icon': '🌅', 'bn': 'দৈনন্দিন', 'en': 'Daily'},
     {'icon': '🕌', 'bn': 'নামাজ', 'en': 'Prayer'},
     {'icon': '🍽️', 'bn': 'খাবার', 'en': 'Food'},

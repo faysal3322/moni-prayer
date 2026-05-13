@@ -555,9 +555,8 @@ class _DuaListTabState extends State<_DuaListTab> {
         'ref': 'বুখারী',
       },
     ],
+    [],
   ];
-  // _duas লিস্টে সবার শেষে যোগ করুন
-    [],  // ৩৩ আয়াত (AyatScreen এ যাবে)
   
   @override
   Widget build(BuildContext context) {
@@ -606,11 +605,13 @@ class _DuaListTabState extends State<_DuaListTab> {
         ),
         const Divider(color: Colors.white12, height: 1),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: _duas[_cat].length,
-            itemBuilder: (_, i) => _DuaCard(dua: _duas[_cat][i], isBn: isBn),
-          ),
+          child: _cat == 7
+              ? const SizedBox.shrink()
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _duas[_cat].length,
+                  itemBuilder: (_, i) => _DuaCard(dua: _duas[_cat][i], isBn: isBn),
+                ),
         ),
       ],
     );

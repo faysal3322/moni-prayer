@@ -574,7 +574,14 @@ class _DuaListTabState extends State<_DuaListTab> {
               final cat = _categories[i];
               final sel = _cat == i;
               return GestureDetector(
-                onTap: () => setState(() => _cat = i),
+                onTap: () {
+                    setState(() => _cat = i);
+                    if (i == 7) {
+                      Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const AyatScreen(),
+                      ));
+                    }
+                  },
                 child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

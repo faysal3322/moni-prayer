@@ -40,7 +40,9 @@ class _DuaScreenState extends State<DuaScreen> {
                 ? _DuaListTab(isBn: isBn)
                 : _tabIndex == 1
                     ? _DuaTimeTab(isBn: isBn)
-                    : _DuaPlaceTab(isBn: isBn),
+                : _tabIndex == 2
+                    ? _DuaPlaceTab(isBn: isBn)
+                : const SokalSondhaScreen(),
           ),
         ],
       ),

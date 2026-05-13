@@ -974,8 +974,10 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
         'color': AppTheme.accent,
       });
     }
+          
     return alerts;
   }
+        
   @override
   Widget build(BuildContext context) {
     final lang = widget.lang;

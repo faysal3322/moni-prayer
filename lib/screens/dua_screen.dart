@@ -32,6 +32,7 @@ class _DuaScreenState extends State<DuaScreen> {
               _tabBtn(0, '🤲', isBn ? 'দোয়া' : 'Duas', isBn),
               _tabBtn(1, '⏰', isBn ? 'দোয়ার সময়' : 'Times', isBn),
               _tabBtn(2, '📍', isBn ? 'দোয়ার স্থান' : 'Places', isBn),
+              _tabBtn(3, '🌅', isBn ? 'সকাল-সন্ধ্যা' : 'Morning', isBn),
             ]),
           ),
           Expanded(

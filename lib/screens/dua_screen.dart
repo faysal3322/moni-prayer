@@ -85,7 +85,6 @@ class _DuaListTabState extends State<_DuaListTab> {
   int _cat = 0;
 
   final List<Map<String, dynamic>> _categories = [
-    {'icon': '📜', 'bn': '৩৩ আয়াত', 'en': '33 Ayats'},
     {'icon': '🌅', 'bn': 'দৈনন্দিন', 'en': 'Daily'},
     {'icon': '🕌', 'bn': 'নামাজ', 'en': 'Prayer'},
     {'icon': '🍽️', 'bn': 'খাবার', 'en': 'Food'},
@@ -93,6 +92,7 @@ class _DuaListTabState extends State<_DuaListTab> {
     {'icon': '🚗', 'bn': 'যাতায়াত', 'en': 'Travel'},
     {'icon': '😢', 'bn': 'বিপদ', 'en': 'Hardship'},
     {'icon': '🤲', 'bn': 'বিশেষ', 'en': 'Special'},
+    {'icon': '📜', 'bn': '৩৩ আয়াত', 'en': '33 Ayats'},
   ];
 
   final List<List<Map<String, dynamic>>> _duas = [
@@ -556,7 +556,9 @@ class _DuaListTabState extends State<_DuaListTab> {
       },
     ],
   ];
-
+  // _duas লিস্টে সবার শেষে যোগ করুন
+    [],  // ৩৩ আয়াত (AyatScreen এ যাবে)
+  
   @override
   Widget build(BuildContext context) {
     final isBn = widget.isBn;

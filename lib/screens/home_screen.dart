@@ -586,7 +586,9 @@ class _HomeTabState extends State<_HomeTab> {
             : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!',
         'color': const Color(0xFF7C4DFF),
       });
-    } else if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
+    }
+
+    if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
       alerts.add({
         'icon': '🌿',
         'text': isBn

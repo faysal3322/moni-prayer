@@ -808,6 +808,169 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
     
+    // ২০. তাহাজ্জুদ ঠিকঠাক (রাত ১টা সমস্যা fix)
+    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
+      final cd = _countdown(pt.fajr);
+      alerts.removeWhere((a) => (a['text'] as String).contains('তাহাজ্জুদ'));
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn
+            ? 'এখন তাহাজ্জুদের সময় চলছে! ফজর শুরু হতে বাকি $cd — উঠুন, ওযু করুন, ২-১২ রাকাত পড়ুন। দোয়া কবুলের সর্বোত্তম সময়!'
+            : 'Tahajjud time now! Fajr in $cd — Wake up, 2-12 rakats. Best time for duas!',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // ২১. সূরা মুলক — সন্ধ্যার পর থেকে রাত ১১টা পর্যন্ত
+    if (now.isAfter(pt.maghrib) && now.hour < 23) {
+      alerts.add({
+        'icon': '📖',
+        'text': isBn
+            ? 'প্রতি রাতে ঘুমানোর আগে সূরা মুলক তেলাওয়াত করুন — কবরের আযাব থেকে রক্ষা করবে।'
+            : 'Recite Surah Mulk before sleeping — protects from grave punishment.',
+        'color': const Color(0xFF26A69A),
+      });
+    }
+
+    // ২২. ঘুমানোর আগে আমল — রাত ৯টা থেকে রাত ১২টা
+    if (now.hour >= 21 && now.hour < 24) {
+      alerts.add({
+        'icon': '😴',
+        'text': isBn
+            ? 'ঘুমানোর আগে আমল:\n• আয়াতুল কুরসি পড়ুন\n• সূরা মুলক পড়ুন\n• ৩৩ বার সুবহানাল্লাহ, আলহামদুলিল্লাহ, আল্লাহু আকবার পড়ুন\n• ডান কাত হয়ে শোন'
+            : 'Bedtime amal: Ayatul Kursi, Surah Mulk, 33x Tasbih, sleep on right side.',
+        'color': const Color(0xFF5C6BC0),
+      });
+    }
+
+    // ২৩. জামাতে নামাজের ফযিলত — দুপুর ১২টা থেকে আসরের আগে পর্যন্ত
+    if (now.hour >= 12 && now.isBefore(pt.asr)) {
+      alerts.add({
+        'icon': '🕌',
+        'text': isBn
+            ? 'জামাতে নামাজ পড়লে একাকী পড়ার চেয়ে ২৭ গুণ বেশি সওয়াব — মসজিদে যান!'
+            : 'Congregational prayer = 27x more reward — Go to the mosque!',
+        'color': AppTheme.accent,
+      });
+    }
+
+    // ২৪. জুমার দিনের বিশেষ আমল — শুক্রবার ফজরের পর থেকে
+    if (now.weekday == DateTime.friday) {
+      // ফজরের পর থেকে যোহরের আগে
+      if (now.isAfter(pt.fajr) && now.isBefore(pt.dhuhr)) {
+        alerts.add({
+          'icon': '📖',
+          'text': isBn
+              ? 'জুমার দিন সূরা কাহাফ তেলাওয়াত করুন — দুই জুমার মধ্যবর্তী সময়ের গুনাহ মাফ হবে!'
+              : 'Recite Surah Kahf today — sins between 2 Fridays forgiven!',
+          'color': AppTheme.gold,
+        });
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn
+              ? 'জুমার সুন্নত আমল:\n• গোসল করুন\n• পরিষ্কার কাপড় পরুন\n• সুগন্ধি ব্যবহার করুন\n• আগে মসজিদে যান\n• বেশি দরূদ পড়ুন'
+              : "Friday Sunnah: Ghusl, clean clothes, perfume, early to mosque, send Salawat.",
+          'color': AppTheme.accent,
+        });
+      }
+
+      // আসরের পর থেকে মাগরিব পর্যন্ত
+      if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+        final cd = _countdown(pt.maghrib);
+        alerts.add({
+          'icon': '🤲',
+          'text': isBn
+              ? 'জুমার দিন আসরের পর দোয়ায় মশগুল থাকুন (শেষ হতে বাকি $cd) — এই সময়ের দোয়া কবুল হয়! রাসূল ﷺ বলেছেন এটি দোয়া কবুলের বিশেষ মুহূর্ত।'
+              : 'Friday after Asr — special time for dua (ends in $cd)! Rasul ﷺ said this is the golden hour.',
+          'color': AppTheme.gold,
+        });
+      }
+
+      // জুমার রাত — মাগরিবের পর
+      if (now.isAfter(pt.maghrib)) {
+        alerts.add({
+          'icon': '⭐',
+          'text': isBn
+              ? 'জুমার রাত — বেশি বেশি দরূদ পড়ুন। রাসূল ﷺ বলেছেন: জুমার দিন ও রাতে বেশি দরূদ পড়ো।'
+              : "Friday night — Recite many Salawat. Rasul ﷺ said: Send many blessings on Friday.",
+          'color': AppTheme.accent,
+        });
+      }
+    }
+
+    // ২৫. সোমবার ও বৃহস্পতিবার — নফল রোজার দিন সকাল থেকে
+    if ((now.weekday == DateTime.monday || now.weekday == DateTime.thursday) &&
+        now.isAfter(pt.fajr) && now.isBefore(pt.maghrib)) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আজ নফল রোজার দিন (${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"}) — রোজা রাখলে আমলনামা আল্লাহর কাছে পেশ হবে রোজাদার অবস্থায়!'
+            : 'Nafl fast day (${now.weekday == DateTime.monday ? "Monday" : "Thursday"}) — Your deeds are presented to Allah while fasting!',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // ২৬. ফজরের পর সকালের আমল
+    if (now.isAfter(pt.fajr) &&
+        now.isBefore(pt.fajr.add(const Duration(minutes: 60)))) {
+      alerts.add({
+        'icon': '🌅',
+        'text': isBn
+            ? 'ফজরের পর সকালের আমল:\n• সকালের দোয়া পড়ুন\n• আয়াতুল কুরসি পড়ুন\n• সূরা হাশরের শেষ ৩ আয়াত পড়ুন\n• ১০০ বার তাসবীহ পড়ুন'
+            : 'Morning amal: Morning dua, Ayatul Kursi, last 3 ayats of Hashr, 100x tasbih.',
+        'color': const Color(0xFFFF8F00),
+      });
+    }
+
+    // ২৭. আসরের পর বিকেলের আমল
+    if (now.isAfter(pt.asr) &&
+        now.isBefore(pt.asr.add(const Duration(minutes: 60)))) {
+      alerts.add({
+        'icon': '🌆',
+        'text': isBn
+            ? 'আসরের পর সন্ধ্যার আমল:\n• সন্ধ্যার দোয়া পড়ুন\n• আয়াতুল কুরসি পড়ুন\n• সূরা হাশরের শেষ ৩ আয়াত পড়ুন'
+            : 'Evening amal after Asr: Evening dua, Ayatul Kursi, last 3 ayats of Hashr.',
+        'color': const Color(0xFF26A69A),
+      });
+    }
+
+    // ২৮. নফল নামাজের সময় — দিনের বিভিন্ন সময়
+    // ইশরাকের আগে — ফজরের পর বসে থাকুন
+    if (now.isAfter(pt.fajr) &&
+        now.isBefore(pt.fajr.add(const Duration(minutes: 20)))) {
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn
+            ? 'ফজরের পর সূর্যোদয় পর্যন্ত মসজিদে বসে থাকুন তারপর ২ রাকাত ইশরাক পড়ুন — হজ ও উমরার সওয়াব পাবেন!'
+            : 'Stay in mosque after Fajr till sunrise, then pray 2 rakats Ishraq — reward of Hajj & Umrah!',
+        'color': const Color(0xFFFFB300),
+      });
+    }
+
+    // ২৯. চাশতের সময় মনে করিয়ে দেওয়া
+    if (now.isAfter(chashtStart) &&
+        now.isBefore(chashtStart.add(const Duration(minutes: 30)))) {
+      alerts.add({
+        'icon': '☀️',
+        'text': isBn
+            ? 'চাশতের সময় শুরু হয়েছে — ২-১২ রাকাত নফল নামাজ পড়ুন। প্রতিটি সন্ধির পক্ষ থেকে সদকা হবে!'
+            : 'Chasht time started — Pray 2-12 rakats nafl. Sadaqah for every joint of your body!',
+        'color': const Color(0xFFFDD835),
+      });
+    }
+
+    // ৩০. সন্ধ্যার পর — আওওয়াবিন নামাজ মনে করানো
+    if (now.isAfter(pt.maghrib) &&
+        now.isBefore(pt.maghrib.add(const Duration(minutes: 20)))) {
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn
+            ? 'মাগরিবের পর আওওয়াবিনের সময় — ৬-২০ রাকাত নফল পড়ুন। রাসূল ﷺ নিয়মিত পড়তেন!'
+            : 'After Maghrib — Awwabin time! Pray 6-20 rakats. The Prophet ﷺ regularly prayed this.',
+        'color': const Color(0xFF26A69A),
+      });
+    }
+    
     // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

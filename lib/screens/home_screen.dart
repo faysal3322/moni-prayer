@@ -1333,6 +1333,20 @@ class _CircleBtn extends StatelessWidget {
 
 // ═══════════════════════════════════════════
 class _HijriSimple {
+  static int getMonth(DateTime date) {
+    final jd = _gjToJul(date.year, date.month, date.day);
+    final l = jd - 1948440 + 10632;
+    final n = ((l - 1) ~/ 10631);
+    final ll = l - 10631 * n + 354;
+    final j = ((10985 - ll) ~/ 5316) * ((50 * ll) ~/ 17719) +
+        (ll ~/ 5670) * ((43 * ll) ~/ 15238);
+    final lll = ll -
+        ((30 - j) ~/ 15) * ((17719 * j) ~/ 50) -
+        (j ~/ 16) * ((15238 * j) ~/ 43) +
+        29;
+    final month = (24 * lll) ~/ 709;
+    return month;
+  }
   static int fromDate(DateTime date) {
     try {
       final jd = _gjToJul(date.year, date.month, date.day);

@@ -30,7 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _rozaPending = 0;
   DateTime? _lastBackPress;
 
-  // প্রতিটি tab এর ScrollController
   final Map<int, ScrollController> _scrollControllers = {
     0: ScrollController(),
     1: ScrollController(),
@@ -78,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // scroll to top হবে কিনা চেক করো
   bool _isScrolledDown() {
     final controller = _scrollControllers[_currentIndex];
     if (controller == null || !controller.hasClients) return false;
@@ -87,8 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<bool> _onWillPop() async {
     final now = DateTime.now();
-
-    // যদি scroll করা থাকে — উপরে উঠে যাও
     if (_isScrolledDown()) {
       _scrollControllers[_currentIndex]?.animateTo(
         0,
@@ -97,14 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return false;
     }
-
-    // home এ না থাকলে home এ যাও
     if (_currentIndex != 0) {
       setState(() => _currentIndex = 0);
       return false;
     }
-
-    // home এ আছি — দুইবার back চাপলে বন্ধ হবে
     if (_lastBackPress == null ||
         now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
       _lastBackPress = now;
@@ -120,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ));
       return false;
     }
-
     return true;
   }
 
@@ -130,8 +121,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final isBn = lang.isBn;
     final screens = [
       _HomeTab(
-        lang: lang, now: _now, userName: _userName,
-        namazPending: _namazPending, rozaPending: _rozaPending,
+        lang: lang,
+        now: _now,
+        userName: _userName,
+        namazPending: _namazPending,
+        rozaPending: _rozaPending,
         onRefresh: _loadCounts,
         scrollController: _scrollControllers[0]!,
       ),
@@ -155,12 +149,30 @@ class _HomeScreenState extends State<HomeScreen> {
           onDestinationSelected: (i) => setState(() => _currentIndex = i),
           indicatorColor: AppTheme.primary,
           destinations: [
-            NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: lang.home),
-            NavigationDestination(icon: const Icon(Icons.calendar_month_outlined), selectedIcon: const Icon(Icons.calendar_month), label: lang.calendar),
-            NavigationDestination(icon: const Icon(Icons.mosque_outlined), selectedIcon: const Icon(Icons.mosque), label: isBn ? 'নামাজ' : 'Prayer'),
-            NavigationDestination(icon: const Icon(Icons.menu_book_outlined), selectedIcon: const Icon(Icons.menu_book), label: isBn ? 'দোয়া' : 'Dua'),
-            NavigationDestination(icon: const Icon(Icons.auto_stories_outlined), selectedIcon: const Icon(Icons.auto_stories), label: isBn ? '৯৯ নাম' : '99 Names'),
-            NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: lang.settings),
+            NavigationDestination(
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home),
+                label: lang.home),
+            NavigationDestination(
+                icon: const Icon(Icons.calendar_month_outlined),
+                selectedIcon: const Icon(Icons.calendar_month),
+                label: lang.calendar),
+            NavigationDestination(
+                icon: const Icon(Icons.mosque_outlined),
+                selectedIcon: const Icon(Icons.mosque),
+                label: isBn ? 'নামাজ' : 'Prayer'),
+            NavigationDestination(
+                icon: const Icon(Icons.menu_book_outlined),
+                selectedIcon: const Icon(Icons.menu_book),
+                label: isBn ? 'দোয়া' : 'Dua'),
+            NavigationDestination(
+                icon: const Icon(Icons.auto_stories_outlined),
+                selectedIcon: const Icon(Icons.auto_stories),
+                label: isBn ? '৯৯ নাম' : '99 Names'),
+            NavigationDestination(
+                icon: const Icon(Icons.settings_outlined),
+                selectedIcon: const Icon(Icons.settings),
+                label: lang.settings),
           ],
         ),
       ),
@@ -179,9 +191,13 @@ class _HomeTab extends StatefulWidget {
   final ScrollController scrollController;
 
   const _HomeTab({
-    required this.lang, required this.now, required this.userName,
-    required this.namazPending, required this.rozaPending,
-    required this.onRefresh, required this.scrollController,
+    required this.lang,
+    required this.now,
+    required this.userName,
+    required this.namazPending,
+    required this.rozaPending,
+    required this.onRefresh,
+    required this.scrollController,
   });
 
   @override
@@ -229,7 +245,6 @@ class _HomeTabState extends State<_HomeTab> {
 
   Future<void> _loadToday() async {
     final dateKey = DateHelper.dateKey(DateTime.now());
-    // ১. আগে database থেকে status load করো — এটা দ্রুত
     final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
     final roza = await DatabaseHelper.getRozaStatus(dateKey);
     if (mounted) {
@@ -238,7 +253,6 @@ class _HomeTabState extends State<_HomeTab> {
         _todayRoza = roza;
       });
     }
-    // ২. prayer times আলাদাভাবে load করো — GPS এর জন্য সময় লাগে
     if (_prayerTimes == null) {
       final times = await PrayerTimeHelper.getPrayerTimes();
       final sunnah = SunnahTimes(times);
@@ -251,7 +265,6 @@ class _HomeTabState extends State<_HomeTab> {
     }
   }
 
-  // শুধু prayer status refresh — GPS ছাড়াই, দ্রুত
   Future<void> _refreshStatusOnly() async {
     final dateKey = DateHelper.dateKey(DateTime.now());
     final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
@@ -272,30 +285,19 @@ class _HomeTabState extends State<_HomeTab> {
     final statuses = await DatabaseHelper.getDayPrayerStatuses(dateKey);
     bool changed = false;
 
-    // প্রতিটি নামাজের ওয়াক্ত — শুধু তখনই কাযা হবে যখন:
-    // ১. এখন ওয়াক্তের start time এর পরে
-    // ২. এখন ওয়াক্তের end time এর পরে
-    // ৩. ওয়াক্তের status null (আদায়ও না, কাযাও না)
-    // ৪. end time আজকের তারিখের মধ্যে (ভবিষ্যৎ ওয়াক্ত নয়)
     final entries = <String, Map<String, DateTime>>{
-      'fajr':    {'start': pt.fajr,    'end': pt.sunrise},
-      'dhuhr':   {'start': pt.dhuhr,   'end': pt.asr},
-      'asr':     {'start': pt.asr,     'end': pt.maghrib},
+      'fajr': {'start': pt.fajr, 'end': pt.sunrise},
+      'dhuhr': {'start': pt.dhuhr, 'end': pt.asr},
+      'asr': {'start': pt.asr, 'end': pt.maghrib},
       'maghrib': {'start': pt.maghrib, 'end': pt.isha},
     };
-    // ইশা আলাদাভাবে — শুধু যদি পরের দিনের ফজর শুরু হয়ে যায়
-    // কিন্তু আজকের date key তে save হবে
 
     for (final entry in entries.entries) {
       final prayer = entry.key;
       final start = entry.value['start']!;
       final end = entry.value['end']!;
       final currentStatus = statuses[prayer];
-
-      // শুধুমাত্র start এবং end উভয়ই অতীত হলে কাযা করো
-      // এবং start আজকের তারিখের মধ্যে হতে হবে
       final startIsToday = DateHelper.dateKey(start) == dateKey;
-
       if (startIsToday &&
           now.isAfter(start) &&
           now.isAfter(end) &&
@@ -305,21 +307,18 @@ class _HomeTabState extends State<_HomeTab> {
       }
     }
 
-    // ইশা — পরের দিনের ফজর শুরু হলে গতকালের ইশা কাযা হবে
     final yesterday = now.subtract(const Duration(days: 1));
     final yesterdayKey = DateHelper.dateKey(yesterday);
-    final yesterdayStatuses = await DatabaseHelper.getDayPrayerStatuses(yesterdayKey);
+    final yesterdayStatuses =
+        await DatabaseHelper.getDayPrayerStatuses(yesterdayKey);
     if (yesterdayStatuses['isha'] == null && now.isAfter(pt.fajr)) {
       await DatabaseHelper.setPrayerStatus(yesterdayKey, 'isha', 'missed');
       changed = true;
     }
 
-    // আজকের ইশা — শুধু যদি pt.isha এর পরে এবং রাত ১১:৫৯ এর পরে
-    // (সাধারণত পরদিন ফজরে গতকালের ইশা হিসেবে ধরা হয়)
     final ishaStatus = statuses['isha'];
     final ishaStart = pt.isha;
     final ishaStartIsToday = DateHelper.dateKey(ishaStart) == dateKey;
-    // ইশার ওয়াক্ত শেষ = রাত ১২টার আগে মধ্যরাতে
     final midNight = DateTime(now.year, now.month, now.day, 23, 59);
     if (ishaStartIsToday &&
         now.isAfter(ishaStart) &&
@@ -337,25 +336,28 @@ class _HomeTabState extends State<_HomeTab> {
 
   Future<void> _setPrayer(String prayer, String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
-    // ১. আগে UI তে সাথে সাথে দেখাও
     setState(() => _todayPrayers = {..._todayPrayers, prayer: status});
-    // ২. database এ save করো
     await DatabaseHelper.setPrayerStatus(dateKey, prayer, status);
-    // ৩. count update করো
     widget.onRefresh();
   }
 
   Future<void> _setRoza(String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
-    // ১. আগে UI তে সাথে সাথে দেখাও
     setState(() => _todayRoza = status);
-    // ২. database এ save করো
     await DatabaseHelper.setRozaStatus(dateKey, status);
-    // ৩. count update করো
     widget.onRefresh();
   }
 
   String _fmtTime(DateTime t) => PrayerTimeHelper.formatTime(t);
+
+  String _countdown(DateTime end) {
+    final diff = end.difference(DateTime.now());
+    if (diff.isNegative) return '';
+    final hr = diff.inHours.toString().padLeft(2, '0');
+    final mn = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final sc = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hr:$mn:$sc';
+  }
 
   List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
     final isBn = lang.isBn;
@@ -364,173 +366,213 @@ class _HomeTabState extends State<_HomeTab> {
     final alerts = <Map<String, dynamic>>[];
     if (pt == null) return alerts;
 
-    final sunriseForbiddenEnd = pt.sunrise.add(const Duration(minutes: 15));
-    final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
-    final zawalEnd = pt.dhuhr;
-    final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
+    final lastThird = _sunnahTimes?.lastThirdOfTheNight;
+    final h = _HijriSimple.fromDate(now);
+
     final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
     final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));
     final chashtStart = pt.sunrise.add(const Duration(minutes: 45));
     final chashtEnd = pt.dhuhr.subtract(const Duration(minutes: 10));
-    final lastThird = _sunnahTimes?.lastThirdOfTheNight;
-    final h = _HijriSimple.fromDate(now);
+    final sunriseForbiddenEnd = pt.sunrise.add(const Duration(minutes: 15));
+    final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
+    final zawalEnd = pt.dhuhr;
+    final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
+    final ishaaEnd = lastThird ?? pt.fajr.add(const Duration(days: 1));
 
-    // ১. সেহরি countdown
+    // ১. ফজর ওয়াক্ত
+    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
+      final cd = _countdown(pt.sunrise);
+      if (cd.isNotEmpty) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn ? 'ফজর নামাজের ওয়াক্ত শেষ হতে বাকি $cd' : 'Fajr ends in $cd',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ২. যোহর ওয়াক্ত
+    if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
+      final cd = _countdown(pt.asr);
+      if (cd.isNotEmpty) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn ? 'যোহর নামাজের ওয়াক্ত শেষ হতে বাকি $cd' : 'Dhuhr ends in $cd',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ৩. আসর ওয়াক্ত
+    if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+      final cd = _countdown(pt.maghrib);
+      if (cd.isNotEmpty) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn ? 'আসর নামাজের ওয়াক্ত শেষ হতে বাকি $cd' : 'Asr ends in $cd',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ৪. মাগরিব ওয়াক্ত
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      final cd = _countdown(pt.isha);
+      if (cd.isNotEmpty) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn ? 'মাগরিব নামাজের ওয়াক্ত শেষ হতে বাকি $cd' : 'Maghrib ends in $cd',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ৫. এশা ওয়াক্ত
+    if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
+      final cd = _countdown(ishaaEnd);
+      if (cd.isNotEmpty) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn ? 'এশা নামাজের ওয়াক্ত শেষ হতে বাকি $cd' : 'Isha ends in $cd',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ৬. ইশরাক
+    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
+      final cd = _countdown(ishraqEnd);
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn ? 'ইশরাকের ওয়াক্ত শেষ হতে বাকি $cd — হজ্জ-উমরার সওয়াব!' : 'Ishraq ends in $cd — Hajj & Umrah reward!',
+        'color': const Color(0xFFFF8F00),
+      });
+    }
+
+    // ৭. দুহা/চাশত
+    if (now.isAfter(chashtStart) && now.isBefore(chashtEnd)) {
+      final cd = _countdown(chashtEnd);
+      alerts.add({
+        'icon': '☀️',
+        'text': isBn ? 'দুহা/চাশতের ওয়াক্ত শেষ হতে বাকি $cd' : 'Duha/Chasht ends in $cd',
+        'color': const Color(0xFFFDD835),
+      });
+    }
+
+    // ৮. আওওয়াবিন
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      final cd = _countdown(pt.isha);
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn ? 'আওওয়াবিনের ওয়াক্ত শেষ হতে বাকি $cd (৬-২০ রাকাত)' : 'Awwabin ends in $cd (6-20 rakats)',
+        'color': const Color(0xFF26A69A),
+      });
+    }
+
+    // ৯. তাহাজ্জুদ
+    if (lastThird != null) {
+      if (now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
+        final cd = _countdown(pt.fajr);
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn ? 'তাহাজ্জুদের ওয়াক্ত শেষ হতে বাকি $cd — দোয়া কবুলের সর্বোত্তম সময়!' : 'Tahajjud ends in $cd — Best time for duas!',
+          'color': const Color(0xFF7C4DFF),
+        });
+      } else if (now.isAfter(pt.isha) && now.isBefore(lastThird)) {
+        final cd = _countdown(lastThird);
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd' : 'Best Tahajjud time starts in $cd',
+          'color': const Color(0xFF7C4DFF),
+        });
+      }
+    }
+
+    // ১০. সেহরি
     if (now.isBefore(pt.fajr)) {
       final diff = pt.fajr.difference(now);
       if (diff.inMinutes <= 90) {
-        final hr = diff.inHours.toString().padLeft(2, '0');
-        final mn = (diff.inMinutes % 60).toString().padLeft(2, '0');
-        final sc = (diff.inSeconds % 60).toString().padLeft(2, '0');
+        final cd = _countdown(pt.fajr);
         alerts.add({
           'icon': '🍽️',
-          'text': isBn
-              ? 'সেহরি শেষ হতে বাকি $hr:$mn:$sc (শেষ সময়: ${_fmtTime(pt.fajr)})'
-              : 'Sehri ends in $hr:$mn:$sc (${_fmtTime(pt.fajr)})',
+          'text': isBn ? 'সেহরি শেষ হতে বাকি $cd (শেষ সময়: ${_fmtTime(pt.fajr)})' : 'Sehri ends in $cd (${_fmtTime(pt.fajr)})',
           'color': const Color(0xFF81C784),
         });
       }
     }
 
-    // ২. ইফতার countdown
+    // ১১. ইফতার
     if (now.isAfter(pt.fajr) && now.isBefore(pt.maghrib)) {
       final diff = pt.maghrib.difference(now);
       if (diff.inMinutes <= 120) {
-        final hr = diff.inHours.toString().padLeft(2, '0');
-        final mn = (diff.inMinutes % 60).toString().padLeft(2, '0');
-        final sc = (diff.inSeconds % 60).toString().padLeft(2, '0');
+        final cd = _countdown(pt.maghrib);
         alerts.add({
           'icon': '🌙',
-          'text': isBn
-              ? 'ইফতার শুরু হতে বাকি $hr:$mn:$sc (${_fmtTime(pt.maghrib)})'
-              : 'Iftar in $hr:$mn:$sc (${_fmtTime(pt.maghrib)})',
+          'text': isBn ? 'ইফতার শুরু হতে বাকি $cd (${_fmtTime(pt.maghrib)})' : 'Iftar in $cd (${_fmtTime(pt.maghrib)})',
           'color': const Color(0xFF64B5F6),
         });
       }
     }
 
-    // ৩. সূর্যোদয়
+    // ১২. সূর্যোদয়
     if (now.isAfter(pt.sunrise.subtract(const Duration(minutes: 5))) &&
         now.isBefore(pt.sunrise.add(const Duration(minutes: 5)))) {
       alerts.add({
         'icon': '🌅',
-        'text': isBn
-            ? 'এখন সূর্যোদয় হচ্ছে (${_fmtTime(pt.sunrise)})'
-            : 'Sunrise now (${_fmtTime(pt.sunrise)})',
+        'text': isBn ? 'এখন সূর্যোদয় হচ্ছে (${_fmtTime(pt.sunrise)})' : 'Sunrise now (${_fmtTime(pt.sunrise)})',
         'color': const Color(0xFFFFB300),
       });
     }
 
-    // ৪. সূর্যাস্ত
+    // ১৩. সূর্যাস্ত
     if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 5))) &&
         now.isBefore(pt.maghrib.add(const Duration(minutes: 5)))) {
       alerts.add({
         'icon': '🌇',
-        'text': isBn
-            ? 'সূর্যাস্ত — ইফতারের সময় শুরু! (${_fmtTime(pt.maghrib)})'
-            : 'Sunset — Iftar time! (${_fmtTime(pt.maghrib)})',
+        'text': isBn ? 'সূর্যাস্ত — ইফতারের সময় শুরু! (${_fmtTime(pt.maghrib)})' : 'Sunset — Iftar time! (${_fmtTime(pt.maghrib)})',
         'color': const Color(0xFFFF7043),
       });
     }
 
-    // ৫. নামাজের নিষিদ্ধ সময়
-    if (now.isAfter(pt.sunrise) && now.isBefore(sunriseForbiddenEnd)) {
+    // ১৪. নিষিদ্ধ সময়
+    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
+      final cd = _countdown(pt.sunrise);
       alerts.add({
         'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — সূর্যোদয়কালীন (${_fmtTime(pt.sunrise)} - ${_fmtTime(sunriseForbiddenEnd)})'
-            : 'Forbidden prayer time — Sunrise (${_fmtTime(pt.sunrise)} - ${_fmtTime(sunriseForbiddenEnd)})',
+        'text': isBn ? 'নামাজের নিষিদ্ধ সময় — ফজর ব্যতীত — শেষ হতে বাকি $cd' : 'Forbidden — Except Fajr — ends in $cd',
+        'color': AppTheme.missed,
+      });
+    } else if (now.isAfter(pt.sunrise) && now.isBefore(sunriseForbiddenEnd)) {
+      final cd = _countdown(sunriseForbiddenEnd);
+      alerts.add({
+        'icon': '⛔',
+        'text': isBn ? 'নামাজের নিষিদ্ধ সময় — সূর্যোদয়কালীন — শেষ হতে বাকি $cd' : 'Forbidden — Sunrise — ends in $cd',
         'color': AppTheme.missed,
       });
     } else if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
+      final cd = _countdown(zawalEnd);
       alerts.add({
         'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — দ্বিপ্রহর (${_fmtTime(zawalStart)} - ${_fmtTime(zawalEnd)})'
-            : 'Forbidden prayer time — Noon (${_fmtTime(zawalStart)} - ${_fmtTime(zawalEnd)})',
+        'text': isBn ? 'নামাজের নিষিদ্ধ সময় — দ্বিপ্রহর — শেষ হতে বাকি $cd' : 'Forbidden — Noon — ends in $cd',
+        'color': AppTheme.missed,
+      });
+    } else if (now.isAfter(pt.asr) && now.isBefore(sunsetForbiddenStart)) {
+      final cd = _countdown(pt.maghrib);
+      alerts.add({
+        'icon': '⛔',
+        'text': isBn ? 'নামাজের নিষিদ্ধ সময় — আসর ব্যতীত — শেষ হতে বাকি $cd' : 'Forbidden — Except Asr — ends in $cd',
         'color': AppTheme.missed,
       });
     } else if (now.isAfter(sunsetForbiddenStart) && now.isBefore(pt.maghrib)) {
+      final cd = _countdown(pt.maghrib);
       alerts.add({
         'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — সূর্যাস্তকালীন (${_fmtTime(sunsetForbiddenStart)} - ${_fmtTime(pt.maghrib)})'
-            : 'Forbidden prayer time — Sunset (${_fmtTime(sunsetForbiddenStart)} - ${_fmtTime(pt.maghrib)})',
+        'text': isBn ? 'নামাজের নিষিদ্ধ সময় — সূর্যাস্তকালীন — শেষ হতে বাকি $cd' : 'Forbidden — Sunset — ends in $cd',
         'color': AppTheme.missed,
       });
     }
 
-    // ৬. ফজর ব্যতীত নিষিদ্ধ
-    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — ফজর ব্যতীত (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})'
-            : 'Forbidden — Except Fajr (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})',
-        'color': AppTheme.missed,
-      });
-    }
-
-    // ৭. আসর ব্যতীত নিষিদ্ধ
-    if (now.isAfter(pt.asr) && now.isBefore(sunsetForbiddenStart)) {
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — আসর ব্যতীত (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})'
-            : 'Forbidden — Except Asr (${_fmtTime(pt.asr)} - ${_fmtTime(pt.maghrib)})',
-        'color': AppTheme.missed,
-      });
-    }
-
-    // ৮. ইশরাক
-    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
-      alerts.add({
-        'icon': '⭐',
-        'text': isBn
-            ? 'ইশরাকের নামাজের সময় (${_fmtTime(ishraqStart)} - ${_fmtTime(ishraqEnd)}) — হজ্জ-উমরার সওয়াব!'
-            : 'Ishraq time (${_fmtTime(ishraqStart)} - ${_fmtTime(ishraqEnd)}) — Hajj & Umrah reward!',
-        'color': const Color(0xFFFF8F00),
-      });
-    }
-
-    // ৯. দুহা/চাশত
-    if (now.isAfter(chashtStart) && now.isBefore(chashtEnd)) {
-      alerts.add({
-        'icon': '☀️',
-        'text': isBn
-            ? 'দুহা/চাশতের নামাজের সময় (${_fmtTime(chashtStart)} - ${_fmtTime(chashtEnd)})'
-            : 'Duha/Chasht prayer time (${_fmtTime(chashtStart)} - ${_fmtTime(chashtEnd)})',
-        'color': const Color(0xFFFDD835),
-      });
-    }
-
-    // ১০. আওওয়াবিন
-    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      alerts.add({
-        'icon': '⭐',
-        'text': isBn
-            ? 'আওওয়াবিনের নামাজের সময় (${_fmtTime(pt.maghrib)} - ${_fmtTime(pt.isha)}) — ৬-২০ রাকাত'
-            : 'Awwabin prayer time (${_fmtTime(pt.maghrib)} - ${_fmtTime(pt.isha)}) — 6-20 rakats',
-        'color': const Color(0xFF26A69A),
-      });
-    }
-
-    // ১১. তাহাজ্জুদ
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      final remaining = pt.fajr.difference(now);
-      final hr = remaining.inHours.toString().padLeft(2, '0');
-      final mn = (remaining.inMinutes % 60).toString().padLeft(2, '0');
-      final sc = (remaining.inSeconds % 60).toString().padLeft(2, '0');
-      alerts.add({
-        'icon': '🌙',
-        'text': isBn
-            ? 'তাহাজ্জুদের সর্বোত্তম সময় (${_fmtTime(lastThird)} - ${_fmtTime(pt.fajr)}) — বাকি $hr:$mn:$sc। দোয়া কবুলের সময়!'
-            : 'Best Tahajjud time (${_fmtTime(lastThird)} - ${_fmtTime(pt.fajr)}) — $hr:$mn:$sc left!',
-        'color': const Color(0xFF7C4DFF),
-      });
-    }
-
-    // ১২. পরবর্তী নামাজ ১৫ মিনিটের মধ্যে
+    // ১৫. পরবর্তী নামাজ ১৫ মিনিটের মধ্যে
     final next = PrayerTimeHelper.getNextPrayer(pt);
     final remaining = PrayerTimeHelper.getTimeToNextPrayer(pt);
     if (next != null && remaining != null && remaining.inMinutes <= 15) {
@@ -541,39 +583,33 @@ class _HomeTabState extends State<_HomeTab> {
         'maghrib': isBn ? 'মাগরিব' : 'Maghrib',
         'isha': isBn ? 'এশা' : 'Isha',
       };
-      final hr = remaining.inHours.toString().padLeft(2, '0');
-      final mn = (remaining.inMinutes % 60).toString().padLeft(2, '0');
-      final sc = (remaining.inSeconds % 60).toString().padLeft(2, '0');
       final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
+      final cd = nextTime != null ? _countdown(nextTime) : '';
       alerts.add({
         'icon': '🕌',
         'text': isBn
-            ? '${names[next]} নামাজের সময় হতে বাকি $hr:$mn:$sc ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}'
-            : '${names[next]} in $hr:$mn:$sc ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}',
+            ? '${names[next]} নামাজের সময় হতে বাকি $cd ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}'
+            : '${names[next]} in $cd ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}',
         'color': AppTheme.accent,
       });
     }
 
-    // ১৩. আইয়ামে বিজ
+    // ১৬. আইয়ামে বিজ
     if (h >= 13 && h <= 15) {
       alerts.add({
         'icon': '🌙',
-        'text': isBn
-            ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।'
-            : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.',
+        'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.',
         'color': AppTheme.gold,
       });
     } else if (h == 12 && now.isAfter(pt.maghrib)) {
       alerts.add({
         'icon': '🌙',
-        'text': isBn
-            ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।'
-            : 'Ayyam al-Beed starts tomorrow (13th-15th)! Prepare for Sehri.',
+        'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)!' : 'Ayyam al-Beed starts tomorrow (13th-15th)!',
         'color': AppTheme.gold,
       });
     }
 
-    // ১৪. সোমবার/বৃহস্পতিবার
+    // ১৭. সোম/বৃহস্পতি
     final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
     final prevDayIsSunday = now.weekday == DateTime.sunday;
     final prevDayIsWed = now.weekday == DateTime.wednesday;
@@ -591,343 +627,12 @@ class _HomeTabState extends State<_HomeTab> {
     if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
       alerts.add({
         'icon': '🌿',
-        'text': isBn
-            ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।'
-List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
-    final isBn = lang.isBn;
-    final now = DateTime.now();
-    final pt = _prayerTimes;
-    final alerts = <Map<String, dynamic>>[];
-    if (pt == null) return alerts;
-
-    final lastThird = _sunnahTimes?.lastThirdOfTheNight;
-    final h = _HijriSimple.fromDate(now);
-
-    // ── Helper: countdown string ──
-    String countdown(DateTime end) {
-      final diff = end.difference(now);
-      if (diff.isNegative) return '';
-      final hr = diff.inHours.toString().padLeft(2, '0');
-      final mn = (diff.inMinutes % 60).toString().padLeft(2, '0');
-      final sc = (diff.inSeconds % 60).toString().padLeft(2, '0');
-      return '$hr:$mn:$sc';
-    }
-
-    // ── Helper: সেকেন্ড কাউন্টডাউন লেবেল ──
-    String waqtLabel(String name, DateTime end) {
-      final cd = countdown(end);
-      if (cd.isEmpty) return '';
-      return isBn
-          ? '$name নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-          : '$name prayer time ends in $cd';
-    }
-
-    // ══ ফরজ নামাজের ওয়াক্ত countdown ══
-
-    // ফজর চলছে
-    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
-      final cd = countdown(pt.sunrise);
-      if (cd.isNotEmpty) {
-        alerts.add({
-          'icon': '🕌',
-          'text': isBn
-              ? 'ফজর নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-              : 'Fajr time ends in $cd',
-          'color': AppTheme.gold,
-        });
-      }
-    }
-
-    // যোহর চলছে
-    if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      final cd = countdown(pt.asr);
-      if (cd.isNotEmpty) {
-        alerts.add({
-          'icon': '🕌',
-          'text': isBn
-              ? 'যোহর নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-              : 'Dhuhr time ends in $cd',
-          'color': AppTheme.gold,
-        });
-      }
-    }
-
-    // আসর চলছে
-    if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
-      final cd = countdown(pt.maghrib);
-      if (cd.isNotEmpty) {
-        alerts.add({
-          'icon': '🕌',
-          'text': isBn
-              ? 'আসর নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-              : 'Asr time ends in $cd',
-          'color': AppTheme.gold,
-        });
-      }
-    }
-
-    // মাগরিব চলছে
-    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      final cd = countdown(pt.isha);
-      if (cd.isNotEmpty) {
-        alerts.add({
-          'icon': '🕌',
-          'text': isBn
-              ? 'মাগরিব নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-              : 'Maghrib time ends in $cd',
-          'color': AppTheme.gold,
-        });
-      }
-    }
-
-    // এশা চলছে
-    final ishaaEnd = lastThird ?? pt.fajr.add(const Duration(days: 1));
-    if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
-      final cd = countdown(ishaaEnd);
-      if (cd.isNotEmpty) {
-        alerts.add({
-          'icon': '🕌',
-          'text': isBn
-              ? 'এশা নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-              : 'Isha time ends in $cd',
-          'color': AppTheme.gold,
-        });
-      }
-    }
-
-    // ══ নফল নামাজের ওয়াক্ত countdown ══
-
-    // ইশরাক
-    final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
-    final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));
-    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
-      final cd = countdown(ishraqEnd);
-      alerts.add({
-        'icon': '⭐',
-        'text': isBn
-            ? 'ইশরাকের নামাজের ওয়াক্ত শেষ হতে বাকি $cd — হজ্জ-উমরার সওয়াব!'
-            : 'Ishraq ends in $cd — Hajj & Umrah reward!',
-        'color': const Color(0xFFFF8F00),
-      });
-    }
-
-    // দুহা/চাশত
-    final chashtStart = pt.sunrise.add(const Duration(minutes: 45));
-    final chashtEnd = pt.dhuhr.subtract(const Duration(minutes: 10));
-    if (now.isAfter(chashtStart) && now.isBefore(chashtEnd)) {
-      final cd = countdown(chashtEnd);
-      alerts.add({
-        'icon': '☀️',
-        'text': isBn
-            ? 'দুহা/চাশতের নামাজের ওয়াক্ত শেষ হতে বাকি $cd'
-            : 'Duha/Chasht ends in $cd',
-        'color': const Color(0xFFFDD835),
-      });
-    }
-
-    // আওওয়াবিন
-    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      final cd = countdown(pt.isha);
-      alerts.add({
-        'icon': '⭐',
-        'text': isBn
-            ? 'আওওয়াবিনের ওয়াক্ত শেষ হতে বাকি $cd (৬-২০ রাকাত)'
-            : 'Awwabin ends in $cd (6-20 rakats)',
-        'color': const Color(0xFF26A69A),
-      });
-    }
-
-    // তাহাজ্জুদ
-    if (lastThird != null) {
-      if (now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-        final cd = countdown(pt.fajr);
-        alerts.add({
-          'icon': '🌙',
-          'text': isBn
-              ? 'তাহাজ্জুদের ওয়াক্ত শেষ হতে বাকি $cd — দোয়া কবুলের সর্বোত্তম সময়!'
-              : 'Tahajjud ends in $cd — Best time for duas!',
-          'color': const Color(0xFF7C4DFF),
-        });
-      } else if (now.isBefore(lastThird) && now.isAfter(pt.isha)) {
-        // এশার পরে তাহাজ্জুদ শুরু হতে কত বাকি
-        final cd = countdown(lastThird);
-        alerts.add({
-          'icon': '🌙',
-          'text': isBn
-              ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd'
-              : 'Best Tahajjud time starts in $cd',
-          'color': const Color(0xFF7C4DFF),
-        });
-      }
-    }
-
-    // ══ সেহরি countdown ══
-    if (now.isBefore(pt.fajr)) {
-      final diff = pt.fajr.difference(now);
-      if (diff.inMinutes <= 90) {
-        final cd = countdown(pt.fajr);
-        alerts.add({
-          'icon': '🍽️',
-          'text': isBn
-              ? 'সেহরি শেষ হতে বাকি $cd (শেষ সময়: ${_fmtTime(pt.fajr)})'
-              : 'Sehri ends in $cd (${_fmtTime(pt.fajr)})',
-          'color': const Color(0xFF81C784),
-        });
-      }
-    }
-
-    // ══ ইফতার countdown ══
-    if (now.isAfter(pt.fajr) && now.isBefore(pt.maghrib)) {
-      final diff = pt.maghrib.difference(now);
-      if (diff.inMinutes <= 120) {
-        final cd = countdown(pt.maghrib);
-        alerts.add({
-          'icon': '🌙',
-          'text': isBn
-              ? 'ইফতার শুরু হতে বাকি $cd (${_fmtTime(pt.maghrib)})'
-              : 'Iftar in $cd (${_fmtTime(pt.maghrib)})',
-          'color': const Color(0xFF64B5F6),
-        });
-      }
-    }
-
-    // ══ সূর্যোদয় / সূর্যাস্ত ══
-    if (now.isAfter(pt.sunrise.subtract(const Duration(minutes: 5))) &&
-        now.isBefore(pt.sunrise.add(const Duration(minutes: 5)))) {
-      alerts.add({
-        'icon': '🌅',
-        'text': isBn
-            ? 'এখন সূর্যোদয় হচ্ছে (${_fmtTime(pt.sunrise)})'
-            : 'Sunrise now (${_fmtTime(pt.sunrise)})',
-        'color': const Color(0xFFFFB300),
-      });
-    }
-
-    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 5))) &&
-        now.isBefore(pt.maghrib.add(const Duration(minutes: 5)))) {
-      alerts.add({
-        'icon': '🌇',
-        'text': isBn
-            ? 'সূর্যাস্ত — ইফতারের সময় শুরু! (${_fmtTime(pt.maghrib)})'
-            : 'Sunset — Iftar time! (${_fmtTime(pt.maghrib)})',
-        'color': const Color(0xFFFF7043),
-      });
-    }
-
-    // ══ নামাজের নিষিদ্ধ সময় ══
-    final sunriseForbiddenEnd = pt.sunrise.add(const Duration(minutes: 15));
-    final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
-    final zawalEnd = pt.dhuhr;
-    final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
-
-    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
-      final cd = countdown(pt.sunrise);
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — ফজর ব্যতীত — শেষ হতে বাকি $cd (${_fmtTime(pt.fajr)} - ${_fmtTime(pt.sunrise)})'
-            : 'Forbidden — Except Fajr — ends in $cd',
-        'color': AppTheme.missed,
-      });
-    } else if (now.isAfter(pt.sunrise) && now.isBefore(sunriseForbiddenEnd)) {
-      final cd = countdown(sunriseForbiddenEnd);
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — সূর্যোদয়কালীন — শেষ হতে বাকি $cd'
-            : 'Forbidden prayer time — Sunrise — ends in $cd',
-        'color': AppTheme.missed,
-      });
-    } else if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
-      final cd = countdown(zawalEnd);
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — দ্বিপ্রহর — শেষ হতে বাকি $cd'
-            : 'Forbidden prayer time — Noon — ends in $cd',
-        'color': AppTheme.missed,
-      });
-    } else if (now.isAfter(pt.asr) && now.isBefore(sunsetForbiddenStart)) {
-      final cd = countdown(pt.maghrib);
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — আসর ব্যতীত — শেষ হতে বাকি $cd'
-            : 'Forbidden — Except Asr — ends in $cd',
-        'color': AppTheme.missed,
-      });
-    } else if (now.isAfter(sunsetForbiddenStart) && now.isBefore(pt.maghrib)) {
-      final cd = countdown(pt.maghrib);
-      alerts.add({
-        'icon': '⛔',
-        'text': isBn
-            ? 'নামাজের নিষিদ্ধ সময় — সূর্যাস্তকালীন — শেষ হতে বাকি $cd'
-            : 'Forbidden prayer time — Sunset — ends in $cd',
-        'color': AppTheme.missed,
-      });
-    }
-
-    // ══ পরবর্তী নামাজ ১৫ মিনিটের মধ্যে ══
-    final next = PrayerTimeHelper.getNextPrayer(pt);
-    final remaining = PrayerTimeHelper.getTimeToNextPrayer(pt);
-    if (next != null && remaining != null && remaining.inMinutes <= 15) {
-      final names = {
-        'fajr': isBn ? 'ফজর' : 'Fajr',
-        'dhuhr': isBn ? 'যোহর' : 'Dhuhr',
-        'asr': isBn ? 'আসর' : 'Asr',
-        'maghrib': isBn ? 'মাগরিব' : 'Maghrib',
-        'isha': isBn ? 'এশা' : 'Isha',
-      };
-      final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
-      final cd = countdown(nextTime ?? now);
-      alerts.add({
-        'icon': '🕌',
-        'text': isBn
-            ? '${names[next]} নামাজের সময় হতে বাকি $cd ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}'
-            : '${names[next]} in $cd ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}',
-        'color': AppTheme.accent,
-      });
-    }
-
-    // ══ আইয়ামে বিজ ══
-    if (h >= 13 && h <= 15) {
-      alerts.add({
-        'icon': '🌙',
-        'text': isBn
-            ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।'
-            : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.',
-        'color': AppTheme.gold,
-      });
-    } else if (h == 12 && now.isAfter(pt.maghrib)) {
-      alerts.add({
-        'icon': '🌙',
-        'text': isBn
-            ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।'
-            : 'Ayyam al-Beed starts tomorrow (13th-15th)!',
-        'color': AppTheme.gold,
-      });
-    }
-
-    // ══ সোমবার/বৃহস্পতিবার রোজা ══
-    final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
-    final prevDayIsSunday = now.weekday == DateTime.sunday;
-    final prevDayIsWed = now.weekday == DateTime.wednesday;
-
-    if (isFastDay && now.isBefore(pt.fajr)) {
-      alerts.add({
-        'icon': '🌿',
-        'text': isBn
-            ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।'
-            : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!',
-        'color': const Color(0xFF7C4DFF),
-      });
-    } else if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
-      alerts.add({
-        'icon': '🌿',
         'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Monday — Nafl fast day!',
         'color': const Color(0xFF7C4DFF),
       });
-    } else if (prevDayIsWed && now.isAfter(pt.maghrib)) {
+    }
+
+    if (prevDayIsWed && now.isAfter(pt.maghrib)) {
       alerts.add({
         'icon': '🌿',
         'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Thursday — Nafl fast day!',
@@ -935,29 +640,25 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
       });
     }
 
-    // ══ জুমার দিন ══
+    // ১৮. জুমার দিন
     if (now.weekday == DateTime.friday) {
       if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
         alerts.add({
           'icon': '🕌',
-          'text': isBn
-              ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।'
-              : 'Today is Friday — Pray Jumu\'ah. Send Salawat & make dua.',
+          'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.',
           'color': AppTheme.accent,
         });
       } else if (now.isBefore(pt.maghrib)) {
-        final cd = countdown(pt.maghrib);
+        final cd = _countdown(pt.maghrib);
         alerts.add({
           'icon': '🕌',
-          'text': isBn
-              ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)'
-              : 'Friday — Send Salawat & dua (ends in $cd)',
+          'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)',
           'color': AppTheme.accent,
         });
       }
     }
 
-    // ══ Default: পরবর্তী নামাজ ══
+    // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {
         'fajr': isBn ? 'ফজর' : 'Fajr',
@@ -967,7 +668,7 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
         'isha': isBn ? 'এশা' : 'Isha',
       };
       final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
-      final cd = countdown(nextTime ?? now.add(remaining));
+      final cd = nextTime != null ? _countdown(nextTime) : '';
       alerts.add({
         'icon': '🕌',
         'text': isBn
@@ -976,10 +677,10 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
         'color': AppTheme.accent,
       });
     }
-          
+
     return alerts;
   }
-        
+
   @override
   Widget build(BuildContext context) {
     final lang = widget.lang;
@@ -1021,8 +722,9 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
                         Expanded(child: Text(
                           a['text'] as String,
                           style: TextStyle(
-                            color: a['color'] as Color,
-                            fontSize: 14, fontWeight: FontWeight.w600),
+                              color: a['color'] as Color,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
                         )),
                       ],
                     ),
@@ -1059,18 +761,13 @@ List<Map<String, dynamic>> _getLiveAlerts(AppLanguage lang) {
             const SizedBox(height: 12),
 
             _PrayerTimesCard(
-                lang: lang,
-                prayerTimes: _prayerTimes,
-                sunnahTimes: _sunnahTimes),
+                lang: lang, prayerTimes: _prayerTimes, sunnahTimes: _sunnahTimes),
             const SizedBox(height: 12),
 
             _TodaySection(
-              lang: lang,
-              todayPrayers: _todayPrayers,
-              todayRoza: _todayRoza,
-              prayerTimes: _prayerTimes,
-              onSetPrayer: _setPrayer,
-              onSetRoza: _setRoza,
+              lang: lang, todayPrayers: _todayPrayers,
+              todayRoza: _todayRoza, prayerTimes: _prayerTimes,
+              onSetPrayer: _setPrayer, onSetRoza: _setRoza,
             ),
             const SizedBox(height: 20),
           ],
@@ -1114,13 +811,10 @@ class _ClockCard extends StatelessWidget {
       ),
       child: Column(children: [
         Text(DateHelper.formatTime12(now, bangla: isBn),
-            style: const TextStyle(
-                fontSize: 52, fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary)),
+            style: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
         Text(lang.dayName(now.weekday), style: TextStyle(
           fontSize: 18,
-          color: now.weekday == DateTime.friday
-              ? AppTheme.accent : Colors.white70,
+          color: now.weekday == DateTime.friday ? AppTheme.accent : Colors.white70,
           fontWeight: FontWeight.w700, letterSpacing: 1,
         )),
         const SizedBox(height: 10),
@@ -1133,48 +827,30 @@ class _ClockCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(DateHelper.formatGregorian(now, bangla: isBn),
-                    style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(hijriDate.isEmpty
-                    ? DateHelper.toHijri(now, bangla: isBn)
-                    : hijriDate,
-                    style: const TextStyle(
-                        color: AppTheme.gold,
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(hijriDate.isEmpty ? DateHelper.toHijri(now, bangla: isBn) : hijriDate,
+                    style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(DateHelper.toBangla(now),
-                    style: const TextStyle(
-                        color: Color(0xFF80DEEA),
-                        fontSize: 15, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(color: Color(0xFF80DEEA), fontSize: 15, fontWeight: FontWeight.w700)),
               ],
             )),
-            Container(
-                width: 1, height: 105, color: Colors.white12,
-                margin: const EdgeInsets.symmetric(horizontal: 10)),
+            Container(width: 1, height: 105, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
-                    sunrise != null
-                        ? PrayerTimeHelper.formatTime(sunrise) : '--',
-                    sunColor),
+                    sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--', sunColor),
                 const SizedBox(height: 3),
                 _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
-                    maghrib != null
-                        ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                    sunColor),
+                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', sunColor),
                 const SizedBox(height: 8),
                 _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
-                    fajr != null
-                        ? PrayerTimeHelper.formatTime(fajr) : '--',
-                    fastColor),
+                    fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--', fastColor),
                 const SizedBox(height: 3),
                 _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
-                    maghrib != null
-                        ? PrayerTimeHelper.formatTime(maghrib) : '--',
-                    fastColor),
+                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', fastColor),
               ],
             )),
           ],
@@ -1190,12 +866,8 @@ class _ClockCard extends StatelessWidget {
       Flexible(child: RichText(
         overflow: TextOverflow.ellipsis,
         text: TextSpan(children: [
-          TextSpan(text: '$label ',
-              style: TextStyle(color: color, fontSize: 13,
-                  fontWeight: FontWeight.w700)),
-          TextSpan(text: time,
-              style: TextStyle(color: color, fontSize: 13,
-                  fontWeight: FontWeight.bold)),
+          TextSpan(text: '$label ', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+          TextSpan(text: time, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         ]),
       )),
     ]);
@@ -1213,8 +885,7 @@ class _PendingCard extends StatelessWidget {
 
   const _PendingCard({
     required this.label, required this.count, required this.suffix,
-    required this.color, required this.icon,
-    required this.lang, required this.onTap,
+    required this.color, required this.icon, required this.lang, required this.onTap,
   });
 
   @override
@@ -1232,18 +903,12 @@ class _PendingCard extends StatelessWidget {
           Row(children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 6),
-            Expanded(child: Text(label,
-                style: TextStyle(color: color, fontSize: 13,
-                    fontWeight: FontWeight.bold))),
+            Expanded(child: Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold))),
           ]),
           const SizedBox(height: 6),
-          Text(lang.toLocalNum(count),
-              style: TextStyle(color: color, fontSize: 30,
-                  fontWeight: FontWeight.bold)),
+          Text(lang.toLocalNum(count), style: TextStyle(color: color, fontSize: 30, fontWeight: FontWeight.bold)),
           if (suffix.isNotEmpty)
-            Text(suffix,
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12)),
+            Text(suffix, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
         ]),
       ),
     );
@@ -1257,9 +922,7 @@ class _PrayerTimesCard extends StatelessWidget {
   final SunnahTimes? sunnahTimes;
 
   const _PrayerTimesCard({
-    required this.lang,
-    required this.prayerTimes,
-    required this.sunnahTimes,
+    required this.lang, required this.prayerTimes, required this.sunnahTimes,
   });
 
   String _fmt(DateTime t) => PrayerTimeHelper.formatTime(t);
@@ -1279,8 +942,7 @@ class _PrayerTimesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBn = lang.isBn;
     if (prayerTimes == null) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppTheme.accent));
+      return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
     }
 
     final prayers = [
@@ -1288,8 +950,7 @@ class _PrayerTimesCard extends StatelessWidget {
       {'key': 'dhuhr', 'start': prayerTimes!.dhuhr, 'end': prayerTimes!.asr},
       {'key': 'asr', 'start': prayerTimes!.asr, 'end': prayerTimes!.maghrib},
       {'key': 'maghrib', 'start': prayerTimes!.maghrib, 'end': prayerTimes!.isha},
-      {'key': 'isha', 'start': prayerTimes!.isha,
-        'end': sunnahTimes?.lastThirdOfTheNight ?? prayerTimes!.fajr},
+      {'key': 'isha', 'start': prayerTimes!.isha, 'end': sunnahTimes?.lastThirdOfTheNight ?? prayerTimes!.fajr},
     ];
 
     final nextPrayer = PrayerTimeHelper.getNextPrayer(prayerTimes!);
@@ -1305,20 +966,16 @@ class _PrayerTimesCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: AppTheme.primary.withOpacity(0.4),
-            borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
           ),
           child: Row(children: [
             Expanded(child: Text(isBn ? 'নামাজ' : 'Prayer',
-                style: const TextStyle(color: AppTheme.gold,
-                    fontWeight: FontWeight.bold, fontSize: 15))),
+                style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15))),
             SizedBox(width: 85, child: Text(isBn ? 'শুরু' : 'Start',
-                style: const TextStyle(color: AppTheme.gold,
-                    fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15),
                 textAlign: TextAlign.center)),
             SizedBox(width: 85, child: Text(isBn ? 'শেষ' : 'End',
-                style: const TextStyle(color: AppTheme.gold,
-                    fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15),
                 textAlign: TextAlign.center)),
           ]),
         ),
@@ -1327,14 +984,12 @@ class _PrayerTimesCard extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isNext
-                  ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
+              color: isNext ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
               border: const Border(bottom: BorderSide(color: Colors.white10)),
             ),
             child: Row(children: [
               Expanded(child: Row(children: [
-                if (isNext)
-                  const Icon(Icons.arrow_right, color: AppTheme.accent, size: 20),
+                if (isNext) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 20),
                 Text(_prayerName(p['key'] as String), style: TextStyle(
                   color: isNext ? AppTheme.gold : AppTheme.textPrimary,
                   fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
@@ -1342,13 +997,10 @@ class _PrayerTimesCard extends StatelessWidget {
                 )),
               ])),
               SizedBox(width: 85, child: Text(_fmt(p['start'] as DateTime),
-                  style: TextStyle(
-                      color: isNext ? AppTheme.accent : AppTheme.textPrimary,
-                      fontSize: 14),
+                  style: TextStyle(color: isNext ? AppTheme.accent : AppTheme.textPrimary, fontSize: 14),
                   textAlign: TextAlign.center)),
               SizedBox(width: 85, child: Text(_fmt(p['end'] as DateTime),
-                  style: const TextStyle(
-                      color: AppTheme.textSecondary, fontSize: 14),
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                   textAlign: TextAlign.center)),
             ]),
           );
@@ -1358,14 +1010,10 @@ class _PrayerTimesCard extends StatelessWidget {
           child: Column(children: [
             const Divider(color: Colors.white10),
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              _chip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
-                  _fmt(prayerTimes!.sunrise)),
-              _chip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
-                  _fmt(prayerTimes!.maghrib)),
-              _chip('🍽️', isBn ? 'সেহরি' : 'Sehri',
-                  _fmt(prayerTimes!.fajr)),
-              _chip('🌙', isBn ? 'ইফতার' : 'Iftar',
-                  _fmt(prayerTimes!.maghrib)),
+              _chip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(prayerTimes!.sunrise)),
+              _chip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(prayerTimes!.maghrib)),
+              _chip('🍽️', isBn ? 'সেহরি' : 'Sehri', _fmt(prayerTimes!.fajr)),
+              _chip('🌙', isBn ? 'ইফতার' : 'Iftar', _fmt(prayerTimes!.maghrib)),
             ]),
           ]),
         ),
@@ -1376,11 +1024,8 @@ class _PrayerTimesCard extends StatelessWidget {
   Widget _chip(String icon, String label, String time) {
     return Column(children: [
       Text(icon, style: const TextStyle(fontSize: 18)),
-      Text(label,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-      Text(time,
-          style: const TextStyle(color: AppTheme.accent, fontSize: 12,
-              fontWeight: FontWeight.bold)),
+      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
     ]);
   }
 }
@@ -1395,9 +1040,8 @@ class _TodaySection extends StatelessWidget {
   final Function(String) onSetRoza;
 
   const _TodaySection({
-    required this.lang, required this.todayPrayers,
-    required this.todayRoza, required this.prayerTimes,
-    required this.onSetPrayer, required this.onSetRoza,
+    required this.lang, required this.todayPrayers, required this.todayRoza,
+    required this.prayerTimes, required this.onSetPrayer, required this.onSetRoza,
   });
 
   String _prayerName(String key) {
@@ -1440,23 +1084,19 @@ class _TodaySection extends StatelessWidget {
           const Icon(Icons.today, color: AppTheme.gold, size: 22),
           const SizedBox(width: 8),
           Text(isBn ? 'আজকের নামাজ ও রোজা' : "Today's Prayer & Fasting",
-              style: const TextStyle(color: AppTheme.gold,
-                  fontWeight: FontWeight.bold, fontSize: 16)),
+              style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
         const SizedBox(height: 12),
         ...prayers.map((prayer) => _TodayPrayerRow(
-          name: _prayerName(prayer),
-          time: _prayerTime(prayer),
-          status: todayPrayers[prayer],
-          lang: lang,
+          name: _prayerName(prayer), time: _prayerTime(prayer),
+          status: todayPrayers[prayer], lang: lang,
           onAdai: () => onSetPrayer(prayer, 'prayed'),
           onQaza: () => onSetPrayer(prayer, 'missed'),
         )),
         const Divider(color: Colors.white12),
         const SizedBox(height: 4),
         _TodayPrayerRow(
-          name: lang.roza, time: '',
-          status: todayRoza, lang: lang,
+          name: lang.roza, time: '', status: todayRoza, lang: lang,
           onAdai: () => onSetRoza('prayed'),
           onQaza: () => onSetRoza('missed'),
         ),
@@ -1489,30 +1129,15 @@ class _TodayPrayerRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(name, style: TextStyle(
-              color: isAdai ? AppTheme.completed
-                  : isQaza ? AppTheme.missed
-                  : AppTheme.textPrimary,
+              color: isAdai ? AppTheme.completed : isQaza ? AppTheme.missed : AppTheme.textPrimary,
               fontSize: 16, fontWeight: FontWeight.w500)),
             if (time.isNotEmpty)
-              Text(time, style: const TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 12)),
+              Text(time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
           ],
         )),
-        _CircleBtn(
-          icon: Icons.check,
-          label: lang.isBn ? 'আদায়' : 'Prayed',
-          color: AppTheme.completed,
-          selected: isAdai,
-          onTap: onAdai,
-        ),
+        _CircleBtn(icon: Icons.check, label: lang.isBn ? 'আদায়' : 'Prayed', color: AppTheme.completed, selected: isAdai, onTap: onAdai),
         const SizedBox(width: 12),
-        _CircleBtn(
-          icon: Icons.close,
-          label: lang.isBn ? 'কাযা' : 'Qaza',
-          color: AppTheme.missed,
-          selected: isQaza,
-          onTap: onQaza,
-        ),
+        _CircleBtn(icon: Icons.close, label: lang.isBn ? 'কাযা' : 'Qaza', color: AppTheme.missed, selected: isQaza, onTap: onQaza),
       ]),
     );
   }
@@ -1542,19 +1167,14 @@ class _CircleBtn extends StatelessWidget {
             color: selected ? color : color.withOpacity(0.15),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: selected ? 2.5 : 1.5),
-            boxShadow: selected
-                ? [BoxShadow(color: color.withOpacity(0.4),
-                blurRadius: 8, spreadRadius: 1)]
-                : [],
+            boxShadow: selected ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)] : [],
           ),
-          child: Icon(icon,
-              color: selected ? Colors.white : color, size: 26),
+          child: Icon(icon, color: selected ? Colors.white : color, size: 26),
         ),
         const SizedBox(height: 3),
         Text(label, style: TextStyle(
           color: selected ? color : AppTheme.textSecondary,
-          fontSize: 11,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 11, fontWeight: selected ? FontWeight.bold : FontWeight.normal,
         )),
       ]),
     );
@@ -1584,7 +1204,6 @@ class _HijriSimple {
     int a = (14 - m) ~/ 12;
     int yr = y + 4800 - a;
     int mo = m + 12 * a - 3;
-    return d + (153 * mo + 2) ~/ 5 + 365 * yr +
-        yr ~/ 4 - yr ~/ 100 + yr ~/ 400 - 32045;
+    return d + (153 * mo + 2) ~/ 5 + 365 * yr + yr ~/ 4 - yr ~/ 100 + yr ~/ 400 - 32045;
   }
 }

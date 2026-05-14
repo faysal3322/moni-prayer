@@ -658,6 +658,156 @@ class _HomeTabState extends State<_HomeTab> {
       }
     }
 
+    // ১৯. হিজরি মাস ভিত্তিক বিশেষ নোটিফিকেশন
+    final hijriMonth = _HijriSimple.getMonth(now);
+    final hijriDay = h;
+
+    // জিলহজ মাস — নখ-চুল কাটা নিষেধ
+    if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 10) {
+      alerts.add({
+        'icon': '✂️',
+        'text': isBn
+            ? 'জিলহজের ১-১০ তারিখ চলছে — যারা কোরবানি করবেন তারা নখ ও চুল কাটবেন না!'
+            : 'Dhul Hijjah 1-10: Do not cut nails/hair if you plan to sacrifice.',
+        'color': const Color(0xFFE65100),
+      });
+    }
+
+    // জিলহজ শেষ হওয়ার আগে সতর্কতা
+    if (hijriMonth == 11 && hijriDay >= 28) {
+      alerts.add({
+        'icon': '⚠️',
+        'text': isBn
+            ? 'জিলকদ শেষ হচ্ছে — জিলহজ শুরু হলে কোরবানিদাতারা নখ ও চুল কাটবেন না!'
+            : 'Dhul Qa\'dah ending — Dhul Hijjah starts soon. Stop cutting nails/hair if sacrificing.',
+        'color': const Color(0xFFE65100),
+      });
+    }
+
+    // জিলহজের ৯ তারিখ — আরাফার দিন
+    if (hijriMonth == 12 && hijriDay == 9) {
+      alerts.add({
+        'icon': '🕋',
+        'text': isBn
+            ? 'আজ আরাফার দিন! রোজা রাখুন — দুই বছরের গুনাহ মাফ হবে।'
+            : 'Today is the Day of Arafah! Fast today — sins of 2 years forgiven.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // জিলহজের ১০ তারিখ — ঈদুল আযহা
+    if (hijriMonth == 12 && hijriDay == 10) {
+      alerts.add({
+        'icon': '🐑',
+        'text': isBn
+            ? 'আজ ঈদুল আযহা — কোরবানির দিন! রোজা রাখা নিষেধ।'
+            : 'Today is Eid al-Adha — Day of sacrifice! Fasting is forbidden.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // জিলহজের ১১-১৩ তারিখ — আইয়ামে তাশরিক
+    if (hijriMonth == 12 && hijriDay >= 11 && hijriDay <= 13) {
+      alerts.add({
+        'icon': '🐑',
+        'text': isBn
+            ? 'আইয়ামে তাশরিক (${hijriDay} জিলহজ) — কোরবানির দিন। রোজা রাখা নিষেধ।'
+            : 'Ayyam al-Tashriq (${hijriDay} Dhul Hijjah) — Fasting is forbidden.',
+        'color': const Color(0xFFFF8F00),
+      });
+    }
+
+    // রমজান মাস
+    if (hijriMonth == 9) {
+      if (hijriDay <= 10) {
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn ? 'রমজানের প্রথম দশক — রহমতের দশক চলছে!' : 'First 10 days of Ramadan — Days of Mercy!',
+          'color': const Color(0xFF7C4DFF),
+        });
+      } else if (hijriDay <= 20) {
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn ? 'রমজানের দ্বিতীয় দশক — মাগফিরাতের দশক চলছে!' : 'Second 10 days of Ramadan — Days of Forgiveness!',
+          'color': const Color(0xFF7C4DFF),
+        });
+      } else {
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn ? 'রমজানের শেষ দশক — নাজাতের দশক। লাইলাতুল কদর অন্বেষণ করুন!' : 'Last 10 days of Ramadan — Seek Laylatul Qadr!',
+          'color': AppTheme.gold,
+        });
+      }
+      if (hijriDay % 2 != 0 && hijriDay >= 21) {
+        alerts.add({
+          'icon': '✨',
+          'text': isBn ? 'আজ রমজানের বিজোড় রাত — লাইলাতুল কদর হতে পারে! বেশি ইবাদত করুন।' : 'Odd night of last 10 — Possible Laylatul Qadr!',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // শাবান মাস
+    if (hijriMonth == 8 && hijriDay == 15) {
+      alerts.add({
+        'icon': '🌟',
+        'text': isBn ? 'আজ শবে বরাত (১৫ শাবান) — রাতে বেশি ইবাদত করুন।' : 'Tonight is Shab-e-Barat (15 Sha\'ban) — Night of Forgiveness.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+    if (hijriMonth == 8 && hijriDay == 14 && now.isAfter(pt.maghrib)) {
+      alerts.add({
+        'icon': '🌟',
+        'text': isBn ? 'আজ রাতেই শবে বরাত শুরু — ইবাদতের প্রস্তুতি নিন!' : 'Shab-e-Barat starts tonight! Prepare for worship.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // রজব মাস
+    if (hijriMonth == 7 && hijriDay == 27) {
+      alerts.add({
+        'icon': '🕌',
+        'text': isBn ? 'আজ রাতে শবে মেরাজ (২৭ রজব) — বিশেষ ইবাদত করুন।' : 'Tonight is Shab-e-Miraj (27 Rajab) — Night of Ascension.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // মহররম মাস
+    if (hijriMonth == 1 && (hijriDay == 9 || hijriDay == 10)) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আশুরার রোজা (${hijriDay} মহররম) — গত বছরের গুনাহ মাফ হবে!'
+            : 'Day of Ashura (${hijriDay} Muharram) — Sins of past year forgiven!',
+        'color': const Color(0xFF00BCD4),
+      });
+    }
+    if (hijriMonth == 1 && hijriDay == 8 && now.isAfter(pt.maghrib)) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn ? 'আগামীকাল আশুরার রোজা (৯ ও ১০ মহররম) — প্রস্তুতি নিন!' : 'Ashura fast tomorrow (9th & 10th Muharram)!',
+        'color': const Color(0xFF00BCD4),
+      });
+    }
+
+    // ঈদুল ফিতর
+    if (hijriMonth == 10 && hijriDay == 1) {
+      alerts.add({
+        'icon': '🎉',
+        'text': isBn ? 'আজ ঈদুল ফিতর! ঈদের নামাজ আদায় করুন। রোজা রাখা নিষেধ।' : 'Today is Eid al-Fitr! Pray Eid salah. Fasting is forbidden.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // রমজানের আগে প্রস্তুতি
+    if (hijriMonth == 8 && hijriDay >= 25) {
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn ? 'রমজান আসছে! শাবানের রোজা রেখে প্রস্তুতি নিন।' : 'Ramadan is coming! Prepare with Sha\'ban fasts.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+    
     // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

@@ -971,6 +971,342 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
     
+   // ══════════════════════════════════════════
+    // নফল আমলের নোটিফিকেশন
+    // ══════════════════════════════════════════
+
+    // সকাল ও বিকাল — সুবহানাল্লাহি ওয়া বিহামদিহি
+    if ((now.isAfter(pt.fajr) && now.hour < 10) ||
+        (now.isAfter(pt.asr) && now.hour < 19)) {
+      final isMorning = now.hour < 12;
+      alerts.add({
+        'icon': '📿',
+        'text': isBn
+            ? '${isMorning ? "সকালে" : "বিকালে"} ১০০ বার পড়ুন:\n"সুবহানাল্লাহি ওয়া বিহামদিহি সুবহানাল্লাহিল আযীম"\nজান্নাতে একটি খেজুর গাছ রোপণ হবে এবং সৃষ্টিকুলের সবার চেয়ে বেশি মর্যাদা পাবেন!'
+            : '${isMorning ? "Morning" : "Evening"}: Say 100x "Subhanallahi wa bihamdihi Subhanallahil Azim" — a date palm planted in Jannah!',
+        'color': const Color(0xFF2E7D32),
+      });
+    }
+
+    // সকাল ও বিকাল — ১০০ বার তাসবীহ
+    if ((now.isAfter(pt.fajr) && now.hour < 10) ||
+        (now.isAfter(pt.asr) && now.hour < 19)) {
+      alerts.add({
+        'icon': '✨',
+        'text': isBn
+            ? 'এখন ১০০ বার করে পড়ুন:\n• সুবহানাল্লাহ\n• আলহামদুলিল্লাহ\n• আল্লাহু আকবার\n• লা ইলাহা ইল্লাল্লাহু ওয়াহদাহু লা শারীকা লাহু...\nঅগণিত সওয়াব হবে! — নাসাই, সহিহ তারগিব: ৬৫১'
+            : 'Say 100x each: SubhanAllah, Alhamdulillah, Allahu Akbar, La ilaha illAllah — countless rewards!',
+        'color': const Color(0xFF1565C0),
+      });
+    }
+
+    // নামাজের ওয়াক্ত শুরু হলে জামাতের ফযিলত — ৩০ মিনিট
+    final prayerTimes = [pt.fajr, pt.dhuhr, pt.asr, pt.maghrib, pt.isha];
+    for (final pTime in prayerTimes) {
+      if (now.isAfter(pTime) &&
+          now.isBefore(pTime.add(const Duration(minutes: 30)))) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn
+              ? 'এখন নামাজের ওয়াক্ত! ইমামের প্রথম তাকবীরের সাথে ৪০ দিন সালাত আদায় করুন — নিশ্চিত জাহান্নাম থেকে মুক্তি পাবেন! তিরমিযী: ৭৪৭'
+              : 'Prayer time! Pray with first Takbeer for 40 days — guaranteed freedom from Hellfire! Tirmidhi: 747',
+          'color': AppTheme.accent,
+        });
+        break;
+      }
+    }
+
+    // ফজরের পর — চাশত/ইশরাক নোটিফিকেশন
+    if (now.isAfter(pt.fajr) &&
+        now.isBefore(pt.fajr.add(const Duration(minutes: 90)))) {
+      alerts.add({
+        'icon': '🌅',
+        'text': isBn
+            ? 'ফজরের পর মসজিদে বসে যিকির করুন। সূর্য উঠলে ২ রাকাত ইশরাক পড়ুন — প্রতিদিন ১টি নিশ্চিত কবুল হজ ও উমরার সওয়াব! তিরমিযী: ৪৬১'
+            : 'Stay in mosque after Fajr doing dhikr. After sunrise pray 2 rakats Ishraq — daily reward of complete Hajj & Umrah! Tirmidhi: 461',
+        'color': const Color(0xFFFF8F00),
+      });
+    }
+
+    // চাশত সময় — সকাল ৯টা থেকে ১১টা
+    if (now.hour >= 9 && now.hour < 11) {
+      alerts.add({
+        'icon': '☀️',
+        'text': isBn
+            ? 'এখন চাশতের উত্তম সময় (সকাল ৯-১১টা) — ২, ৪, ৮ বা ১২ রাকাত নফল পড়ুন। প্রতিটি সন্ধির পক্ষ থেকে সদকা হবে!'
+            : 'Best time for Chasht/Duha prayer (9-11am) — Pray 2-12 rakats nafl. Sadaqah for every joint!',
+        'color': const Color(0xFFFDD835),
+      });
+    }
+
+    // ফজর ও মাগরিবের পর — সূরা হাশর + তিন কুল
+    if ((now.isAfter(pt.fajr) &&
+            now.isBefore(pt.fajr.add(const Duration(minutes: 45)))) ||
+        (now.isAfter(pt.maghrib) &&
+            now.isBefore(pt.maghrib.add(const Duration(minutes: 45))))) {
+      final isFajrTime = now.isAfter(pt.fajr) && now.hour < 12;
+      alerts.add({
+        'icon': '📖',
+        'text': isBn
+            ? '${isFajrTime ? "ফজর" : "মাগরিব"}এর পর আমল:\n• সূরা হাশরের শেষ ৩ আয়াত পড়ুন\n• তিন কুল পড়ে শরীরে দম করুন\n• হাদিস বর্ণিত যিকির ও দোয়া করুন'
+            : '${isFajrTime ? "Fajr" : "Maghrib"} amal: Last 3 ayats of Hashr, Three Quls with dam, prescribed dhikr & dua.',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // ঘুমানোর আগে — রাত ৯টা থেকে রাত ১২টা
+    if (now.hour >= 21 && now.hour < 24) {
+      alerts.add({
+        'icon': '😴',
+        'text': isBn
+            ? 'ঘুমানোর আগে আমল:\n• সূরা মুলক পড়ুন (কবরের আযাব থেকে রক্ষা)\n• তিন কুল পড়ে ৩ বার শরীরে দম করুন\n• আয়াতুল কুরসি পড়ুন\n• সূরা কাফিরুন পড়ুন\n• ঘুমের দোয়া পড়ে ডান কাত হয়ে শোন'
+            : 'Before sleep: Surah Mulk (protection from grave), Three Quls with dam, Ayatul Kursi, Surah Kafirun, sleep on right side.',
+        'color': const Color(0xFF5C6BC0),
+      });
+    }
+
+    // সন্ধ্যার পর — সূরা মুলক মনে করানো
+    if (now.isAfter(pt.maghrib) && now.hour < 22) {
+      alerts.add({
+        'icon': '📖',
+        'text': isBn
+            ? 'আজ রাতে ঘুমানোর আগে সূরা মুলক পড়তে ভুলবেন না — কবরের আযাব থেকে রক্ষা করবে।'
+            : "Don't forget Surah Mulk tonight — it protects from grave punishment.",
+        'color': const Color(0xFF26A69A),
+      });
+    }
+
+    // সন্ধ্যার পর — সূরা ইখলাসের ফযিলত (রাত ৯-১০টা)
+    if (now.hour == 21) {
+      alerts.add({
+        'icon': '📿',
+        'text': isBn
+            ? 'প্রতি রাতে সূরা ইখলাস পড়লে কুরআনের এক তৃতীয়াংশ তিলাওয়াতের সওয়াব পাবেন! — মুসনাদে আহমদ: ২৩৫৫৪'
+            : 'Recite Surah Ikhlas every night — reward of 1/3 of the Quran! Musnad Ahmad: 23554',
+        'color': const Color(0xFF4A148C),
+      });
+    }
+
+    // ইশা ও ফজর ওয়াক্তে — জামাতের বিশেষ ফযিলত (১ ঘন্টা)
+    if ((now.isAfter(pt.isha) &&
+            now.isBefore(pt.isha.add(const Duration(hours: 1)))) ||
+        (now.isAfter(pt.fajr) &&
+            now.isBefore(pt.fajr.add(const Duration(hours: 1))))) {
+      final isIsha = now.isAfter(pt.isha) && now.hour > 18;
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn
+            ? '${isIsha ? "ইশার" : "ফজরের"} জামাতে নামাজ পড়লে ${isIsha ? "অর্ধেক রাত ইবাদতের" : "পুরো রাত ইবাদতের"} সওয়াব পাবেন! এছাড়া ইশা = হজের সমান, ফজর = উমরার সমান সওয়াব! — সহীহ আল জামি: ৬৪৩২'
+            : '${isIsha ? "Isha" : "Fajr"} in congregation = reward of ${isIsha ? "half the night" : "whole night"} of ibadah! Also = Hajj/Umrah reward!',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // মাগরিবের পর আওওয়াবিন — ২০ মিনিট
+    if (now.isAfter(pt.maghrib) &&
+        now.isBefore(pt.maghrib.add(const Duration(minutes: 20)))) {
+      alerts.add({
+        'icon': '🌟',
+        'text': isBn
+            ? 'মাগরিবের পর আওওয়াবিন নামাজের সময় — ৬-২০ রাকাত পড়ুন। রাসূল ﷺ নিয়মিত পড়তেন!'
+            : 'Awwabin time after Maghrib — Pray 6-20 rakats. The Prophet ﷺ prayed this regularly!',
+        'color': const Color(0xFF26A69A),
+      });
+    }
+
+    // প্রতিদিন ২০ মিনিট — রমজানে উমরার ফযিলত মনে করানো
+    if (hijriMonth == 9 && now.minute < 20) {
+      alerts.add({
+        'icon': '🕋',
+        'text': isBn
+            ? 'রমজানে উমরাহ পালন করা রাসূল ﷺ-এর সাথে হজ করার সমান! — সহীহ বুখারী'
+            : 'Umrah in Ramadan = Hajj with the Prophet ﷺ! — Sahih Bukhari',
+        'color': const Color(0xFFFF6F00),
+      });
+    }
+
+    // প্রতি মাসে ৩ রোজা — ১৩, ১৪, ১৫ তারিখ
+    if (hijriDay >= 13 && hijriDay <= 15 && hijriMonth != 9) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আজ আইয়্যামুল বীদ (${hijriDay} তারিখ) — প্রতি মাসের ১৩, ১৪, ১৫ তারিখে রোজা রাখুন। সারা বছর রোজার সমান সওয়াব!'
+            : 'Ayyam al-Beed (${hijriDay}th) — Fast 13, 14, 15 of each month = reward of year-long fasting!',
+        'color': const Color(0xFF00BCD4),
+      });
+    }
+
+    // জামাতে প্রথম সারির ফযিলত — জুমা বাদে প্রতিদিন
+    if (now.hour >= 11 && now.hour < 13 && now.weekday != DateTime.friday) {
+      alerts.add({
+        'icon': '🕌',
+        'text': isBn
+            ? 'জামাতে প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন — রাসূল ﷺ প্রথম সারির জন্য ৩ বার ও দ্বিতীয় সারির জন্য ১ বার ইস্তিগফার করতেন!'
+            : 'Try to stand in first row — the Prophet ﷺ sought forgiveness 3x for first row, 1x for second row!',
+        'color': AppTheme.accent,
+      });
+    }
+
+    // ঘর থেকে বের হওয়ার সময় মনে করানো — সকাল ৭-৯টা
+    if (now.hour >= 7 && now.hour < 9) {
+      alerts.add({
+        'icon': '🚪',
+        'text': isBn
+            ? 'ঘর থেকে বের হওয়ার সময়:\n• ডান পা দিয়ে বের হন\n• বের হওয়ার দোয়া পড়ুন: "বিসমিল্লাহ তাওয়াক্কালতু আলাল্লাহ"\n• ঘরে ফেরার সময় ডান পা দিয়ে প্রবেশ করে সালাম দিন'
+            : 'When leaving home: Right foot first, say leaving dua, return with right foot & give salam.',
+        'color': const Color(0xFF5D4037),
+      });
+    }
+
+    // শাওয়ালের ৬ রোজা মনে করানো — শাওয়াল মাসে
+    if (hijriMonth == 10 && hijriDay >= 2 && hijriDay <= 25) {
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn
+            ? 'শাওয়ালের ৬টি রোজা বাকি আছে — রমজান + শাওয়ালের ৬ রোজা = পুরো বছর রোজার সমান সওয়াব!'
+            : 'Shawwal 6 fasts remaining — Ramadan + 6 Shawwal fasts = reward of year-long fasting!',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // বিশেষ ৫ রাতের নোটিফিকেশন — আগের সন্ধ্যা থেকে ফজর পর্যন্ত
+    // জিলহজের ৮ তারিখের রাত
+    if ((hijriMonth == 12 && hijriDay == 7 && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 12 && hijriDay == 8 && now.isBefore(pt.fajr))) {
+      alerts.add({
+        'icon': '🌟',
+        'text': isBn
+            ? 'আজ রাতে জেগে ইবাদত করুন (জিলহজের ৮ তারিখের রাত) — এই রাতে ইবাদত করলে জান্নাত ওয়াজিব হয়ে যায়! — আত-তারগিব'
+            : 'Tonight: 8th Dhul Hijjah night — worship tonight and Jannah becomes obligatory! At-Targheeb',
+        'color': AppTheme.gold,
+      });
+    }
+    // জিলহজের ৯ তারিখের রাত (আরাফার আগের রাত)
+    if ((hijriMonth == 12 && hijriDay == 8 && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 12 && hijriDay == 9 && now.isBefore(pt.fajr))) {
+      alerts.add({
+        'icon': '🕋',
+        'text': isBn
+            ? 'আজ আরাফার রাত! জেগে ইবাদত করুন — জান্নাত ওয়াজিব হয়ে যাবে। কাল আরাফার রোজা রাখুন!'
+            : "Arafah eve! Worship tonight — Jannah becomes obligatory! Fast tomorrow (Day of Arafah)!",
+        'color': AppTheme.gold,
+      });
+    }
+    // ঈদুল আজহার রাত
+    if ((hijriMonth == 12 && hijriDay == 9 && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 12 && hijriDay == 10 && now.isBefore(pt.fajr))) {
+      alerts.add({
+        'icon': '🐑',
+        'text': isBn
+            ? 'আজ রাতে জেগে ইবাদত করুন (ঈদুল আজহার রাত) — এই রাতে দোয়া ফিরিয়ে দেওয়া হয় না এবং জান্নাত ওয়াজিব হয়ে যায়!'
+            : 'Eid al-Adha eve! Worship tonight — duas are never rejected, Jannah becomes obligatory!',
+        'color': AppTheme.gold,
+      });
+    }
+    // ঈদুল ফিতরের রাত (৩০ রমজান মাগরিব থেকে ১ শাওয়াল ফজর পর্যন্ত)
+    if ((hijriMonth == 9 && hijriDay == 30 && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 10 && hijriDay == 1 && now.isBefore(pt.fajr))) {
+      alerts.add({
+        'icon': '🎉',
+        'text': isBn
+            ? 'আজ রাতে জেগে ইবাদত করুন (ঈদুল ফিতরের রাত) — এই রাতে দোয়া কবুল হয়, হৃদয় কিয়ামতের দিন সজীব থাকবে!'
+            : 'Eid al-Fitr eve! Worship tonight — duas accepted, heart stays alive on Judgment Day!',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // শুক্রবার — বিস্তারিত আমল
+    if (now.weekday == DateTime.friday) {
+      if (now.isAfter(pt.fajr) && now.isBefore(pt.dhuhr)) {
+        alerts.add({
+          'icon': '🕌',
+          'text': isBn
+              ? 'জুমার দিনের ১১টি আমল:\n১. আগে ঘুম থেকে উঠুন\n২. গোসল করুন\n৩. উত্তম পোশাক পরুন\n৪. সুগন্ধি ও মেসওয়াক ব্যবহার করুন\n৫. পায়ে হেঁটে মসজিদে যান\n৬. আগে আগে মসজিদে যান\n৭. বেশি দরূদ পড়ুন\n৮. সূরা কাহাফ পড়ুন\n৯. আসরের পর দোয়ায় মশগুল থাকুন\n১০. ভিন্ন পথে ফিরুন\n১১. বেশি বেশি ইস্তিগফার করুন'
+              : 'Friday 11 amals: Early rise, Ghusl, best clothes, perfume, walk to mosque early, more Salawat, Surah Kahf, dua after Asr, return different route, istighfar.',
+          'color': AppTheme.gold,
+        });
+        alerts.add({
+          'icon': '📖',
+          'text': isBn
+              ? 'জুমার দিন সূরা কাহাফ তেলাওয়াত করুন — কেয়ামতের দিন নুরের আলো হবে এবং দাজ্জালের ফেতনা থেকে রক্ষা করবে! প্রতি কদমে ১ বছর রোজা ও কিয়ামুল লাইলের সওয়াব!'
+              : 'Recite Surah Kahf — light on Judgment Day, protection from Dajjal! Every step to mosque = 1 year fasting & night prayer reward!',
+          'color': const Color(0xFF26A69A),
+        });
+      }
+      // আসরের পর দোয়ার সময়
+      if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+        final cd = _countdown(pt.maghrib);
+        alerts.add({
+          'icon': '🤲',
+          'text': isBn
+              ? 'এখন জুমার দোয়া কবুলের বিশেষ সময়! (মাগরিব পর্যন্ত: $cd) — দোয়ায় মশগুল থাকুন! রাসূল ﷺ বলেছেন এটি সপ্তাহের সেরা মুহূর্ত।'
+              : 'Golden hour for Friday dua! (Till Maghrib: $cd) — Stay in dua! The Prophet ﷺ said this is the best moment of the week.',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // সোমবার ও বৃহস্পতিবার নফল রোজা
+    if ((now.weekday == DateTime.monday || now.weekday == DateTime.thursday) &&
+        now.isAfter(pt.fajr) &&
+        now.isBefore(pt.maghrib)) {
+      final day = now.weekday == DateTime.monday ? 'সোমবার' : 'বৃহস্পতিবার';
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আজ $day — নফল রোজার দিন! এই দিনে আমলনামা আল্লাহর দরবারে পেশ হয়, রোজাদার অবস্থায় পেশ হলে বিশেষ মর্যাদা পাওয়া যায়!'
+            : 'Today is $day — nafl fast day! Deeds presented to Allah — better to be fasting when they are!',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+
+    // জিলহজের প্রথম ১০ দিন — বিস্তারিত আমল
+    if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 9) {
+      alerts.add({
+        'icon': '⭐',
+        'text': isBn
+            ? 'জিলহজের ${hijriDay} তারিখ — এই ১০ দিনের আমল:\n• নফল রোজা রাখুন (বিশেষত ৯ জিলহজ)\n• নখ ও চুল কাটবেন না (কোরবানিদাতারা)\n• বেশি তাকবির ও জিকির পড়ুন\n• দান-সদকা করুন\n• তাহাজ্জুদ পড়ুন'
+            : 'Dhul Hijjah ${hijriDay} — Best 10 days: Fast (esp. 9th), no haircut/nails (sacrificers), lots of takbeer, charity, tahajjud.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // জিলহজ মাসে তাকবিরে তাশরিক (৯-১৩ জিলহজ)
+    if (hijriMonth == 12 && hijriDay >= 9 && hijriDay <= 13) {
+      alerts.add({
+        'icon': '📢',
+        'text': isBn
+            ? 'এখন তাকবিরে তাশরিক পড়ার সময় — প্রতি ফরজ নামাজের পর পড়ুন:\n"আল্লাহু আকবার আল্লাহু আকবার লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার আল্লাহু আকবার ওয়া লিল্লাহিল হামদ"'
+            : 'Time for Takbeer al-Tashriq after every fard prayer: "Allahu Akbar Allahu Akbar La ilaha illAllah..."',
+        'color': const Color(0xFFE65100),
+      });
+    }
+
+    // রমজানের ইফতারি করানোর ফযিলত
+    if (hijriMonth == 9 && now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+      alerts.add({
+        'icon': '🍽️',
+        'text': isBn
+            ? 'কোনো রোজাদারকে ইফতার করান — তার সমান সওয়াব পাবেন, অথচ তার সওয়াব কিছুমাত্র কমবে না!'
+            : 'Feed a fasting person iftar — you get same reward without reducing theirs!',
+        'color': const Color(0xFFE65100),
+      });
+    }
+
+    // রমজানের শেষ দশকের বিজোড় রাত — লাইলাতুল কদর
+    if (hijriMonth == 9 &&
+        hijriDay >= 20 &&
+        hijriDay % 2 != 0 &&
+        now.isAfter(pt.maghrib)) {
+      alerts.add({
+        'icon': '✨',
+        'text': isBn
+            ? 'আজ রাতে লাইলাতুল কদর হতে পারে! রাতভর ইবাদত করুন — "আল্লাহুম্মা ইন্নাকা আফুওয়্যুন কারীমুন তুহিব্বুল আফওয়া ফাফু আন্নী" পড়ুন।\nএই রাতের ইবাদত ১০০০ মাসের চেয়ে উত্তম!'
+            : "Tonight could be Laylatul Qadr! Worship all night — 'Allahumma innaka afuwwun...' This night > 1000 months!",
+        'color': AppTheme.gold,
+      });
+    }
+    
     // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

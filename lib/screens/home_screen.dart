@@ -1307,6 +1307,146 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
     
+    // জিলহজের প্রথম ১০ দিন — বিস্তারিত আমল (সারাদিন)
+    if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 9) {
+      alerts.add({
+        'icon': '🌟',
+        'text': isBn
+            ? 'জিলহজের ${hijriDay} তারিখ — বছরের শ্রেষ্ঠ দিন!\n\n'
+                '✦ নফল রোজা রাখুন\n'
+                '✦ বেশি তাহলিল পড়ুন: "লা ইলাহা ইল্লাল্লাহ"\n'
+                '✦ তাকবির পড়ুন: "আল্লাহু আকবার আল্লাহু আকবার লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার ওয়া লিল্লাহিল হামদ"\n'
+                '✦ তাহমিদ পড়ুন: "আলহামদুলিল্লাহ"\n'
+                '✦ দান-সদকা করুন\n'
+                '✦ আত্মীয়তার সম্পর্ক জোরদার করুন\n'
+                '✦ গুনাহ থেকে বেঁচে থাকুন\n'
+                '✦ তওবা ও ইস্তিগফার করুন\n\n'
+                '"এই দিনগুলোর নেক আমল আল্লাহর কাছে সর্বাধিক প্রিয় — জিহাদের চেয়েও!" — বুখারী'
+            : 'Dhul Hijjah ${hijriDay} — Best days! Fast, say Takbeer, Tahleel, Tahmeed, give charity, maintain family ties, repent!',
+        'color': AppTheme.gold,
+      });
+
+      // তওবা ও ইস্তিগফার আলাদা নোটিফিকেশন
+      alerts.add({
+        'icon': '🤲',
+        'text': isBn
+            ? 'জিলহজের ${hijriDay} তারিখ — গুনাহ মাফের শ্রেষ্ঠ সময়!\n\n'
+                'আল্লাহ বলেন: "তোমরা তোমাদের রবের কাছে ক্ষমা প্রার্থনা করো, অতঃপর তাঁর কাছেই ফিরে এসো।" — সূরা হুদ: ৯০\n\n'
+                '✦ বেশি বেশি তওবা করুন\n'
+                '✦ আস্তাগফিরুল্লাহ পড়ুন\n'
+                '✦ নফল নামাজ আদায় করুন'
+            : 'Dhul Hijjah ${hijriDay} — Best time for Tawbah! Seek forgiveness abundantly — Surah Hud: 90',
+        'color': const Color(0xFF4A148C),
+      });
+    }
+
+    // জিলহজের ১-৯ তারিখ — রোজার নোটিফিকেশন (দিনের বেলা)
+    if (hijriMonth == 12 &&
+        hijriDay >= 1 &&
+        hijriDay <= 9 &&
+        now.isAfter(pt.fajr) &&
+        now.isBefore(pt.maghrib)) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আজ জিলহজের ${hijriDay} তারিখ — নফল রোজার দিন!\n\n'
+                'রাসূল ﷺ জিলহজের প্রথম ৯ দিন রোজা রাখতেন এবং কখনো ছাড়তেন না। — আবু দাউদ: ২১০৬\n\n'
+                '✦ আরাফার দিন (৯ জিলহজ) রোজা রাখলে আগের ও পরের ১ বছরের গুনাহ মাফ!'
+            : 'Dhul Hijjah ${hijriDay} — Fast today! Prophet ﷺ never missed these fasts. Arafah fast (9th) = 2 years sins forgiven!',
+        'color': const Color(0xFF00BCD4),
+      });
+    }
+
+    // জিলহজ ১-৯ তারিখ ইফতারের আগে — রোজাদারের দোয়া
+    if (hijriMonth == 12 &&
+        hijriDay >= 1 &&
+        hijriDay <= 9 &&
+        now.isAfter(pt.asr) &&
+        now.isBefore(pt.maghrib)) {
+      final cd = _countdown(pt.maghrib);
+      alerts.add({
+        'icon': '🤲',
+        'text': isBn
+            ? 'ইফতার পর্যন্ত: $cd — এখন দোয়ায় মশগুল থাকুন!\n'
+                'রোজাদারের দোয়া ফিরিয়ে দেওয়া হয় না!'
+            : 'Iftar in: $cd — Make dua now! Fasting person\'s dua is never rejected!',
+        'color': const Color(0xFFE65100),
+      });
+    }
+
+    // কোরবানি ও আত্মীয়তা — জিলহজে
+    if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 10) {
+      alerts.add({
+        'icon': '🐑',
+        'text': isBn
+            ? 'কোরবানির প্রস্তুতি:\n\n'
+                '✦ হালাল উপায়ে পশু নির্বাচন করুন\n'
+                '✦ কোরবানির গোশত তিন ভাগ করুন — নিজের, আত্মীয়দের ও গরিবদের জন্য\n'
+                '✦ "কোরবানির রক্ত জমিনে পড়ার আগেই আল্লাহর কাছে কবুল হয়ে যায়" — তিরমিযী: ১৪৯৩\n'
+                '✦ আত্মীয়তার সম্পর্ক জোরদার করুন'
+            : 'Qurbani preparation: Choose halal animal, divide meat 3 ways (self/relatives/poor). "Blood accepted before it falls!" Tirmidhi: 1493',
+        'color': const Color(0xFFB71C1C),
+      });
+    }
+
+    // ঈদের নামাজের নিয়ম — ঈদের সকালে
+    if ((hijriMonth == 12 && hijriDay == 10 && now.hour < 10) ||
+        (hijriMonth == 10 && hijriDay == 1 && now.hour < 10)) {
+      final isAzha = hijriMonth == 12;
+      alerts.add({
+        'icon': '🎉',
+        'text': isBn
+            ? '${isAzha ? "ঈদুল আজহার" : "ঈদুল ফিতরের"} নামাজের প্রস্তুতি:\n\n'
+                '✦ গোসল করুন\n'
+                '✦ উত্তম পোশাক পরুন\n'
+                '${isAzha ? "✦ কোরবানির আগে কিছু খাবেন না\n" : "✦ ঈদগাহে যাওয়ার আগে মিষ্টি খান\n"}'
+                '✦ পায়ে হেঁটে ঈদগাহে যান\n'
+                '✦ তাকবির বলতে বলতে যান\n'
+                '✦ ভিন্ন পথে ফিরুন'
+            : '${isAzha ? "Eid al-Adha" : "Eid al-Fitr"} prayer prep: Ghusl, best clothes, walk to Eidgah, say Takbeer, return different route.',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // জামাতে প্রথম সারির ফযিলত — সকল নামাজের ওয়াক্তে
+    for (final pTime in prayerTimes) {
+      if (now.isAfter(pTime.subtract(const Duration(minutes: 15))) &&
+          now.isBefore(pTime)) {
+        alerts.add({
+          'icon': '⭐',
+          'text': isBn
+              ? 'নামাজের সময় হচ্ছে — জামাতে প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন!\n\n'
+                  'রাসূল ﷺ প্রথম সারির জন্য ৩ বার দোয়া করতেন, দ্বিতীয় সারির জন্য ১ বার!'
+              : 'Prayer time soon — try for the first row! Prophet ﷺ prayed 3x for first row, 1x for second!',
+          'color': AppTheme.accent,
+        });
+        break;
+      }
+    }
+
+    // সৎ কাজে প্রতিযোগিতার অনুপ্রেরণা — প্রতিদিন দুপুরে
+    if (now.hour == 13) {
+      alerts.add({
+        'icon': '🏆',
+        'text': isBn
+            ? 'আল্লাহ বলেন: "তোমরা কল্যাণমূলক কাজে প্রতিযোগিতা করো।" — সূরা বাকারা: ১৪৮\n\n'
+                'আজ কি কি নেক আমল করলেন? দান-সদকা, অসহায়কে সাহায্য, দ্বীনি কাজে অংশগ্রহণ করুন!'
+            : '"Compete in good deeds!" — Surah Baqarah: 148. What good have you done today? Give charity, help others!',
+        'color': const Color(0xFF1565C0),
+      });
+    }
+
+    // নফল ইবাদতের গুরুত্ব — প্রতিদিন বিকালে
+    if (now.hour == 16) {
+      alerts.add({
+        'icon': '💎',
+        'text': isBn
+            ? 'আল্লাহ বলেন (হাদিসে কুদসি): "আমার বান্দা নফল ইবাদতের মাধ্যমে সর্বদা আমার সান্নিধ্য লাভ করতে থাকে, একপর্যায়ে আমি তাকে আমার প্রিয় পাত্রে পরিণত করি।" — বুখারী: ৬৫০২'
+            : 'Allah says (Hadith Qudsi): "My servant keeps drawing near to Me through nafl worship until I love him." — Bukhari: 6502',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+    
     // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

@@ -1447,6 +1447,100 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
     
+    // ১. প্রতিদিন ২০ মিনিট — রমজানে উমরার ফযিলত (যেকোনো সময়)
+    if (hijriMonth != 9 && now.minute >= 0 && now.minute < 20) {
+      alerts.add({
+        'icon': '🕋',
+        'text': isBn
+            ? 'রমজানে উমরাহ করার পরিকল্পনা করুন!\n\n'
+                'রাসূল ﷺ বলেছেন: "রমজানে উমরাহ পালন করা আমার সাথে হজ করার সমান।"\n\n'
+                'এখনই নিয়ত করুন এবং প্রস্তুতি শুরু করুন।'
+            : 'Plan Umrah in Ramadan!\n\nProphet ﷺ said: "Umrah in Ramadan = Hajj with me."\n\nMake intention now and start preparing!',
+        'color': const Color(0xFFFF6F00),
+      });
+    }
+
+    // ২. প্রতি মাসে ৩টি রোজা — আইয়্যামুল বীদ ছাড়া অন্য সময়েও মনে করানো
+    if (hijriDay == 12 && hijriMonth != 9) {
+      alerts.add({
+        'icon': '🌿',
+        'text': isBn
+            ? 'আগামীকাল থেকে আইয়্যামুল বীদ শুরু (১৩, ১৪, ১৫ তারিখ)!\n\n'
+                '"প্রত্যেক মাসে ৩টি রোজা রাখা সারা বছর রোজা রাখার সমান।"\n\n'
+                'আগামীকাল থেকে ৩ দিন রোজার নিয়ত করুন!'
+            : 'Ayyam al-Beed starts tomorrow (13, 14, 15)!\n\n"3 fasts per month = year-long fasting reward."\n\nMake intention now!',
+        'color': const Color(0xFF00BCD4),
+      });
+    }
+
+    // ৩. রমজানের শেষ দশক — প্রতি রাতে মাগরিব থেকে ফজর পর্যন্ত
+    if (hijriMonth == 9 && hijriDay >= 20) {
+      if (now.isAfter(pt.maghrib) || now.isBefore(pt.fajr)) {
+        alerts.add({
+          'icon': '✨',
+          'text': isBn
+              ? 'রমজানের শেষ দশকের রাত চলছে!\n\n'
+                  '"লাইলাতুল কদর হাজার মাসের চেয়ে উত্তম।"\n\n'
+                  '✦ বেশি বেশি পড়ুন:\n'
+                  '"আল্লাহুম্মা ইন্নাকা আফুওয়্যুন কারীমুন তুহিব্বুল আফওয়া ফাফু আন্নী"\n\n'
+                  '✦ তাহাজ্জুদ পড়ুন\n'
+                  '✦ কুরআন তেলাওয়াত করুন\n'
+                  '✦ দোয়ায় মশগুল থাকুন'
+              : 'Last 10 nights of Ramadan!\n\n"Laylatul Qadr > 1000 months."\n\nPray Tahajjud, recite Quran, make dua: "Allahumma innaka afuwwun..."',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+
+    // ৪. জুমার দিন — মসজিদে যাওয়ার পথে প্রতি কদমে ১ বছরের সওয়াব
+    if (now.weekday == DateTime.friday &&
+        now.isAfter(pt.fajr) &&
+        now.isBefore(pt.dhuhr)) {
+      alerts.add({
+        'icon': '👣',
+        'text': isBn
+            ? 'জুমার দিন পায়ে হেঁটে মসজিদে যান!\n\n'
+                '"যে ব্যক্তি জুমার দিন পায়ে হেঁটে মসজিদে যাবে, তার প্রতি কদমে ১ বছরের রোজা ও কিয়ামুল লাইলের সওয়াব লেখা হবে।"\n'
+                '— আবু দাউদ: ৩৪৫\n\n'
+                'আগে আগে মসজিদে গিয়ে ইমামের কাছে বসুন — প্রতি পদক্ষেপে ১ বছরের সালাত ও রোজার সওয়াব!'
+            : 'Walk to Jummah today!\n\n"Every step = 1 year fasting & night prayer reward." Abu Dawud: 345\n\nGo early, sit near imam!',
+        'color': AppTheme.gold,
+      });
+    }
+
+    // ৫. ঘরে ফেরার সময় — সন্ধ্যা ৬-৮টা
+    if (now.hour >= 18 && now.hour < 20) {
+      alerts.add({
+        'icon': '🏠',
+        'text': isBn
+            ? 'ঘরে ফেরার সুন্নত:\n\n'
+                '✦ ডান পা দিয়ে প্রবেশ করুন\n'
+                '✦ "বিসমিল্লাহি ওয়ালাজনা ওয়া বিসমিল্লাহি খারাজনা" পড়ুন\n'
+                '✦ পরিবারকে সালাম দিন\n'
+                '✦ কেউ না থাকলেও সালাম দিন — ঘরের ফেরেশতারা উত্তর দেবেন!'
+            : 'Returning home sunnah: Right foot first, say entry dua, give salam — even if no one is home, angels will answer!',
+        'color': const Color(0xFF5D4037),
+      });
+    }
+
+    // ৬. আমল: ৫৩ ও ৫৪ — ইশা ও ফজর জামাতের বিশেষ ফযিলত (বিস্তারিত)
+    if ((now.isAfter(pt.isha) &&
+            now.isBefore(pt.isha.add(const Duration(hours: 1)))) ||
+        (now.isAfter(pt.fajr) &&
+            now.isBefore(pt.fajr.add(const Duration(hours: 1))))) {
+      final isIshaTime = now.isAfter(pt.isha);
+      alerts.add({
+        'icon': '🌙',
+        'text': isBn
+            ? '${isIshaTime ? "ইশার" : "ফজরের"} জামাত — বিশেষ ফযিলত!\n\n'
+                '"আল্লাহ কি তোমাদের জন্য ইশার জামাত হজের সমান এবং ফজরের জামাত উমরার সমান করেননি?"\n'
+                '— সহীহ আল জামি: ৬৪৩২\n\n'
+                '"যে ফরজ সালাত জামাতে পড়ার জন্য হেঁটে যায়, তা হজের সমান।"'
+            : '${isIshaTime ? "Isha" : "Fajr"} congregation!\n\n"Isha in jamaat = Hajj, Fajr in jamaat = Umrah!" Sahih al-Jami: 6432\n\nWalking to fard prayer = Hajj reward!',
+        'color': const Color(0xFF7C4DFF),
+      });
+    }
+    
     // Default
     if (alerts.isEmpty && next != null && remaining != null) {
       final names = {

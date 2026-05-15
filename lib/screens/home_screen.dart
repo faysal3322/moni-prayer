@@ -1719,7 +1719,7 @@ class _ClockCard extends StatelessWidget {
                     style: const TextStyle(color: Color(0xFF80DEEA), fontSize: 15, fontWeight: FontWeight.w700)),
               ],
             )),
-            Container(width: 1, height: 105, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+            Container(width: 1, height: 125, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1744,13 +1744,13 @@ class _ClockCard extends StatelessWidget {
 
   Widget _timeRow(String icon, String label, String time, Color color) {
     return Row(children: [
-      Text(icon, style: const TextStyle(fontSize: 12)),
-      const SizedBox(width: 3),
+      Text(icon, style: const TextStyle(fontSize: 14)),
+      const SizedBox(width: 4),
       Flexible(child: RichText(
         overflow: TextOverflow.ellipsis,
         text: TextSpan(children: [
-          TextSpan(text: '$label ', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
-          TextSpan(text: time, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+          TextSpan(text: '$label ', style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w700)),
+          TextSpan(text: time, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold)),
         ]),
       )),
     ]);

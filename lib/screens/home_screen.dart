@@ -779,6 +779,9 @@ class _HomeTabState extends State<_HomeTab> {
     
     // ১৯. হিজরি মাস ভিত্তিক বিশেষ নোটিফিকেশন
 
+    final hijriMonth = _HijriSimple.getMonth(now);
+    final hijriDay = h;
+    
     // জিলহজ মাস — নখ-চুল কাটা নিষেধ
     if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 10) {
       alerts.add({

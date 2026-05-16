@@ -2212,3 +2212,27 @@ class _HijriSimple {
     return d + (153 * mo + 2) ~/ 5 + 365 * yr + yr ~/ 4 - yr ~/ 100 + yr ~/ 400 - 32045;
   }
 }
+
+int _getHijriMonth(DateTime date) {
+    try {
+      final jd = _gjToJulForMonth(date.year, date.month, date.day);
+      final l = jd - 1948440 + 10632;
+      final n = (l - 1) ~/ 10631;
+      final l2 = l - 10631 * n + 354;
+      final j = ((10985 - l2) ~/ 5316) * ((50 * l2) ~/ 17719) +
+          ((l2) ~/ 5670) * ((43 * l2) ~/ 15238);
+      final l3 = l2 - ((30 - j) ~/ 15) * ((17719 * j) ~/ 50) -
+          ((j) ~/ 16) * ((15238 * j) ~/ 43) + 29;
+      final m = (24 * l3) ~/ 709;
+      return m;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  int _gjToJulForMonth(int y, int m, int d) {
+    int a = (14 - m) ~/ 12;
+    int yr = y + 4800 - a;
+    int mo = m + 12 * a - 3;
+    return d + (153 * mo + 2) ~/ 5 + 365 * yr + yr ~/ 4 - yr ~/ 100 + yr ~/ 400 - 32045;
+  }

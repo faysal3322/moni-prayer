@@ -656,11 +656,14 @@ class _HomeTabState extends State<_HomeTab> {
           'color': AppTheme.accent,
         });
       }
-    }
+    
+    
+    // ১৯. হিজরি মাস ভিত্তিক বিশেষ নোটিফিকেশন
 
-    // ══ জিলহজ মাসের বিশেষ আমল ══
-    final hijriMonth = _getHijriMonth(now);
-    final hijriDate = h; // h = hijri day (আগে থেকেই আছে)
+    final hijriMonth = _HijriSimple.getMonth(now);
+    final hijriDay = h;
+    
+    
 
     if (hijriMonth == 12) {
       // জিলহজ মাস চলছে
@@ -776,13 +779,9 @@ class _HomeTabState extends State<_HomeTab> {
         });
       }
     }
-    
-    // ১৯. হিজরি মাস ভিত্তিক বিশেষ নোটিফিকেশন
-
-    final hijriMonth = _HijriSimple.getMonth(now);
-    final hijriDay = h;
-    
-    // জিলহজ মাস — নখ-চুল কাটা নিষেধ
+      
+      
+   // জিলহজ মাস — নখ-চুল কাটা নিষেধ
     if (hijriMonth == 12 && hijriDay >= 1 && hijriDay <= 10) {
       alerts.add({
         'icon': '✂️',

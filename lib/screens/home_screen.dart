@@ -1065,17 +1065,6 @@ class _HomeTabState extends State<_HomeTab> {
       });
     }
 
-    // সন্ধ্যার পর — সূরা মুলক মনে করানো
-    if (now.isAfter(pt.maghrib) && now.hour < 22) {
-      alerts.add({
-        'icon': '📖',
-        'text': isBn
-            ? 'আজ রাতে ঘুমানোর আগে সূরা মুলক পড়তে ভুলবেন না — কবরের আযাব থেকে রক্ষা করবে।'
-            : "Don't forget Surah Mulk tonight — it protects from grave punishment.",
-        'color': const Color(0xFF26A69A),
-      });
-    }
-
     // সন্ধ্যার পর — সূরা ইখলাসের ফযিলত (রাত ৯-১০টা)
     if (now.hour == 21) {
       alerts.add({
@@ -1519,7 +1508,7 @@ class _HomeTabState extends State<_HomeTab> {
                 '✦ পরিবারকে সালাম দিন\n'
                 '✦ কেউ না থাকলেও সালাম দিন — ঘরের ফেরেশতারা উত্তর দেবেন!'
             : 'Returning home sunnah: Right foot first, say entry dua, give salam — even if no one is home, angels will answer!',
-        'color': const Color(0xFF5D4037),
+        'color': const Color(0xFF26A69A),
       });
     }
 

@@ -1719,7 +1719,7 @@ class _ClockCard extends StatelessWidget {
                     style: const TextStyle(color: Color(0xFF80DEEA), fontSize: 15, fontWeight: FontWeight.w700)),
               ],
             )),
-            Container(width: 1, height: 125, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+            Container(width: 1, height: 115, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

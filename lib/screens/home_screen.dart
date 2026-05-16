@@ -658,6 +658,125 @@ class _HomeTabState extends State<_HomeTab> {
       }
     }
 
+    // ══ জিলহজ মাসের বিশেষ আমল ══
+    final hijriMonth = _getHijriMonth(now);
+    final hijriDate = h; // h = hijri day (আগে থেকেই আছে)
+
+    if (hijriMonth == 12) {
+      // জিলহজ মাস চলছে
+
+      // ১-৯ জিলহজ: প্রথম ১০ দিনের ফজিলত
+      if (hijriDate >= 1 && hijriDate <= 9) {
+        alerts.add({
+          'icon': '🕋',
+          'text': isBn
+              ? 'আজ $hijriDate জিলহজ — বছরের শ্রেষ্ঠ দিন! বেশি বেশি ইবাদত, জিকির ও দান-সদকা করুন। জিহাদের চেয়েও উত্তম আমল!'
+              : 'Today is $hijriDate Dhul Hijjah — Best days of the year! Do more worship, dhikr & charity.',
+          'color': AppTheme.gold,
+        });
+      }
+
+      // ১-৮ জিলহজ: রোজার reminder (সকালে)
+      if (hijriDate >= 1 && hijriDate <= 8 && now.isBefore(pt.fajr)) {
+        alerts.add({
+          'icon': '🌙',
+          'text': isBn
+              ? 'আজ $hijriDate জিলহজ — নফল রোজা রাখুন! রাসূল ﷺ জিলহজের প্রথম ৯ দিন রোজা রাখতেন।'
+              : 'Today is $hijriDate Dhul Hijjah — Keep Nafl fast! Prophet ﷺ fasted first 9 days.',
+          'color': const Color(0xFF81C784),
+        });
+      }
+
+      // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার reminder
+      if (hijriDate == 8 && now.isAfter(pt.maghrib)) {
+        alerts.add({
+          'icon': '🕋',
+          'text': isBn
+              ? 'আগামীকাল ৯ জিলহজ — আরাফার রোজা! এই একটি রোজায় আগের ও পরের ১ বছরের গুনাহ মাফ হয়। সেহরির প্রস্তুতি নিন।'
+              : 'Tomorrow 9 Dhul Hijjah — Arafah fast! 2 years of sins forgiven. Prepare for Sehri.',
+          'color': AppTheme.gold,
+        });
+      }
+
+      // ৯ জিলহজ: আরাফার দিন
+      if (hijriDate == 9) {
+        alerts.add({
+          'icon': '🕋',
+          'text': isBn
+              ? 'আজ ৯ জিলহজ — আরাফার দিন! রোজা রাখুন, বেশি দোয়া করুন। আগের ও পরের ১ বছরের গুনাহ মাফ হবে ইনশাআল্লাহ।'
+              : 'Today 9 Dhul Hijjah — Day of Arafah! Fast & make lots of dua. 2 years of sins forgiven.',
+          'color': AppTheme.gold,
+        });
+      }
+
+      // ৯ জিলহজ আসরের পর: তাকবিরে তাশরিক শুরু
+      if (hijriDate == 9 && now.isAfter(pt.asr)) {
+        alerts.add({
+          'icon': '📢',
+          'text': isBn
+              ? 'আজ থেকে তাকবিরে তাশরিক শুরু! প্রতি ফরজ নামাজের পর পড়ুন:\nআল্লাহু আকবার, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহু, আল্লাহু আকবার, ওয়া লিল্লাহিল হামদ'
+              : 'Takbeer al-Tashriq starts today! After every Fard prayer:\nAllahu Akbar, Allahu Akbar, La ilaha illallah...',
+          'color': const Color(0xFFFF8F00),
+        });
+      }
+
+      // ১০ জিলহজ: ঈদুল আযহা
+      if (hijriDate == 10) {
+        alerts.add({
+          'icon': '🎉',
+          'text': isBn
+              ? 'আজ ১০ জিলহজ — ঈদুল আযহা মোবারক! ঈদের নামাজ আদায় করুন এবং সামর্থ্য থাকলে কুরবানি করুন।'
+              : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak! Pray Eid prayer and sacrifice if able.',
+          'color': AppTheme.gold,
+        });
+      }
+
+      // ১০-১৩ জিলহজ: তাকবিরে তাশরিক (প্রতি নামাজের পরে)
+      if (hijriDate >= 10 && hijriDate <= 13) {
+        alerts.add({
+          'icon': '📢',
+          'text': isBn
+              ? 'তাকবিরে তাশরিক: প্রতি ফরজ নামাজের পর পড়ুন — আল্লাহু আকবার, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহু, আল্লাহু আকবার, ওয়া লিল্লাহিল হামদ ($hijriDate জিলহজ)'
+              : 'Takbeer al-Tashriq after every Fard prayer ($hijriDate Dhul Hijjah)',
+          'color': const Color(0xFFFF8F00),
+        });
+      }
+
+      // ১-১০ জিলহজ: চুল-নখ না কাটার reminder (একবার সকালে)
+      if (hijriDate >= 1 && hijriDate <= 10 && now.hour >= 6 && now.hour <= 9) {
+        alerts.add({
+          'icon': '✂️',
+          'text': isBn
+              ? 'জিলহজের সুন্নত: কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না। এতে কুরবানির সওয়াব পাবেন।'
+              : 'Dhul Hijjah Sunnah: Don\'t cut hair, nails until Qurbani — earn its reward.',
+          'color': const Color(0xFF26A69A),
+        });
+      }
+
+      // ১-৯ জিলহজ: সারাদিন জিকিরের reminder
+      if (hijriDate >= 1 && hijriDate <= 9 && now.hour >= 7 && now.hour <= 8) {
+        alerts.add({
+          'icon': '📿',
+          'text': isBn
+              ? 'জিলহজের আমল: বেশি বেশি পড়ুন — সুবহানাল্লাহ, আলহামদুলিল্লাহ, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহ। এই দিনগুলোর আমল জিহাদের চেয়েও উত্তম!'
+              : 'Dhul Hijjah: Increase Tasbih, Tahmid, Takbir, Tahlil. These deeds are better than Jihad!',
+          'color': const Color(0xFF7C4DFF),
+        });
+      }
+
+      // ৯ জিলহজ: আরাফার ইফতারের আগে বিশেষ দোয়া
+      if (hijriDate == 9 && now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
+        final cd = _countdown(pt.maghrib);
+        alerts.add({
+          'icon': '🤲',
+          'text': isBn
+              ? 'আরাফার দিনের ইফতার হতে বাকি $cd — রোজাদার অবস্থায় দোয়া করুন! এই মুহূর্তের দোয়া কবুল হয়।'
+              : 'Arafah Iftar in $cd — Make dua now as a fasting person! Duas are accepted.',
+          'color': AppTheme.gold,
+        });
+      }
+    }
+    
     // ১৯. হিজরি মাস ভিত্তিক বিশেষ নোটিফিকেশন
     final hijriMonth = _HijriSimple.getMonth(now);
     final hijriDay = h;

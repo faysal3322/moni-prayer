@@ -577,18 +577,7 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '🌙', 'text': isBn ? 'রমজান আসছে — এখনই নিয়ত ও প্রস্তুতি নিন। রমজানে উমরাহর সওয়াব হজের সমান!' : 'Ramadan is coming — Prepare now. Umrah in Ramadan equals Hajj in reward!', 'color': const Color(0xFF7C4DFF)});
     }
 
-    // ══ Default: পরবর্তী নামাজ ══
-    if (alerts.isEmpty) {
-      if (next != null && remaining != null) {
-        final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
-        final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
-        final cd = nextTime != null ? _countdown(nextTime) : '';
-        alerts.add({'icon': '🕌', 'text': isBn ? 'পরবর্তী নামাজ: ${names[next]} ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""} — বাকি $cd' : 'Next: ${names[next]} — in $cd', 'color': AppTheme.accent});
-      }
-    }
-
-    return alerts;
-  }
+    
 
     // ১. ফজর ওয়াক্ত
     if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {

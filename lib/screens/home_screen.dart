@@ -590,6 +590,161 @@ class _HomeTabState extends State<_HomeTab> {
     return alerts;
   }
 
+  // ══ নফল আমল ও বিশেষ দিনের alerts (আজকের নামাজ ও রোজার নিচে দেখাবে) ══
+  List<Map<String, dynamic>> _getNaflAmalAlerts(AppLanguage lang) {
+    final isBn = lang.isBn;
+    final now = DateTime.now();
+    final pt = _prayerTimes;
+    final alerts = <Map<String, dynamic>>[];
+    if (pt == null) return alerts;
+
+    final h = _HijriSimple.fromDate(now);
+    final hijriMonth = _HijriSimple.getMonth(now);
+
+    // ══ সকালের বিশেষ reminder (ফজরের পর থেকে সকাল ৯টা) ══
+    if (now.isAfter(pt.fajr) && now.hour < 9) {
+      alerts.add({'icon': '📖', 'text': isBn ? 'প্রতি রাতে সূরা মুলক পড়ুন — কবরের আযাব থেকে রক্ষা করবে।' : 'Recite Surah Mulk every night — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ রাতের reminder (এশার পর) ══
+    if (now.isAfter(pt.isha) && now.hour < 23) {
+      alerts.add({'icon': '📖', 'text': isBn ? 'ঘুমানোর আগে সূরা মুলক পড়তে ভুলবেন না — কবরের আযাব থেকে রক্ষা করবে।' : 'Don\'t forget Surah Mulk before sleep — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ সন্ধ্যার reminder (মাগরিবের পর) ══
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      alerts.add({'icon': '🏠', 'text': isBn
+          ? 'ঘরে ফেরার সুন্নত:\n◆ ডান পা দিয়ে প্রবেশ করুন\n◆ "বিসমিল্লাহি ওয়ালাজনা..." পড়ুন\n◆ পরিবারকে সালাম দিন'
+          : 'Sunnah of returning home: Enter with right foot, say Bismillah, give Salam.', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ আইয়ামে বিজ ══
+    if (h >= 13 && h <= 15) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.', 'color': AppTheme.gold});
+    } else if (h == 12 && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।' : 'Ayyam al-Beed starts tomorrow (13th-15th)!', 'color': AppTheme.gold});
+    }
+
+    // ══ সোম/বৃহস্পতি রোজা ══
+    final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
+    final prevDayIsSunday = now.weekday == DateTime.sunday;
+    final prevDayIsWed = now.weekday == DateTime.wednesday;
+
+    if (isFastDay && now.isBefore(pt.fajr)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+    if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Monday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+    if (prevDayIsWed && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Thursday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ জুমার দিন ══
+    if (now.weekday == DateTime.friday) {
+      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
+        alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.', 'color': AppTheme.accent});
+      } else if (now.isBefore(pt.maghrib)) {
+        final cd = _countdown(pt.maghrib);
+        alerts.add({'icon': '🕌', 'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)', 'color': AppTheme.accent});
+      }
+      if (now.hour < 20) {
+        alerts.add({'icon': '📖', 'text': isBn ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।' : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
+      }
+    }
+
+    // ══ জিলকদ শেষ হচ্ছে (২৫-২৯ জিলকদ) ══
+    if (hijriMonth == 11 && h >= 25) {
+      alerts.add({'icon': '🕋', 'text': isBn ? 'জিলকদ শেষ হচ্ছে — জিলহজ শুরু হলে কোরবানিদাতারা নখ, চুল ও গোঁফ কাটবেন না!' : 'Dhul Qa\'dah ending — When Dhul Hijjah starts, don\'t cut nails or hair if sacrificing!', 'color': AppTheme.gold});
+    }
+
+    // ══ জিলহজ মাসের বিশেষ আমল ══
+    if (hijriMonth == 12) {
+      // ১-৯ জিলহজ: ফজিলত ও আমলের reminder
+      if (h >= 1 && h <= 9) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ $h জিলহজ — বছরের শ্রেষ্ঠ দিন!\n◆ এই দিনের আমল জিহাদের চেয়েও উত্তম (বুখারি)\n◆ সূরা ফাজরে আল্লাহ এই ১০ রাতের শপথ করেছেন\n◆ প্রতিটি মুহূর্ত ইবাদতে কাজে লাগান'
+            : 'Today $h Dhul Hijjah — Best days of the year!\n◆ Worship better than Jihad (Bukhari)\n◆ Allah swore by these 10 nights in Surah Fajr', 'color': AppTheme.gold});
+        alerts.add({'icon': '📿', 'text': isBn
+            ? 'জিলহজের জিকির বেশি বেশি পড়ুন:\n◆ তাহলিল: লা ইলাহা ইল্লাল্লাহ\n◆ তাকবির: আল্লাহু আকবার\n◆ তাহমিদ: আলহামদুলিল্লাহ\n◆ তাসবিহ: সুবহানাল্লাহ\n(মুসনাদে আহমাদ: ৫৪৪৬)'
+            : 'Dhul Hijjah Dhikr:\n◆ Tahlil: La ilaha illallah\n◆ Takbeer: Allahu Akbar\n◆ Tahmeed: Alhamdulillah\n◆ Tasbeeh: Subhanallah (Ahmad: 5446)', 'color': const Color(0xFF7C4DFF)});
+        alerts.add({'icon': '🤲', 'text': isBn
+            ? 'জিলহজের বিশেষ আমলসমূহ:\n◆ তওবা ও ইস্তিগফার করুন\n◆ দান-সদকা বাড়িয়ে দিন (সওয়াব বহুগুণ)\n◆ আত্মীয়তার সম্পর্ক জোরদার করুন\n◆ পাপাচার থেকে সম্পূর্ণ বিরত থাকুন'
+            : 'Dhul Hijjah special deeds:\n◆ Make Tawbah & Istighfar\n◆ Give Sadaqah (multiplied reward)\n◆ Strengthen family ties\n◆ Avoid all sins', 'color': const Color(0xFF26A69A)});
+      }
+
+      // ১-৮ জিলহজ সেহরির আগে: রোজার reminder
+      if (h >= 1 && h <= 8 && now.isBefore(pt.fajr)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? '$h জিলহজ — আজ রোজা রাখুন!\n◆ রাসূল ﷺ প্রথম ৯ দিন রোজা রাখতেন\n◆ হাফসা (রা.) বর্ণিত: এই আমল তিনি কখনো ছাড়তেন না\n◆ (সুনানে আবু দাউদ: ২১০৬)'
+            : '$h Dhul Hijjah — Keep fast!\n◆ Prophet ﷺ fasted first 9 days\n◆ Never missed this (Abu Dawud: 2106)', 'color': const Color(0xFF81C784)});
+      }
+
+      // ১-১০ জিলহজ: চুল-নখ না কাটার reminder
+      if (h >= 1 && h <= 10) {
+        alerts.add({'icon': '✂️', 'text': isBn
+            ? 'জিলহজের সুন্নত (কুরবানিদাতার জন্য):\n◆ কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না\n◆ এতে কুরবানির পূর্ণ সওয়াব পাবেন\n◆ (সহিহ মুসলিম, ইবনে হিব্বান)'
+            : 'Dhul Hijjah Sunnah (for those sacrificing):\n◆ Don\'t cut hair, nails or mustache until Qurbani\n◆ Gain full Qurbani reward (Muslim, Ibn Hibban)', 'color': const Color(0xFF26A69A)});
+      }
+
+      // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার আগাম reminder
+      if (h == 8 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আগামীকাল ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখলে আগের ও পরের ১ বছরের গুনাহ মাফ (মুসলিম)\n◆ এখনই সেহরির প্রস্তুতি নিন\n◆ বেশি বেশি দোয়া ও জিকির করুন'
+            : 'Tomorrow 9 Dhul Hijjah — Day of Arafah!\n◆ Fasting forgives 2 years of sins (Muslim)\n◆ Prepare for Sehri now', 'color': AppTheme.gold});
+      }
+
+      // ৯ জিলহজ: আরাফার দিনের reminder
+      if (h == 9) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখুন — আগের ও পরের ১ বছরের গুনাহ মাফ ইনশাআল্লাহ (মুসলিম)\n◆ আরাফার রাত মুজদালিফায় অবস্থান — শবে কদরের মতো গুরুত্বপূর্ণ\n◆ বেশি বেশি দোয়া ও ইস্তিগফার করুন'
+            : 'Today 9 Dhul Hijjah — Day of Arafah!\n◆ Fast — 2 years sins forgiven insha\'Allah (Muslim)\n◆ Night at Muzdalifah — like Laylatul Qadr in importance\n◆ Make lots of dua & Istighfar', 'color': AppTheme.gold});
+        if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
+          final cd = _countdown(pt.maghrib);
+          alerts.add({'icon': '🤲', 'text': isBn ? 'আরাফার রোজার ইফতার হতে বাকি $cd — রোজাদার অবস্থায় এখন দোয়া করুন! এই মুহূর্তের দোয়া কবুল হয়।' : 'Arafah Iftar in $cd — Make dua now as a fasting person!', 'color': AppTheme.gold});
+        }
+      }
+
+      // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
+      if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
+        alerts.add({'icon': '📢', 'text': isBn
+            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জিলহজ ফজর থেকে ১৩ জিলহজ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবার, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার, আল্লাহু আকবার ওয়া লিল্লাহিল হামদ'
+            : 'Takbeer al-Tashriq (Wajib):\n◆ After every Fard prayer\n◆ From 9 Dhul Hijjah Fajr to 13 Dhul Hijjah Asr (23 prayers)\n◆ Men: aloud | Women: softly\n◆ Allahu Akbar, Allahu Akbar, La ilaha illallahu wallahu Akbar, Allahu Akbar wa lillahil hamd', 'color': const Color(0xFFFF8F00)});
+      }
+
+      // ১০ জিলহজ: ঈদুল আযহা
+      if (h == 10) {
+        alerts.add({'icon': '🎉', 'text': isBn
+            ? 'আজ ১০ জিলহজ — ঈদুল আযহা মোবারক!\n◆ ঈদের নামাজ জামাতে আদায় করুন (ওয়াজিব)\n◆ সামর্থ্য থাকলে কুরবানি করুন\n◆ কুরবানির গোশত আত্মীয়দের মাঝে বণ্টন করুন\n◆ ঈদের দিন কোনো নফল রোজা রাখবেন না'
+            : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak!\n◆ Pray Eid Salah in congregation\n◆ Perform Qurbani if able\n◆ Distribute meat to relatives\n◆ No nafl fasting today', 'color': AppTheme.gold});
+        alerts.add({'icon': '🐄', 'text': isBn
+            ? 'কুরবানির ফজিলত:\n◆ কুরবানির রক্ত জমিনে পড়ার আগেই আল্লাহর কাছে কবুল হয়\n◆ কিয়ামতে শিং, পশম ও ক্ষুরসহ উপস্থিত করা হবে\n◆ সন্তুষ্টচিত্তে কুরবানি করুন\n◆ (জামে তিরমিজি: ১৪৯৩)'
+            : 'Qurbani reward:\n◆ Accepted before blood touches ground\n◆ Presented with horns, hair & hooves on Qiyamah\n◆ Sacrifice with a content heart (Tirmidhi: 1493)', 'color': const Color(0xFFFF8F00)});
+      }
+
+      // ১১-১৩ জিলহজ: আইয়ামে তাশরিক
+      if (h >= 11 && h <= 13) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ আইয়ামে তাশরিকের দিন ($h জিলহজ):\n◆ প্রতি ফরজ নামাজের পর তাকবিরে তাশরিক পড়ুন\n◆ এই তিন দিনে নফল রোজা রাখা নিষেধ\n◆ বেশি বেশি জিকির ও দোয়া করুন'
+            : 'Today is Ayyam al-Tashriq ($h Dhul Hijjah):\n◆ Continue Takbeer al-Tashriq after every Fard\n◆ Nafl fasting forbidden these 3 days\n◆ Increase dhikr & dua', 'color': const Color(0xFFFF8F00)});
+      }
+
+      // সার্বক্ষণিক হজের reminder (১-১৩ জিলহজ)
+      if (h >= 1 && h <= 13) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'হজের ফজিলত:\n◆ মাবরুর হজের একমাত্র পুরস্কার জান্নাত (বুখারি: ১৭৭৩)\n◆ সামর্থ্যবান হলে জীবনে একবার হজ ফরজ\n◆ হজের মাধ্যমে সব পাপ মাফ হয়\n◆ সক্ষম হলে এখনই প্রস্তুতি নিন'
+            : 'Hajj reward:\n◆ Only reward for Mabrur Hajj is Jannah (Bukhari: 1773)\n◆ Obligatory once for those able\n◆ All sins forgiven\n◆ Start preparing if able', 'color': const Color(0xFF7C4DFF)});
+      }
+    }
+
+    // ══ রমজানের reminder (শাবান মাসে ২৫-২৯ তারিখ) ══
+    if (hijriMonth == 8 && h >= 25) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'রমজান আসছে — এখনই নিয়ত ও প্রস্তুতি নিন। রমজানে উমরাহর সওয়াব হজের সমান!' : 'Ramadan is coming — Prepare now. Umrah in Ramadan equals Hajj in reward!', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    return alerts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = widget.lang;
@@ -675,6 +830,83 @@ class _HomeTabState extends State<_HomeTab> {
               todayRoza: _todayRoza, prayerTimes: _prayerTimes,
               onSetPrayer: _setPrayer, onSetRoza: _setRoza,
             ),
+            const SizedBox(height: 16),
+
+            // ══ নফল আমল ও বিশেষ দিনের নোটিফিকেশন ══
+            Builder(builder: (context) {
+              final naflAlerts = _getNaflAmalAlerts(lang);
+              if (naflAlerts.isEmpty) return const SizedBox.shrink();
+              final isBn = lang.isBn;
+              return Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.3),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Row(children: [
+                        const Text('📿', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 8),
+                        Text(
+                          isBn ? 'নফল আমল ও বিশেষ দিনের তথ্য' : 'Nafl Deeds & Special Days',
+                          style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ]),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: naflAlerts.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final a = entry.value;
+                          return Column(
+                            children: [
+                              if (i > 0) const Divider(color: Colors.white10, height: 16),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(a['icon'] as String, style: const TextStyle(fontSize: 18)),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text(
+                                      a['text'] as String,
+                                      style: TextStyle(
+                                        color: a['color'] as Color,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.5,
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
           ],
         ),

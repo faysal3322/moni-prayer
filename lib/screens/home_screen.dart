@@ -1546,7 +1546,7 @@ class _HijriSimple {
   static int fromDate(DateTime date) {
     try {
       final jd = _gjToJul(date.year, date.month, date.day);
-      final l = jd - 1948441 + 10632;
+      final l = jd - 1948440 + 10632;
       final n = (l - 1) ~/ 10631;
       final l2 = l - 10631 * n + 354;
       final j = ((10985 - l2) ~/ 5316) * ((50 * l2) ~/ 17719) +
@@ -1563,7 +1563,7 @@ class _HijriSimple {
   static int getMonth(DateTime date) {
     try {
       final jd = _gjToJul(date.year, date.month, date.day);
-      final l = jd - 1948441 + 10632;
+      final l = jd - 1948440 + 10632;
       final n = (l - 1) ~/ 10631;
       final l2 = l - 10631 * n + 354;
       final j = ((10985 - l2) ~/ 5316) * ((50 * l2) ~/ 17719) +

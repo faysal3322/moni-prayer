@@ -469,13 +469,8 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '🥇', 'text': isBn ? 'রাসূল ﷺ প্রথম সারির জন্য ৩ বার দোয়া করতেন — প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন!' : 'Prophet ﷺ made dua 3 times for first row — try to stand in first row!', 'color': const Color(0xFFFF8F00)});
     }
 
-    // ══ সকালের বিশেষ reminder (ফজরের পর থেকে সকাল ৯টা) ══
-    if (now.isAfter(pt.fajr) && now.hour < 9) {
-      alerts.add({'icon': '📖', 'text': isBn ? 'প্রতি রাতে সূরা মুলক পড়ুন — কবরের আযাব থেকে রক্ষা করবে।' : 'Recite Surah Mulk every night — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ রাতের reminder (এশার পর) ══
-    if (now.isAfter(pt.isha) && now.hour < 23) {
+    // ══ রাতের reminder — শুধু এশার পর থেকে ঘুমানো পর্যন্ত ══
+    if (now.isAfter(pt.isha)) {
       alerts.add({'icon': '📖', 'text': isBn ? 'ঘুমানোর আগে সূরা মুলক পড়তে ভুলবেন না — কবরের আযাব থেকে রক্ষা করবে।' : 'Don\'t forget Surah Mulk before sleep — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
     }
 
@@ -601,13 +596,47 @@ class _HomeTabState extends State<_HomeTab> {
     final h = _HijriSimple.fromDate(now);
     final hijriMonth = _HijriSimple.getMonth(now);
 
-    // ══ সকালের বিশেষ reminder (ফজরের পর থেকে সকাল ৯টা) ══
-    if (now.isAfter(pt.fajr) && now.hour < 9) {
-      alerts.add({'icon': '📖', 'text': isBn ? 'প্রতি রাতে সূরা মুলক পড়ুন — কবরের আযাব থেকে রক্ষা করবে।' : 'Recite Surah Mulk every night — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
+    // ══ ফজর ও মাগরিবের ওয়াক্তে বিশেষ দোয়া ও সূরা — খুবই গুরুত্বপূর্ণ ══
+    final isFajrWaqt = now.isAfter(pt.fajr) && now.isBefore(pt.sunrise);
+    final isMaghribWaqt = now.isAfter(pt.maghrib) && now.isBefore(pt.isha);
+    if (isFajrWaqt || isMaghribWaqt) {
+      final waqtName = isBn
+          ? (isFajrWaqt ? 'ফজরের ওয়াক্ত' : 'মাগরিবের ওয়াক্ত')
+          : (isFajrWaqt ? 'Fajr time' : 'Maghrib time');
+      alerts.add({'icon': '⭐', 'text': isBn
+          ? '($waqtName) এখনই পড়ুন — ওয়াক্ত শেষে চলে যাবে!\n\n'
+            '৩ বার পড়ুন:\nআউযুবিল্লাহিস সামিউল আলিমি মিনাশ শাইতানির রাজিম\n\n'
+            '━ সূরা হাশর (শেষ ৩ আয়াত) ━\n'
+            'হুওয়াল্লাহুল্লাযী লা ইলাহা ইল্লা হুওয়া আলিমুল গাইবি ওয়াশ শাহাদাহ। হুওয়ার রাহমানুর রাহীম।\n'
+            'হুওয়াল্লাহুল্লাযী লা ইলাহা ইল্লা হুওয়াল মালিকুল কুদ্দুসুস সালামুল মুমিনুল মুহাইমিনুল আযীযুল জাব্বারুল মুতাকাব্বির। সুবহানাল্লাহি আম্মা ইউশরিকুন।\n'
+            'হুওয়াল্লাহুল খালিকুল বারিউল মুসাওবিরু লাহুল আসমাউল হুসনা। ইউসাব্বিহু লাহু মা ফিস সামাওয়াতি ওয়াল আরদি ওয়া হুওয়াল আযীযুল হাকীম।\n\n'
+            '━ সূরা কাফিরুন ━\n'
+            'কুল ইয়া আইয়ুহাল কাফিরুন। লা আবুদু মা তাবুদুন। ওয়ালা আনতুম আবিদুনা মা আবুদ। ওয়ালা আনা আবিদুম মা আবাত্তুম। ওয়ালা আনতুম আবিদুনা মা আবুদ। লাকুম দীনুকুম ওয়ালিয়া দীন।\n\n'
+            '━ সূরা ইখলাস ━\n'
+            'কুল হুওয়াল্লাহু আহাদ। আল্লাহুস সামাদ। লাম ইয়ালিদ ওয়ালাম ইউলাদ। ওয়ালাম ইয়াকুল্লাহু কুফুওয়ান আহাদ।\n\n'
+            '━ সূরা ফালাক ━\n'
+            'কুল আউযু বিরব্বিল ফালাক। মিন শাররি মা খালাক। ওয়া মিন শাররি গাসিকিন ইযা ওয়াকাব। ওয়া মিন শাররিন নাফ্ফাসাতি ফিল উকাদ। ওয়া মিন শাররি হাসিদিন ইযা হাসাদ।\n\n'
+            '━ সূরা নাস ━\n'
+            'কুল আউযু বিরব্বিন নাস। মালিকিন নাস। ইলাহিন নাস। মিন শাররিল ওয়াসওয়াসিল খান্নাস। আল্লাযী ইউওয়াসবিসু ফী সুদুরিন নাস। মিনাল জিন্নাতি ওয়ান নাস।'
+          : '($waqtName) Read now — disappears after waqt!\n\n'
+            'Read 3 times:\nAuzubillahis Sami\'il Alimi minash Shaitanir Rajim\n\n'
+            '━ Surah Hashr (last 3 verses) ━\n'
+            'Huwallahullazi la ilaha illa Huwa Alimul ghaibi wash shahadah. Huwar Rahmanur Rahim.\n'
+            'Huwallahullazi la ilaha illa Huwal Malikul Quddusus Salamul Muminul Muhaiminul Azizul Jabbarul Mutakabbir. Subhanallahi amma yushrikun.\n'
+            'Huwallahul Khaliqul Bari\'ul Musawwiru lahul asmaul husna. Yusabbihu lahu ma fis samawati wal ardi wa Huwal Azizul Hakim.\n\n'
+            '━ Surah Kafirun ━\n'
+            'Qul ya ayyuhal kafirun. La abudu ma tabudun. Wala antum abiduna ma abud. Wala ana abidum ma abattum. Wala antum abiduna ma abud. Lakum dinukum waliya din.\n\n'
+            '━ Surah Ikhlas ━\n'
+            'Qul Huwallahu Ahad. Allahus Samad. Lam yalid walam yulad. Walam yakul lahu kufuwan ahad.\n\n'
+            '━ Surah Falaq ━\n'
+            'Qul auzhu birabbil falaq. Min sharri ma khalaq. Wa min sharri ghasiqin iza waqab. Wa min sharrin naffasati fil uqad. Wa min sharri hasidin iza hasad.\n\n'
+            '━ Surah Nas ━\n'
+            'Qul auzhu birabbin nas. Malikin nas. Ilahin nas. Min sharril waswasil khannas. Alladhi yuwaswisu fi sudurin nas. Minal jinnati wan nas.',
+          'color': AppTheme.gold});
     }
 
-    // ══ রাতের reminder (এশার পর) ══
-    if (now.isAfter(pt.isha) && now.hour < 23) {
+    // ══ রাতের reminder — শুধু এশার পর থেকে ঘুমানো পর্যন্ত ══
+    if (now.isAfter(pt.isha)) {
       alerts.add({'icon': '📖', 'text': isBn ? 'ঘুমানোর আগে সূরা মুলক পড়তে ভুলবেন না — কবরের আযাব থেকে রক্ষা করবে।' : 'Don\'t forget Surah Mulk before sleep — protection from grave punishment.', 'color': const Color(0xFF7C4DFF)});
     }
 

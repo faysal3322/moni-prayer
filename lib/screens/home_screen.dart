@@ -546,8 +546,8 @@ class _HomeTabState extends State<_HomeTab> {
         alerts.add({'icon': '🕋', 'text': isBn ? 'আগামীকাল ৯ জিলহজ — আরাফার রোজা! এই রোজায় আগের ও পরের ১ বছরের গুনাহ মাফ। এখনই সেহরির প্রস্তুতি নিন!' : 'Tomorrow 9 Dhul Hijjah — Arafah fast! 2 years of sins forgiven. Prepare for Sehri!', 'color': AppTheme.gold});
       }
 
-      // ৯ জিলহজ: আরাফার দিনের সব reminder
-      if (h == 9) {
+      // ৯ জিলহজ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
+      if (h == 9 && now.isBefore(pt.fajr)) {
         alerts.add({'icon': '🕋', 'text': isBn ? 'আজ ৯ জিলহজ — আরাফার দিন! রোজা রাখুন, বেশি দোয়া করুন। আগের ও পরের ১ বছরের গুনাহ মাফ হবে ইনশাআল্লাহ।' : 'Today 9 Dhul Hijjah — Day of Arafah! Fast & make lots of dua. 2 years sins forgiven.', 'color': AppTheme.gold});
         // আরাফার ইফতারের আগে ৩০ মিনিট
         if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
@@ -723,8 +723,8 @@ class _HomeTabState extends State<_HomeTab> {
             : 'Tomorrow 9 Dhul Hijjah — Day of Arafah!\n◆ Fasting forgives 2 years of sins (Muslim)\n◆ Prepare for Sehri now', 'color': AppTheme.gold});
       }
 
-      // ৯ জিলহজ: আরাফার দিনের reminder
-      if (h == 9) {
+      // ৯ জিলহজ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
+      if (h == 9 && now.isBefore(pt.fajr)) {
         alerts.add({'icon': '🕋', 'text': isBn
             ? 'আজ ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখুন — আগের ও পরের ১ বছরের গুনাহ মাফ ইনশাআল্লাহ (মুসলিম)\n◆ আরাফার রাত মুজদালিফায় অবস্থান — শবে কদরের মতো গুরুত্বপূর্ণ\n◆ বেশি বেশি দোয়া ও ইস্তিগফার করুন'
             : 'Today 9 Dhul Hijjah — Day of Arafah!\n◆ Fast — 2 years sins forgiven insha\'Allah (Muslim)\n◆ Night at Muzdalifah — like Laylatul Qadr in importance\n◆ Make lots of dua & Istighfar', 'color': AppTheme.gold});
@@ -979,10 +979,42 @@ class _HomeTabState extends State<_HomeTab> {
         ? 'যিকর ও তিলাওয়াত:\n◆ "সুবহানাল্লাহি ওয়া বিহামদিহি সুবহানাল্লাহিল আজিম" — বলায় সহজ, পাল্লায় ভারী (বুখারি: ৬৪০৬)\n◆ সূরা ইখলাস = কুরআনের ১/৩ ভাগ\n◆ সূরা কাফিরুন = কুরআনের ১/৪ ভাগ\n◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে বললে আরশ পর্যন্ত পৌঁছায়\n◆ প্রতিদিন নিয়মিত কুরআন তিলাওয়াত করুন'
         : 'Dhikr & Tilawah:\n◆ "Subhanallahi wa bihamdih..." — easy, heavy in scale (Bukhari: 6406)\n◆ Surah Ikhlas = 1/3 Quran\n◆ Surah Kafirun = 1/4 Quran\n◆ La ilaha illallah with sincerity reaches the Arsh\n◆ Recite Quran daily', 'color': const Color(0xFF7C4DFF)});
 
-    // ══ রোজার বিস্তারিত ══
-    alerts.add({'icon': '🌙', 'text': isBn
-        ? 'রোজার বিশেষ আমল:\n◆ শাওয়ালের ৬ রোজা — সারা বছর রোজার সওয়াব (মুসলিম)\n◆ প্রতি মাসে ৩টি রোজা (আইয়ামে বিজ) — সারা বছরের সমান\n◆ ইফতার তাড়াতাড়ি করুন — নবুওয়তের আদর্শ\n◆ সেহরি দেরিতে করুন — সুন্নত\n◆ রোজাদারকে ইফতার করান — তার সমান সওয়াব পাবেন'
-        : 'Roza special:\n◆ 6 Shawwal fasts — whole year reward (Muslim)\n◆ 3 monthly fasts (Ayyam al-Beed) — equals whole year\n◆ Break fast early — Prophetic sunnah\n◆ Delay Sehri — sunnah\n◆ Feed a faster — same reward as the faster', 'color': const Color(0xFF64B5F6)});
+    // ══ রোজার বিস্তারিত — সময়ভিত্তিক ══
+
+    // শাওয়ালের ৬ রোজা — শাওয়াল মাস জুড়ে
+    if (hijriMonth == 10) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'শাওয়াল মাস — ৬টি নফল রোজা রাখুন!\n◆ সারা বছর রোজার সওয়াব পাবেন (মুসলিম)\n◆ রমজানের পর এই ৬ রোজা = পূর্ণ বছর রোজার সমান'
+          : 'Shawwal — Keep 6 nafl fasts!\n◆ Whole year reward (Muslim)\n◆ Ramadan + 6 Shawwal = Full year of fasting', 'color': const Color(0xFF64B5F6)});
+    }
+
+    // আইয়ামে বিজ রোজা — ১৩-১৫ তারিখ চলাকালীন
+    if (h >= 13 && h <= 15) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'আইয়ামে বিজের রোজা চলছে ($h তারিখ)!\n◆ প্রতি মাসে এই ৩টি রোজা = সারা বছর রোজার সমান\n◆ রোজা রাখুন — এখনো সময় আছে'
+          : 'Ayyam al-Beed fasting ($h)!\n◆ These 3 fasts = whole year fasting\n◆ Fast now — there is still time', 'color': AppTheme.gold});
+    }
+
+    // ইফতার তাড়াতাড়ি করুন — ইফতারের ৩০ মিনিট আগে থেকে
+    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
+      alerts.add({'icon': '🍽️', 'text': isBn
+          ? 'ইফতার তাড়াতাড়ি করুন — নবুওয়তের আদর্শ!\n◆ মাগরিবের আযান হওয়ার সাথে সাথে ইফতার করুন\n◆ দেরি করা মাকরুহ'
+          : 'Break fast quickly — Prophetic sunnah!\n◆ Break fast as soon as Maghrib Adhan\n◆ Delaying is makruh', 'color': const Color(0xFF64B5F6)});
+    }
+
+    // সেহরি দেরিতে করুন — ফজরের ৯০ মিনিট আগে থেকে
+    if (now.isBefore(pt.fajr) && pt.fajr.difference(now).inMinutes <= 90) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'সেহরি দেরিতে করুন — সুন্নত!\n◆ ফজরের কাছাকাছি সময়ে সেহরি খান\n◆ সেহরিতে বরকত আছে — ছেড়ে দেবেন না'
+          : 'Delay Sehri — it\'s Sunnah!\n◆ Eat close to Fajr time\n◆ Sehri has barakah — don\'t skip it', 'color': const Color(0xFF81C784)});
+    }
+
+    // রোজাদারকে ইফতার করান — রমজান মাসে
+    if (hijriMonth == 9) {
+      alerts.add({'icon': '🤲', 'text': isBn
+          ? 'রোজাদারকে ইফতার করান!\n◆ তার সমান সওয়াব পাবেন — রোজার কিছু কমবে না\n◆ (তিরমিজি: ৮০৭)'
+          : 'Feed a fasting person!\n◆ Same reward as the faster — their reward doesn\'t decrease\n◆ (Tirmidhi: 807)', 'color': const Color(0xFF26A69A)});
+    }
 
     return alerts;
   }

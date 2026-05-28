@@ -1225,7 +1225,7 @@ class _ClockCard extends StatelessWidget {
         Text(DateHelper.formatTime12(now, bangla: isBn),
             style: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
         Text(lang.dayName(now.weekday), style: TextStyle(
-          fontSize: 18,
+          fontSize: 28,
           color: now.weekday == DateTime.friday ? AppTheme.accent : Colors.white70,
           fontWeight: FontWeight.w700, letterSpacing: 1,
         )),

@@ -477,7 +477,7 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ সন্ধ্যার reminder (মাগরিবের পর) ══
     if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🏠', 'text': isBn
-          ? 'ঘরে ফেরার সুন্নত:\n◆ ডান পা দিয়ে প্রবেশ করুন\n◆ "বিসমিল্লাহি ওয়ালাজনা..." পড়ুন\n◆ পরিবারকে সালাম দিন'
+          ? 'ঘরে ফেরার সুন্নত:\n◆ ডান পা দিয়ে প্রবেশ করুন\n◆ "বিসমিল্লা-হি ওয়ালাজনা, ওয়াবিসমিল্লা-হি খারাজনা, ওয়া আলাল্লা-হি রাব্বিনা তাওয়াক্কালনা" পড়ুন\n◆ পরিবারকে সালাম দিন'
           : 'Sunnah of returning home: Enter with right foot, say Bismillah, give Salam.', 'color': const Color(0xFF26A69A)});
     }
 
@@ -643,7 +643,7 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ সন্ধ্যার reminder (মাগরিবের পর) ══
     if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🏠', 'text': isBn
-          ? 'ঘরে ফেরার সুন্নত:\n◆ ডান পা দিয়ে প্রবেশ করুন\n◆ "বিসমিল্লাহি ওয়ালাজনা..." পড়ুন\n◆ পরিবারকে সালাম দিন'
+          ? 'ঘরে ফেরার সুন্নত:\n◆ ডান পা দিয়ে প্রবেশ করুন\n◆ "বিসমিল্লা-হি ওয়ালাজনা, ওয়াবিসমিল্লা-হি খারাজনা, ওয়া আলাল্লা-হি রাব্বিনা তাওয়াক্কালনা" পড়ুন\n◆ পরিবারকে সালাম দিন'
           : 'Sunnah of returning home: Enter with right foot, say Bismillah, give Salam.', 'color': const Color(0xFF26A69A)});
     }
 

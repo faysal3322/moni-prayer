@@ -784,7 +784,7 @@ class _HomeTabState extends State<_HomeTab> {
           ? 'ফজর ও মাগরিবের পরের বিশেষ আমল:\n◆ সূরা হাশরের শেষ তিন আয়াত পড়ুন\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ তিন কূল (ইখলাস, ফালাক, নাস) পড়ে শরীরে দম করুন\n◆ সূরা কাফিরুন পড়ুন'
           : 'After Fajr & Maghrib:\n◆ Last 3 verses of Surah Hashr\n◆ Ayatul Kursi — path to Jannah opened (Nasai: 972)\n◆ 3 Quls, blow on body\n◆ Surah Kafirun', 'color': const Color(0xFF7C4DFF)});
       alerts.add({'icon': '✨', 'text': isBn
-          ? 'ফজরের পর তাসবিহ:\n◆ ৩৩ বার সুবহানাল্লাহ\n◆ ৩৩ বার আলহামদুলিল্লাহ\n◆ ৩৪ বার আল্লাহু আকবার\n◆ ১ বার লা ইলাহা ইল্লাল্লাহু... পড়লে সব পাপ মাফ (মুসলিম: ১২২৮)'
+          ? 'ফজরের পর তাসবিহ:\n◆ ৩৩ বার সুবহানাল্লাহ\n◆ ৩৩ বার আলহামদুলিল্লাহ\n◆ ৩৪ বার আল্লাহু আকবার\n◆ ১ বার লা ইলাহা ইল্লাল্লাহু ওয়াহদাহু লা-শারিকালাহু লাহুল মুলকু ওয়া লাহুল হামদু ওয়া হুয়া আলা কুল্লি শাইয়িন কাদির। পড়লে সব পাপ মাফ (মুসলিম: ১২২৮)'
           : 'After Fajr Tasbih:\n◆ 33x Subhanallah\n◆ 33x Alhamdulillah\n◆ 34x Allahu Akbar\n◆ 1x La ilaha illallahu... all sins forgiven (Muslim: 1228)', 'color': const Color(0xFF26A69A)});
     }
 

@@ -558,7 +558,7 @@ class _HomeTabState extends State<_HomeTab> {
 
       // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
       if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
-        alerts.add({'icon': '📢', 'text': isBn ? 'তাকবিরে তাশরিক: প্রতি ফরজ নামাজের পর পড়ুন —\nআল্লাহু আকবার, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহু, আল্লাহু আকবার, ওয়া লিল্লাহিল হামদ' : 'Takbeer al-Tashriq after every Fard: Allahu Akbar, Allahu Akbar...', 'color': const Color(0xFFFF8F00)});
+        alerts.add({'icon': '📢', 'text': isBn ? 'তাকবিরে তাশরিক: প্রতি ফরজ নামাজের পর পড়ুন —\nআল্লাহু আকবর আল্লাহু আকবর লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবর আল্লাহু আকবর ওয়ালিল্লাহিল হামদ' : 'Takbeer al-Tashriq after every Fard: Allahu Akbar, Allahu Akbar...', 'color': const Color(0xFFFF8F00)});
       }
 
       // ১০ জিলহজ: ঈদুল আযহা
@@ -737,7 +737,7 @@ class _HomeTabState extends State<_HomeTab> {
       // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
       if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
         alerts.add({'icon': '📢', 'text': isBn
-            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জিলহজ ফজর থেকে ১৩ জিলহজ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবার, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার, আল্লাহু আকবার ওয়া লিল্লাহিল হামদ'
+            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জিলহজ ফজর থেকে ১৩ জিলহজ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবর আল্লাহু আকবর লা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবর আল্লাহু আকবর ওয়ালিল্লাহিল হামদ'
             : 'Takbeer al-Tashriq (Wajib):\n◆ After every Fard prayer\n◆ From 9 Dhul Hijjah Fajr to 13 Dhul Hijjah Asr (23 prayers)\n◆ Men: aloud | Women: softly\n◆ Allahu Akbar, Allahu Akbar, La ilaha illallahu wallahu Akbar, Allahu Akbar wa lillahil hamd', 'color': const Color(0xFFFF8F00)});
       }
 

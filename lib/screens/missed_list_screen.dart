@@ -65,6 +65,8 @@ class _MissedListScreenState extends State<MissedListScreen> {
                       final item = _items[i] as Map<String, dynamic>;
                       final date = DateTime.parse(item['date'] as String);
                       final prayers = (item['prayers'] as String).split(',');
+                      const order = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+                      prayers.sort((a, b) => order.indexOf(a.trim()) - order.indexOf(b.trim()));
                       return _MissedTile(
                         dateText: DateHelper.formatGregorian(date, bangla: lang.isBn),
                         subtitle: prayers.map(_prayerName).join(', '),

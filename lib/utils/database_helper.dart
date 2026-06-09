@@ -59,8 +59,8 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM prayer_records WHERE status = 'prayed'");
     final m = Sqflite.firstIntValue(missed) ?? 0;
     final p = Sqflite.firstIntValue(prayed) ?? 0;
-    final pending = m - p;
-    return {'missed': m, 'prayed': p, 'pending': pending < 0 ? 0 : pending};
+    // pending = এখনো missed যেগুলো কাযা আদায় হয়নি (replace হলে status পরিবর্তন হয়)
+    return {'missed': m + p, 'prayed': p, 'pending': m};
   }
 
   static Future<List<Map<String, dynamic>>> getMissedPrayerDates() async {
@@ -87,8 +87,8 @@ class DatabaseHelper {
       "SELECT COUNT(*) as count FROM prayer_records WHERE status = 'prayed' $w");
     final m = Sqflite.firstIntValue(missed) ?? 0;
     final p = Sqflite.firstIntValue(prayed) ?? 0;
-    final pending = m - p;
-    return {'missed': m, 'prayed': p, 'pending': pending < 0 ? 0 : pending};
+    // মোট missed = missed + prayed (কারণ prayed মানে আগে missed ছিল)
+    return {'missed': m + p, 'prayed': p, 'pending': m};
   }
 
   static Future<void> setRozaStatus(String date, String status) async {

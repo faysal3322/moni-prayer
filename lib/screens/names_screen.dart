@@ -369,7 +369,7 @@ class _NamesScreenState extends State<NamesScreen> {
                             fontSize: 32,
                             color: AppTheme.textPrimary,
                             height: 2.2,
-                            fontFamily: 'Amiri',
+                            fontFamily: 'ScheherazadeNew',
                             fontWeight: FontWeight.w400,
                           ),
                           textAlign: TextAlign.center,

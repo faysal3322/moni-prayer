@@ -2,10 +2,8 @@ name: moni_prayer
 description: Islamic Prayer & Fasting Tracker App
 publish_to: 'none'
 version: 1.0.0+1
-
 environment:
   sdk: '>=3.0.0 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
@@ -26,11 +24,15 @@ dependencies:
   path_provider: ^2.1.2
   permission_handler: ^11.3.0
   flutter_tts: ^4.0.2
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/
+  fonts:
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/Amiri-Regular.ttf

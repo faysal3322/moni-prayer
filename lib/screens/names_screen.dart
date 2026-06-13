@@ -168,10 +168,20 @@ class _NamesScreenState extends State<NamesScreen> {
 
   Future<void> _initTts() async {
     try {
-      await _tts.setLanguage('ar-SA');
-      await _tts.setSpeechRate(0.4);
       await _tts.setVolume(1.0);
+      await _tts.setSpeechRate(0.4);
       await _tts.setPitch(1.0);
+
+      // Arabic available কিনা চেক করি
+      final languages = await _tts.getLanguages;
+      final langList = (languages as List).map((e) => e.toString().toLowerCase()).toList();
+      final hasArabic = langList.any((l) => l.contains('ar'));
+
+      if (hasArabic) {
+        await _tts.setLanguage('ar-SA');
+      } else {
+        await _tts.setLanguage('en-US');
+      }
 
       _tts.setCompletionHandler(() {
         if (!mounted) return;
@@ -184,9 +194,11 @@ class _NamesScreenState extends State<NamesScreen> {
         }
       });
 
+      // সবসময় ready রাখি
       if (mounted) setState(() => _ttsReady = true);
     } catch (e) {
-      if (mounted) setState(() => _ttsReady = false);
+      // Error হলেও ready রাখি যাতে button কাজ করে
+      if (mounted) setState(() => _ttsReady = true);
     }
   }
 

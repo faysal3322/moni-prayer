@@ -310,7 +310,7 @@ class _NamesScreenState extends State<NamesScreen> {
             color: AppTheme.primary.withOpacity(0.2),
             child: const Text(
               'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
-              style: TextStyle(fontSize: 22, color: AppTheme.gold),
+              style: TextStyle(fontSize: 30, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
               textAlign: TextAlign.center,
             ),
           ),

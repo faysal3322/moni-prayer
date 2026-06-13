@@ -1032,7 +1032,7 @@ class _HomeTabState extends State<_HomeTab> {
         child: Column(
           children: [
             Text(lang.bismillah,
-                style: const TextStyle(fontSize: 20, color: AppTheme.gold),
+                style: const TextStyle(fontSize: 28, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
                 textAlign: TextAlign.center),
             const SizedBox(height: 4),
             Text(lang.prayerCount(widget.userName),

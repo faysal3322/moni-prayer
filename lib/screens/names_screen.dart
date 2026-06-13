@@ -366,9 +366,11 @@ class _NamesScreenState extends State<NamesScreen> {
                         child: Text(
                           names.map((n) => n['arabic']).join('  '),
                           style: const TextStyle(
-                            fontSize: 26,
+                            fontSize: 32,
                             color: AppTheme.textPrimary,
-                            height: 2.0,
+                            height: 2.2,
+                            fontFamily: 'Amiri',
+                            fontWeight: FontWeight.w400,
                           ),
                           textAlign: TextAlign.center,
                           textDirection: TextDirection.rtl,

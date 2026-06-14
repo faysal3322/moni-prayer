@@ -860,7 +860,7 @@ class _DuaCardState extends State<_DuaCard> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
                 child: Text(d['arabic'] as String,
-                    style: const TextStyle(fontSize: 22, color: AppTheme.textPrimary, height: 2.0),
+                    style: const TextStyle(fontSize: 28, color: AppTheme.textPrimary, height: 2.2, fontFamily: 'ScheherazadeNew'),
                     textAlign: TextAlign.right,
                     textDirection: TextDirection.rtl),
               ),
@@ -2000,4 +2000,3 @@ class _DuaItemState extends State<_DuaItem> {
     );
   }
 }
-

@@ -13,6 +13,8 @@ class NamesScreen extends StatefulWidget {
 
 class _NamesScreenState extends State<NamesScreen> {
   final AudioPlayer _player = AudioPlayer();
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _groupKeys = List.generate(18, (_) => GlobalKey());
   bool _isPlaying = false;
   int? _playingGroupIndex;   // কোন group repeat হচ্ছে
   int _allPlayIndex = 0;     // "সব চালু" এ কোন group চলছে
@@ -265,6 +267,7 @@ class _NamesScreenState extends State<NamesScreen> {
       _playingGroupIndex = groupIndex;
     });
     await _player.play(AssetSource('audio/${_groups[groupIndex]['audio']}.mp3'));
+    _scrollToGroup(groupIndex);
   }
 
   void _repeatCurrentGroup() async {
@@ -304,10 +307,12 @@ class _NamesScreenState extends State<NamesScreen> {
     // তারপর group 0, 1, 2 ... শেষ পর্যন্ত
     if (_allPlayIndex < _groups.length) {
       final audio = _groups[_allPlayIndex]['audio'] as String;
+      final scrollIdx = _allPlayIndex;
       setState(() {});
       _allPlayIndex++;
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted || !_isPlayingAll) return;
+      _scrollToGroup(scrollIdx);
       await _player.play(AssetSource('audio/$audio.mp3'));
     } else {
       // সব শেষ — শুরু থেকে আবার
@@ -320,9 +325,24 @@ class _NamesScreenState extends State<NamesScreen> {
     }
   }
 
+  // Auto-scroll to current playing group
+  void _scrollToGroup(int groupIndex) {
+    if (groupIndex < 0 || groupIndex >= _groupKeys.length) return;
+    final key = _groupKeys[groupIndex];
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+      alignment: 0.3,
+    );
+  }
+
   @override
   void dispose() {
     _player.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -413,6 +433,7 @@ class _NamesScreenState extends State<NamesScreen> {
           // Names list
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(12),
               itemCount: _groups.length,
               itemBuilder: (context, groupIndex) {
@@ -423,6 +444,7 @@ class _NamesScreenState extends State<NamesScreen> {
                     _isPlaying && _playingGroupIndex == groupIndex;
 
                 return Container(
+                  key: _groupKeys[groupIndex],
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: isGroupPlaying

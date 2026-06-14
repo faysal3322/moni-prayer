@@ -14,203 +14,310 @@ class NamesScreen extends StatefulWidget {
 class _NamesScreenState extends State<NamesScreen> {
   final AudioPlayer _player = AudioPlayer();
   bool _isPlaying = false;
-  int? _playingGroupIndex;
+  int? _playingGroupIndex;   // কোন group repeat হচ্ছে
+  int _allPlayIndex = 0;     // "সব চালু" এ কোন group চলছে
+  bool _isPlayingAll = false; // সব একসাথে চলছে কিনা
 
-  // ayat.json এর audio গুলো group অনুযায়ী (part_0 থেকে part_18)
-  // group index 0 = bismillah (part_0), 1 = group 1 (part_1), ...
-  // কিন্তু আমাদের groups শুরু হয় index 0 থেকে → audio হবে part_1 থেকে part_19
-  // ayat.json এ id=1 = bismillah (part_0), id=2 = group 1 (part_1) ...
-  // আমাদের _groups[0] = group 1 → audio = part_1
-
+  // ayat.json থেকে আরবি লেখা হুবহু নেওয়া হয়েছে
   final List<Map<String, dynamic>> _groups = [
-    {'audio': 'part_1', 'names': [
-      {'arabic': 'اللَّهُ', 'bangla': 'আল্লাহ্'},
-      {'arabic': 'الرَّحْمٰنُ', 'bangla': 'আর-রাহমান'},
-      {'arabic': 'الرَّحِيْمُ', 'bangla': 'আর-রাহীম'},
-    ]},
-    {'audio': 'part_2', 'names': [
-      {'arabic': 'الْمَلِكُ', 'bangla': 'আল-মালিক'},
-      {'arabic': 'الْقُدُّوْسُ', 'bangla': 'আল-কুদ্দুস'},
-      {'arabic': 'السَّلاَمُ', 'bangla': 'আস-সালাম'},
-      {'arabic': 'الْمُؤْمِنُ', 'bangla': 'আল-মুমিন'},
-      {'arabic': 'الْمُهَيْمِنُ', 'bangla': 'আল-মুহাইমিন'},
-      {'arabic': 'الْعَزِيْزُ', 'bangla': 'আল-আযীয'},
-      {'arabic': 'الْجَبَّارُ', 'bangla': 'আল-জাব্বার'},
-      {'arabic': 'الْمُتَكَبِّرُ', 'bangla': 'আল-মুতাকাব্বির'},
-    ]},
-    {'audio': 'part_3', 'names': [
-      {'arabic': 'الْخَالِقُ', 'bangla': 'আল-খালিক'},
-      {'arabic': 'الْبَارِئُ', 'bangla': 'আল-বারি'},
-      {'arabic': 'الْمُصَوِّرُ', 'bangla': 'আল-মুসাওয়্যির'},
-      {'arabic': 'الْغَفَّارُ', 'bangla': 'আল-গাফ্ফার'},
-      {'arabic': 'الْقَهَّارُ', 'bangla': 'আল-কাহহার'},
-    ]},
-    {'audio': 'part_4', 'names': [
-      {'arabic': 'الْوَهَّابُ', 'bangla': 'আল-ওয়াহহাব'},
-      {'arabic': 'الرَّزَّاقُ', 'bangla': 'আর-রাযযাক'},
-      {'arabic': 'الْفَتَّاحُ', 'bangla': 'আল-ফাত্তাহ'},
-      {'arabic': 'الْعَلِيْمُ', 'bangla': 'আল-আলীম'},
-    ]},
-    {'audio': 'part_5', 'names': [
-      {'arabic': 'الْقَابِضُ', 'bangla': 'আল-কাবিদ'},
-      {'arabic': 'الْبَاسِطُ', 'bangla': 'আল-বাসিত'},
-      {'arabic': 'الْخَافِضُ', 'bangla': 'আল-খাফিদ'},
-      {'arabic': 'الرَّافِعُ', 'bangla': 'আর-রাফি'},
-      {'arabic': 'الْمُعِزُّ', 'bangla': 'আল-মুইয্য'},
-      {'arabic': 'الْمُذِلُّ', 'bangla': 'আল-মুযিল'},
-      {'arabic': 'السَّمِيْعُ', 'bangla': 'আস-সামী'},
-      {'arabic': 'الْبَصِيْرُ', 'bangla': 'আল-বাসীর'},
-    ]},
-    {'audio': 'part_6', 'names': [
-      {'arabic': 'الْحَكَمُ', 'bangla': 'আল-হাকাম'},
-      {'arabic': 'الْعَدْلُ', 'bangla': 'আল-আদল'},
-      {'arabic': 'اللَّطِيْفُ', 'bangla': 'আল-লাতীফ'},
-      {'arabic': 'الْخَبِيْرُ', 'bangla': 'আল-খাবীর'},
-    ]},
-    {'audio': 'part_7', 'names': [
-      {'arabic': 'الْحَلِيْمُ', 'bangla': 'আল-হালীম'},
-      {'arabic': 'الْعَظِيْمُ', 'bangla': 'আল-আযীম'},
-      {'arabic': 'الْغَفُوْرُ', 'bangla': 'আল-গাফুর'},
-      {'arabic': 'الشَّكُوْرُ', 'bangla': 'আশ-শাকুর'},
-      {'arabic': 'الْعَلِيُّ', 'bangla': 'আল-আলী'},
-      {'arabic': 'الْكَبِيْرُ', 'bangla': 'আল-কাবীর'},
-    ]},
-    {'audio': 'part_8', 'names': [
-      {'arabic': 'الْحَفِيْظُ', 'bangla': 'আল-হাফীয'},
-      {'arabic': 'الْمُقِيْتُ', 'bangla': 'আল-মুকীত'},
-      {'arabic': 'الْحَسِيْبُ', 'bangla': 'আল-হাসীব'},
-      {'arabic': 'الْجَلِيْلُ', 'bangla': 'আল-জালীল'},
-      {'arabic': 'الْكَرِيْمُ', 'bangla': 'আল-কারীম'},
-    ]},
-    {'audio': 'part_9', 'names': [
-      {'arabic': 'الرَّقِيْبُ', 'bangla': 'আর-রাকীব'},
-      {'arabic': 'الْمُجِيْبُ', 'bangla': 'আল-মুজীব'},
-      {'arabic': 'الْوَاسِعُ', 'bangla': 'আল-ওয়াসি'},
-      {'arabic': 'الْحَكِيْمُ', 'bangla': 'আল-হাকীম'},
-    ]},
-    {'audio': 'part_10', 'names': [
-      {'arabic': 'الْوَدُوْدُ', 'bangla': 'আল-ওয়াদুদ'},
-      {'arabic': 'الْمَجِيْدُ', 'bangla': 'আল-মাজীদ'},
-      {'arabic': 'الْبَاعِثُ', 'bangla': 'আল-বাইস'},
-      {'arabic': 'الشَّهِيْدُ', 'bangla': 'আশ-শাহীদ'},
-    ]},
-    {'audio': 'part_11', 'names': [
-      {'arabic': 'الْحَقُّ', 'bangla': 'আল-হাক্ক'},
-      {'arabic': 'الْوَكِيْلُ', 'bangla': 'আল-ওয়াকীল'},
-      {'arabic': 'الْقَوِيُّ', 'bangla': 'আল-কাওয়ী'},
-      {'arabic': 'الْمَتِيْنُ', 'bangla': 'আল-মাতীন'},
-    ]},
-    {'audio': 'part_12', 'names': [
-      {'arabic': 'الْوَلِيُّ', 'bangla': 'আল-ওয়ালী'},
-      {'arabic': 'الْحَمِيْدُ', 'bangla': 'আল-হামীদ'},
-      {'arabic': 'الْمُحْصِي', 'bangla': 'আল-মুহসী'},
-      {'arabic': 'الْمُبْدِئُ', 'bangla': 'আল-মুবদি'},
-      {'arabic': 'الْمُعِيْدُ', 'bangla': 'আল-মুঈদ'},
-      {'arabic': 'الْمُحْيِ', 'bangla': 'আল-মুহয়ী'},
-      {'arabic': 'الْمُمِيْتُ', 'bangla': 'আল-মুমীত'},
-      {'arabic': 'الْحَيُّ', 'bangla': 'আল-হাইয়্য'},
-      {'arabic': 'الْقَيُّوْمُ', 'bangla': 'আল-কাইয়্যুম'},
-    ]},
-    {'audio': 'part_13', 'names': [
-      {'arabic': 'الْوَاجِدُ', 'bangla': 'আল-ওয়াজিদ'},
-      {'arabic': 'الْمَاجِدُ', 'bangla': 'আল-মাজিদ'},
-      {'arabic': 'الْوَاحِدُ', 'bangla': 'আল-ওয়াহিদ'},
-      {'arabic': 'الْاَحَدُ', 'bangla': 'আল-আহাদ'},
-      {'arabic': 'الصَّمَدُ', 'bangla': 'আস-সামাদ'},
-      {'arabic': 'الْقَادِرُ', 'bangla': 'আল-কাদির'},
-      {'arabic': 'الْمُقْتَدِرُ', 'bangla': 'আল-মুকতাদির'},
-    ]},
-    {'audio': 'part_14', 'names': [
-      {'arabic': 'الْمُقَدِّمُ', 'bangla': 'আল-মুকাদ্দিম'},
-      {'arabic': 'الْمُؤَخِّرُ', 'bangla': 'আল-মুআখখির'},
-      {'arabic': 'الْاَوَّلُ', 'bangla': 'আল-আওয়্যাল'},
-      {'arabic': 'الْاَخِرُ', 'bangla': 'আল-আখির'},
-      {'arabic': 'الظَّاهِرُ', 'bangla': 'আয-যাহির'},
-      {'arabic': 'الْبَاطِنُ', 'bangla': 'আল-বাতিন'},
-    ]},
-    {'audio': 'part_15', 'names': [
-      {'arabic': 'الْوَالِي', 'bangla': 'আল-ওয়ালী'},
-      {'arabic': 'الْمُتَعَالِي', 'bangla': 'আল-মুতাআলী'},
-      {'arabic': 'الْبَرُّ', 'bangla': 'আল-বার্র'},
-      {'arabic': 'التَّوَّابُ', 'bangla': 'আত-তাওয়্যাব'},
-      {'arabic': 'الْمُنْتَقِمُ', 'bangla': 'আল-মুনতাকিম'},
-      {'arabic': 'الْعَفُوُّ', 'bangla': 'আল-আফুও'},
-      {'arabic': 'الرَّؤُوْفُ', 'bangla': 'আর-রাউফ'},
-    ]},
-    {'audio': 'part_16', 'names': [
-      {'arabic': 'مَالِكُ الْمُلْكِ', 'bangla': 'মালিকুল মুলক'},
-      {'arabic': 'ذُوْ الْجَلاَلِ وَالْاِكْرَامِ', 'bangla': 'যুল জালালি ওয়াল ইকরাম'},
-    ]},
-    {'audio': 'part_17', 'names': [
-      {'arabic': 'الْمُقْسِطُ', 'bangla': 'আল-মুকসিত'},
-      {'arabic': 'الْجَامِعُ', 'bangla': 'আল-জামি'},
-      {'arabic': 'الْغَنِيُّ', 'bangla': 'আল-গানী'},
-      {'arabic': 'الْمُغْنِي', 'bangla': 'আল-মুগনী'},
-      {'arabic': 'الْمَانِعُ', 'bangla': 'আল-মানি'},
-      {'arabic': 'الضَّآرُّ', 'bangla': 'আদ-দার্র'},
-      {'arabic': 'النَّافِعُ', 'bangla': 'আন-নাফি'},
-    ]},
-    {'audio': 'part_18', 'names': [
-      {'arabic': 'النُّوْرُ', 'bangla': 'আন-নুর'},
-      {'arabic': 'الْهَادِيْ', 'bangla': 'আল-হাদী'},
-      {'arabic': 'الْبَدِيْعُ', 'bangla': 'আল-বাদী'},
-      {'arabic': 'الْبَاقِي', 'bangla': 'আল-বাকী'},
-      {'arabic': 'الْوَارِثُ', 'bangla': 'আল-ওয়ারিস'},
-      {'arabic': 'الرَّشِيْدُ', 'bangla': 'আর-রাশীদ'},
-      {'arabic': 'الصَّبُوْرُ', 'bangla': 'আস-সাবুর'},
-    ]},
+    {
+      'audio': 'part_1',
+      'arabic': 'هُوَ اللهُ الَّذِيْ لَاۤ  اِلٰهَ  اِلَّا  هُوَ   الرَّحْمٰنُ   الرَّحِيْمُ',
+      'names': [
+        {'bangla': 'আল্লাহ্'},
+        {'bangla': 'আর-রাহমান'},
+        {'bangla': 'আর-রাহীম'},
+      ]
+    },
+    {
+      'audio': 'part_2',
+      'arabic': 'اَلْمَلِكُ     الْقُدُّوْسُ     السَّلاَمُ    الْمُؤْمِنُ     الْمُهَيْمِنُ     الْعَزِيْزُ    الْجَبَّارُ     الْمُتَكَبِّرُ',
+      'names': [
+        {'bangla': 'আল-মালিক'},
+        {'bangla': 'আল-কুদ্দুস'},
+        {'bangla': 'আস-সালাম'},
+        {'bangla': 'আল-মুমিন'},
+        {'bangla': 'আল-মুহাইমিন'},
+        {'bangla': 'আল-আযীয'},
+        {'bangla': 'আল-জাব্বার'},
+        {'bangla': 'আল-মুতাকাব্বির'},
+      ]
+    },
+    {
+      'audio': 'part_3',
+      'arabic': 'اَلْخَالِقُ     الْبَارِئُ      الْمُصَوِّرُ    الْغَفَّارُ      الْقَهَّارُ',
+      'names': [
+        {'bangla': 'আল-খালিক'},
+        {'bangla': 'আল-বারি'},
+        {'bangla': 'আল-মুসাওয়্যির'},
+        {'bangla': 'আল-গাফ্ফার'},
+        {'bangla': 'আল-কাহহার'},
+      ]
+    },
+    {
+      'audio': 'part_4',
+      'arabic': 'اَلْوَهَّابُ     الرَّزَّاقُ   الْفَتَّاحُ     الْعَلِيْمُ',
+      'names': [
+        {'bangla': 'আল-ওয়াহহাব'},
+        {'bangla': 'আর-রাযযাক'},
+        {'bangla': 'আল-ফাত্তাহ'},
+        {'bangla': 'আল-আলীম'},
+      ]
+    },
+    {
+      'audio': 'part_5',
+      'arabic': 'اَلْقَا بِضُ      الْبَاسِطُ     الْخَافِضُ     الرَّافِعُ     الْمُعِزُّ     الْمُذِلُّ       السَّمِيْعُ     الْبَصِيْرُ',
+      'names': [
+        {'bangla': 'আল-কাবিদ'},
+        {'bangla': 'আল-বাসিত'},
+        {'bangla': 'আল-খাফিদ'},
+        {'bangla': 'আর-রাফি'},
+        {'bangla': 'আল-মুইয্য'},
+        {'bangla': 'আল-মুযিল'},
+        {'bangla': 'আস-সামী'},
+        {'bangla': 'আল-বাসীর'},
+      ]
+    },
+    {
+      'audio': 'part_6',
+      'arabic': 'اَلْحَكَمُ      الْعَدْلُ       اللَّطِيْفُ      الْخَبِيْرُ',
+      'names': [
+        {'bangla': 'আল-হাকাম'},
+        {'bangla': 'আল-আদল'},
+        {'bangla': 'আল-লাতীফ'},
+        {'bangla': 'আল-খাবীর'},
+      ]
+    },
+    {
+      'audio': 'part_7',
+      'arabic': 'اَلْحَلِيْمُ      الْعَظِيْمُ     الْغَفُوْرُ      الشَّكُوْرُ      الْعَلِيُّ      الْكَبِيْرُ',
+      'names': [
+        {'bangla': 'আল-হালীম'},
+        {'bangla': 'আল-আযীম'},
+        {'bangla': 'আল-গাফুর'},
+        {'bangla': 'আশ-শাকুর'},
+        {'bangla': 'আল-আলী'},
+        {'bangla': 'আল-কাবীর'},
+      ]
+    },
+    {
+      'audio': 'part_8',
+      'arabic': 'اَلْحَفِيْظُ     الْمُقِيْتُ     الْحَسِيْبُ     الْجَلِيْلُ     الْكَرِيْمُ',
+      'names': [
+        {'bangla': 'আল-হাফীয'},
+        {'bangla': 'আল-মুকীত'},
+        {'bangla': 'আল-হাসীব'},
+        {'bangla': 'আল-জালীল'},
+        {'bangla': 'আল-কারীম'},
+      ]
+    },
+    {
+      'audio': 'part_9',
+      'arabic': 'اَلرَّقِيْبُ    الْمُجِيْبُ     الْوَاسِعُ     الْحَكِيْمُ',
+      'names': [
+        {'bangla': 'আর-রাকীব'},
+        {'bangla': 'আল-মুজীব'},
+        {'bangla': 'আল-ওয়াসি'},
+        {'bangla': 'আল-হাকীম'},
+      ]
+    },
+    {
+      'audio': 'part_10',
+      'arabic': 'اَلْوَدُوْدُ     الْمَجِيْدُ     الْبَاعِثُ     الشّهِيْدُ',
+      'names': [
+        {'bangla': 'আল-ওয়াদুদ'},
+        {'bangla': 'আল-মাজীদ'},
+        {'bangla': 'আল-বাইস'},
+        {'bangla': 'আশ-শাহীদ'},
+      ]
+    },
+    {
+      'audio': 'part_11',
+      'arabic': 'اَلْحَقُّ     الْوَكِيْلُ    الْقَوِيُّ     الْمَتِيْنُ',
+      'names': [
+        {'bangla': 'আল-হাক্ক'},
+        {'bangla': 'আল-ওয়াকীল'},
+        {'bangla': 'আল-কাওয়ী'},
+        {'bangla': 'আল-মাতীন'},
+      ]
+    },
+    {
+      'audio': 'part_12',
+      'arabic': 'اَلْوَلِيُّ      الْحَمِيْدُ     الْمُحْصِي      الْمُبْدِئُ     الْمُعِيْدُ    الْمُحْيِ    الْمُمِيْتُ     الْحَيُّ    الْقَيُّوْمُ',
+      'names': [
+        {'bangla': 'আল-ওয়ালী'},
+        {'bangla': 'আল-হামীদ'},
+        {'bangla': 'আল-মুহসী'},
+        {'bangla': 'আল-মুবদি'},
+        {'bangla': 'আল-মুঈদ'},
+        {'bangla': 'আল-মুহয়ী'},
+        {'bangla': 'আল-মুমীত'},
+        {'bangla': 'আল-হাইয়্য'},
+        {'bangla': 'আল-কাইয়্যুম'},
+      ]
+    },
+    {
+      'audio': 'part_13',
+      'arabic': 'اَلْوَاجِدُ الْمَاجِدُ   الْوَاحِدُ  الْاَحَدُ  الصَّمَدُ    الْقَادِرُ    الْمُقْتَدِرُ',
+      'names': [
+        {'bangla': 'আল-ওয়াজিদ'},
+        {'bangla': 'আল-মাজিদ'},
+        {'bangla': 'আল-ওয়াহিদ'},
+        {'bangla': 'আল-আহাদ'},
+        {'bangla': 'আস-সামাদ'},
+        {'bangla': 'আল-কাদির'},
+        {'bangla': 'আল-মুকতাদির'},
+      ]
+    },
+    {
+      'audio': 'part_14',
+      'arabic': 'اَلْمُقَدِّمُ    الْمُؤَخِّرُ    الْاَ وَّلُ   الْاَخِرُ    الظَّاهِرُ   الْبَاطِنُ',
+      'names': [
+        {'bangla': 'আল-মুকাদ্দিম'},
+        {'bangla': 'আল-মুআখখির'},
+        {'bangla': 'আল-আওয়্যাল'},
+        {'bangla': 'আল-আখির'},
+        {'bangla': 'আয-যাহির'},
+        {'bangla': 'আল-বাতিন'},
+      ]
+    },
+    {
+      'audio': 'part_15',
+      'arabic': 'اَلْوَالِي الْمُتَعَالِي الْبَرُّ التَّوَّابُ الْمُنْتَقِمُ الْعَفُوُّ الرَّؤُوْفُ',
+      'names': [
+        {'bangla': 'আল-ওয়ালী'},
+        {'bangla': 'আল-মুতাআলী'},
+        {'bangla': 'আল-বার্র'},
+        {'bangla': 'আত-তাওয়্যাব'},
+        {'bangla': 'আল-মুনতাকিম'},
+        {'bangla': 'আল-আফুও'},
+        {'bangla': 'আর-রাউফ'},
+      ]
+    },
+    {
+      'audio': 'part_16',
+      'arabic': 'مَالِكُ   الْمُلْكِ   ذُوْ الْجَلاَلِ  وَالْاِ كْرَامِ',
+      'names': [
+        {'bangla': 'মালিকুল মুলক'},
+        {'bangla': 'যুল জালালি ওয়াল ইকরাম'},
+      ]
+    },
+    {
+      'audio': 'part_17',
+      'arabic': 'اَلْمُقْسِطُ   الْجَامِعُ     الْغَنِيُّ    الْمُغْنِي    الْمَانِعُ    الضَّآرُّ    النَّافِعُ',
+      'names': [
+        {'bangla': 'আল-মুকসিত'},
+        {'bangla': 'আল-জামি'},
+        {'bangla': 'আল-গানী'},
+        {'bangla': 'আল-মুগনী'},
+        {'bangla': 'আল-মানি'},
+        {'bangla': 'আদ-দার্র'},
+        {'bangla': 'আন-নাফি'},
+      ]
+    },
+    {
+      'audio': 'part_18',
+      'arabic': 'اَلنُّوْرُ    الْهَادِيْ    الْبَدِيْعُ    الْبَاقِي      الْوَارِثُ    الرَّشِيْدُ   الصَّبُوْرُ',
+      'names': [
+        {'bangla': 'আন-নুর'},
+        {'bangla': 'আল-হাদী'},
+        {'bangla': 'আল-বাদী'},
+        {'bangla': 'আল-বাকী'},
+        {'bangla': 'আল-ওয়ারিস'},
+        {'bangla': 'আর-রাশীদ'},
+        {'bangla': 'আস-সাবুর'},
+      ]
+    },
   ];
 
   @override
   void initState() {
     super.initState();
+    // audio শেষ হলে
     _player.onPlayerComplete.listen((_) {
-      if (mounted && _isPlaying) {
-        setState(() {
-          _isPlaying = false;
-          _playingGroupIndex = null;
-        });
+      if (!mounted) return;
+      if (_isPlayingAll) {
+        // সব চালু মোড — পরবর্তী group এ যাও
+        _playNextAll();
+      } else if (_playingGroupIndex != null) {
+        // repeat মোড — একই group আবার চালাও
+        _repeatCurrentGroup();
       }
     });
   }
 
-  Future<void> _playAudio(String audioName) async {
-    await _player.stop();
-    await _player.play(AssetSource('audio/$audioName.mp3'));
-  }
-
+  // ══ Group repeat ══
   void _playGroup(int groupIndex) async {
-    if (_isPlaying && _playingGroupIndex == groupIndex) {
+    if (_playingGroupIndex == groupIndex && _isPlaying) {
+      // চলছে → বন্ধ করো
       await _player.stop();
       setState(() {
         _isPlaying = false;
+        _isPlayingAll = false;
         _playingGroupIndex = null;
       });
       return;
     }
-    final audioName = _groups[groupIndex]['audio'] as String;
+    await _player.stop();
     setState(() {
       _isPlaying = true;
+      _isPlayingAll = false;
       _playingGroupIndex = groupIndex;
     });
-    await _playAudio(audioName);
+    await _player.play(AssetSource('audio/${_groups[groupIndex]['audio']}.mp3'));
   }
 
-  void _playAll() async {
-    if (_isPlaying && _playingGroupIndex == null) {
+  void _repeatCurrentGroup() async {
+    if (_playingGroupIndex == null || !_isPlaying) return;
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted || !_isPlaying) return;
+    await _player.play(AssetSource('audio/${_groups[_playingGroupIndex!]['audio']}.mp3'));
+  }
+
+  // ══ সব একসাথে চালু ══
+  void _togglePlayAll() async {
+    if (_isPlayingAll) {
+      // চলছে → বন্ধ করো
       await _player.stop();
       setState(() {
         _isPlaying = false;
+        _isPlayingAll = false;
+        _playingGroupIndex = null;
+        _allPlayIndex = 0;
       });
       return;
     }
-    // সব audio একটার পর একটা play করা জটিল
-    // তাই "সব" বলতে part_0 (bismillah) থেকে শুরু করব
+    await _player.stop();
     setState(() {
       _isPlaying = true;
+      _isPlayingAll = true;
       _playingGroupIndex = null;
+      _allPlayIndex = 0;
     });
-    await _playAudio('part_0');
+    // bismillah দিয়ে শুরু
+    await _player.play(AssetSource('audio/part_0.mp3'));
+  }
+
+  void _playNextAll() async {
+    if (!_isPlayingAll) return;
+    // part_0 (bismillah) শেষ হলে group 0 থেকে শুরু
+    // তারপর group 0, 1, 2 ... শেষ পর্যন্ত
+    if (_allPlayIndex < _groups.length) {
+      final audio = _groups[_allPlayIndex]['audio'] as String;
+      setState(() {});
+      _allPlayIndex++;
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted || !_isPlayingAll) return;
+      await _player.play(AssetSource('audio/$audio.mp3'));
+    } else {
+      // সব শেষ — শুরু থেকে আবার
+      setState(() {
+        _allPlayIndex = 0;
+      });
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted || !_isPlayingAll) return;
+      await _player.play(AssetSource('audio/part_0.mp3'));
+    }
   }
 
   @override
@@ -228,11 +335,9 @@ class _NamesScreenState extends State<NamesScreen> {
         title: Text(isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah'),
         actions: [
           IconButton(
-            onPressed: _playAll,
+            onPressed: _togglePlayAll,
             icon: Icon(
-              _isPlaying && _playingGroupIndex == null
-                  ? Icons.stop_circle
-                  : Icons.play_circle,
+              _isPlayingAll ? Icons.stop_circle : Icons.play_circle,
               color: AppTheme.gold,
               size: 32,
             ),
@@ -242,10 +347,15 @@ class _NamesScreenState extends State<NamesScreen> {
       ),
       body: Column(
         children: [
-          // Bismillah
+          // Bismillah — tap করলে part_0 play হয়
           GestureDetector(
             onTap: () async {
               await _player.stop();
+              setState(() {
+                _isPlaying = true;
+                _isPlayingAll = false;
+                _playingGroupIndex = -1; // bismillah
+              });
               await _player.play(AssetSource('audio/part_0.mp3'));
             },
             child: Container(
@@ -253,7 +363,7 @@ class _NamesScreenState extends State<NamesScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               color: AppTheme.primary.withOpacity(0.2),
               child: const Text(
-                'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
+                'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
                 style: TextStyle(
                   fontSize: 30,
                   color: AppTheme.gold,
@@ -265,14 +375,14 @@ class _NamesScreenState extends State<NamesScreen> {
             ),
           ),
 
-          // Fazilat (হাদিস)
+          // হাদিস
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             color: AppTheme.primary.withOpacity(0.1),
             child: Text(
               isBn
-                  ? 'হযরত আবু হুরাইরা রাযি. থেকে বর্ণিত — রাসূল ﷺ বলেন: "আল্লাহর ৯৯টি নাম আছে, যে ব্যক্তি উক্ত নামগুলো মুখস্থ রাখবে সে জান্নাতে প্রবেশ করবে।" [তিরমিজী: ৩৫০৭]'
-                  : 'Abu Hurairah (R) reported: The Prophet ﷺ said: "Allah has 99 names; whoever learns them will enter Paradise." [Tirmidhi: 3507]',
+                  ? 'রাসূল ﷺ বলেন: "আল্লাহর ৯৯টি নাম আছে, যে ব্যক্তি উক্ত নামগুলো মুখস্থ রাখবে সে জান্নাতে প্রবেশ করবে।" [তিরমিজী: ৩৫০৭]'
+                  : 'Prophet ﷺ said: "Allah has 99 names; whoever learns them will enter Paradise." [Tirmidhi: 3507]',
               style: const TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 12,
@@ -282,8 +392,8 @@ class _NamesScreenState extends State<NamesScreen> {
             ),
           ),
 
-          // Playing indicator
-          if (_isPlaying && _playingGroupIndex == null)
+          // সব চালু indicator
+          if (_isPlayingAll)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 6),
               color: AppTheme.primary.withOpacity(0.3),
@@ -306,8 +416,11 @@ class _NamesScreenState extends State<NamesScreen> {
               padding: const EdgeInsets.all(12),
               itemCount: _groups.length,
               itemBuilder: (context, groupIndex) {
-                final names = _groups[groupIndex]['names'] as List<Map<String, dynamic>>;
-                final isGroupPlaying = _isPlaying && _playingGroupIndex == groupIndex;
+                final group = _groups[groupIndex];
+                final names = group['names'] as List<Map<String, dynamic>>;
+                final arabic = group['arabic'] as String;
+                final isGroupPlaying =
+                    _isPlaying && _playingGroupIndex == groupIndex;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -325,11 +438,11 @@ class _NamesScreenState extends State<NamesScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Arabic text
+                      // আরবি লেখা — ayat.json থেকে হুবহু
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          names.map((n) => n['arabic']).join('  '),
+                          arabic,
                           style: const TextStyle(
                             fontSize: 32,
                             color: AppTheme.textPrimary,
@@ -341,7 +454,7 @@ class _NamesScreenState extends State<NamesScreen> {
                           textDirection: TextDirection.rtl,
                         ),
                       ),
-                      // Bangla pronunciation
+                      // বাংলা উচ্চারণ
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Text(
@@ -370,6 +483,7 @@ class _NamesScreenState extends State<NamesScreen> {
                               ),
                             ),
                             const Spacer(),
+                            // Repeat বাটন
                             GestureDetector(
                               onTap: () => _playGroup(groupIndex),
                               child: Container(
@@ -394,7 +508,7 @@ class _NamesScreenState extends State<NamesScreen> {
                                     Icon(
                                       isGroupPlaying
                                           ? Icons.stop
-                                          : Icons.play_arrow,
+                                          : Icons.repeat,
                                       color: Colors.white,
                                       size: 16,
                                     ),
@@ -402,7 +516,7 @@ class _NamesScreenState extends State<NamesScreen> {
                                     Text(
                                       isGroupPlaying
                                           ? (isBn ? 'বন্ধ করুন' : 'Stop')
-                                          : (isBn ? '🔊 শুনুন' : '🔊 Play'),
+                                          : (isBn ? '🔁 রিপিট' : '🔁 Repeat'),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 
@@ -12,271 +12,210 @@ class NamesScreen extends StatefulWidget {
 }
 
 class _NamesScreenState extends State<NamesScreen> {
-  final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _player = AudioPlayer();
   bool _isPlaying = false;
   int? _playingGroupIndex;
-  int _currentNameIndex = 0;
-  bool _ttsReady = false;
+
+  // ayat.json এর audio গুলো group অনুযায়ী (part_0 থেকে part_18)
+  // group index 0 = bismillah (part_0), 1 = group 1 (part_1), ...
+  // কিন্তু আমাদের groups শুরু হয় index 0 থেকে → audio হবে part_1 থেকে part_19
+  // ayat.json এ id=1 = bismillah (part_0), id=2 = group 1 (part_1) ...
+  // আমাদের _groups[0] = group 1 → audio = part_1
 
   final List<Map<String, dynamic>> _groups = [
-    {'names': [
+    {'audio': 'part_1', 'names': [
       {'arabic': 'اللَّهُ', 'bangla': 'আল্লাহ্'},
-      {'arabic': 'الرَّحْمَٰنُ', 'bangla': 'আর-রাহমান'},
-      {'arabic': 'الرَّحِيمُ', 'bangla': 'আর-রাহীম'},
+      {'arabic': 'الرَّحْمٰنُ', 'bangla': 'আর-রাহমান'},
+      {'arabic': 'الرَّحِيْمُ', 'bangla': 'আর-রাহীম'},
     ]},
-    {'names': [
+    {'audio': 'part_2', 'names': [
       {'arabic': 'الْمَلِكُ', 'bangla': 'আল-মালিক'},
-      {'arabic': 'الْقُدُّوسُ', 'bangla': 'আল-কুদ্দুস'},
-      {'arabic': 'السَّلَامُ', 'bangla': 'আস-সালাম'},
+      {'arabic': 'الْقُدُّوْسُ', 'bangla': 'আল-কুদ্দুস'},
+      {'arabic': 'السَّلاَمُ', 'bangla': 'আস-সালাম'},
       {'arabic': 'الْمُؤْمِنُ', 'bangla': 'আল-মুমিন'},
       {'arabic': 'الْمُهَيْمِنُ', 'bangla': 'আল-মুহাইমিন'},
-      {'arabic': 'الْعَزِيزُ', 'bangla': 'আল-আযীয'},
+      {'arabic': 'الْعَزِيْزُ', 'bangla': 'আল-আযীয'},
       {'arabic': 'الْجَبَّارُ', 'bangla': 'আল-জাব্বার'},
       {'arabic': 'الْمُتَكَبِّرُ', 'bangla': 'আল-মুতাকাব্বির'},
     ]},
-    {'names': [
+    {'audio': 'part_3', 'names': [
       {'arabic': 'الْخَالِقُ', 'bangla': 'আল-খালিক'},
       {'arabic': 'الْبَارِئُ', 'bangla': 'আল-বারি'},
       {'arabic': 'الْمُصَوِّرُ', 'bangla': 'আল-মুসাওয়্যির'},
       {'arabic': 'الْغَفَّارُ', 'bangla': 'আল-গাফ্ফার'},
       {'arabic': 'الْقَهَّارُ', 'bangla': 'আল-কাহহার'},
     ]},
-    {'names': [
+    {'audio': 'part_4', 'names': [
       {'arabic': 'الْوَهَّابُ', 'bangla': 'আল-ওয়াহহাব'},
       {'arabic': 'الرَّزَّاقُ', 'bangla': 'আর-রাযযাক'},
       {'arabic': 'الْفَتَّاحُ', 'bangla': 'আল-ফাত্তাহ'},
-      {'arabic': 'الْعَلِيمُ', 'bangla': 'আল-আলীম'},
+      {'arabic': 'الْعَلِيْمُ', 'bangla': 'আল-আলীম'},
     ]},
-    {'names': [
+    {'audio': 'part_5', 'names': [
       {'arabic': 'الْقَابِضُ', 'bangla': 'আল-কাবিদ'},
       {'arabic': 'الْبَاسِطُ', 'bangla': 'আল-বাসিত'},
       {'arabic': 'الْخَافِضُ', 'bangla': 'আল-খাফিদ'},
       {'arabic': 'الرَّافِعُ', 'bangla': 'আর-রাফি'},
       {'arabic': 'الْمُعِزُّ', 'bangla': 'আল-মুইয্য'},
       {'arabic': 'الْمُذِلُّ', 'bangla': 'আল-মুযিল'},
-      {'arabic': 'السَّمِيعُ', 'bangla': 'আস-সামী'},
-      {'arabic': 'الْبَصِيرُ', 'bangla': 'আল-বাসীর'},
+      {'arabic': 'السَّمِيْعُ', 'bangla': 'আস-সামী'},
+      {'arabic': 'الْبَصِيْرُ', 'bangla': 'আল-বাসীর'},
     ]},
-    {'names': [
+    {'audio': 'part_6', 'names': [
       {'arabic': 'الْحَكَمُ', 'bangla': 'আল-হাকাম'},
       {'arabic': 'الْعَدْلُ', 'bangla': 'আল-আদল'},
-      {'arabic': 'اللَّطِيفُ', 'bangla': 'আল-লাতীফ'},
-      {'arabic': 'الْخَبِيرُ', 'bangla': 'আল-খাবীর'},
+      {'arabic': 'اللَّطِيْفُ', 'bangla': 'আল-লাতীফ'},
+      {'arabic': 'الْخَبِيْرُ', 'bangla': 'আল-খাবীর'},
     ]},
-    {'names': [
-      {'arabic': 'الْحَلِيمُ', 'bangla': 'আল-হালীম'},
-      {'arabic': 'الْعَظِيمُ', 'bangla': 'আল-আযীম'},
-      {'arabic': 'الْغَفُورُ', 'bangla': 'আল-গাফুর'},
-      {'arabic': 'الشَّكُورُ', 'bangla': 'আশ-শাকুর'},
+    {'audio': 'part_7', 'names': [
+      {'arabic': 'الْحَلِيْمُ', 'bangla': 'আল-হালীম'},
+      {'arabic': 'الْعَظِيْمُ', 'bangla': 'আল-আযীম'},
+      {'arabic': 'الْغَفُوْرُ', 'bangla': 'আল-গাফুর'},
+      {'arabic': 'الشَّكُوْرُ', 'bangla': 'আশ-শাকুর'},
       {'arabic': 'الْعَلِيُّ', 'bangla': 'আল-আলী'},
-      {'arabic': 'الْكَبِيرُ', 'bangla': 'আল-কাবীর'},
+      {'arabic': 'الْكَبِيْرُ', 'bangla': 'আল-কাবীর'},
     ]},
-    {'names': [
-      {'arabic': 'الْحَفِيظُ', 'bangla': 'আল-হাফীয'},
-      {'arabic': 'الْمُقِيتُ', 'bangla': 'আল-মুকীত'},
-      {'arabic': 'الْحَسِيبُ', 'bangla': 'আল-হাসীব'},
-      {'arabic': 'الْجَلِيلُ', 'bangla': 'আল-জালীল'},
-      {'arabic': 'الْكَرِيمُ', 'bangla': 'আল-কারীম'},
+    {'audio': 'part_8', 'names': [
+      {'arabic': 'الْحَفِيْظُ', 'bangla': 'আল-হাফীয'},
+      {'arabic': 'الْمُقِيْتُ', 'bangla': 'আল-মুকীত'},
+      {'arabic': 'الْحَسِيْبُ', 'bangla': 'আল-হাসীব'},
+      {'arabic': 'الْجَلِيْلُ', 'bangla': 'আল-জালীল'},
+      {'arabic': 'الْكَرِيْمُ', 'bangla': 'আল-কারীম'},
     ]},
-    {'names': [
-      {'arabic': 'الرَّقِيبُ', 'bangla': 'আর-রাকীব'},
-      {'arabic': 'الْمُجِيبُ', 'bangla': 'আল-মুজীব'},
+    {'audio': 'part_9', 'names': [
+      {'arabic': 'الرَّقِيْبُ', 'bangla': 'আর-রাকীব'},
+      {'arabic': 'الْمُجِيْبُ', 'bangla': 'আল-মুজীব'},
       {'arabic': 'الْوَاسِعُ', 'bangla': 'আল-ওয়াসি'},
-      {'arabic': 'الْحَكِيمُ', 'bangla': 'আল-হাকীম'},
+      {'arabic': 'الْحَكِيْمُ', 'bangla': 'আল-হাকীম'},
     ]},
-    {'names': [
-      {'arabic': 'الْوَدُودُ', 'bangla': 'আল-ওয়াদুদ'},
-      {'arabic': 'الْمَجِيدُ', 'bangla': 'আল-মাজীদ'},
+    {'audio': 'part_10', 'names': [
+      {'arabic': 'الْوَدُوْدُ', 'bangla': 'আল-ওয়াদুদ'},
+      {'arabic': 'الْمَجِيْدُ', 'bangla': 'আল-মাজীদ'},
       {'arabic': 'الْبَاعِثُ', 'bangla': 'আল-বাইস'},
-      {'arabic': 'الشَّهِيدُ', 'bangla': 'আশ-শাহীদ'},
+      {'arabic': 'الشَّهِيْدُ', 'bangla': 'আশ-শাহীদ'},
     ]},
-    {'names': [
+    {'audio': 'part_11', 'names': [
       {'arabic': 'الْحَقُّ', 'bangla': 'আল-হাক্ক'},
-      {'arabic': 'الْوَكِيلُ', 'bangla': 'আল-ওয়াকীল'},
+      {'arabic': 'الْوَكِيْلُ', 'bangla': 'আল-ওয়াকীল'},
       {'arabic': 'الْقَوِيُّ', 'bangla': 'আল-কাওয়ী'},
-      {'arabic': 'الْمَتِينُ', 'bangla': 'আল-মাতীন'},
+      {'arabic': 'الْمَتِيْنُ', 'bangla': 'আল-মাতীন'},
     ]},
-    {'names': [
+    {'audio': 'part_12', 'names': [
       {'arabic': 'الْوَلِيُّ', 'bangla': 'আল-ওয়ালী'},
-      {'arabic': 'الْحَمِيدُ', 'bangla': 'আল-হামীদ'},
+      {'arabic': 'الْحَمِيْدُ', 'bangla': 'আল-হামীদ'},
       {'arabic': 'الْمُحْصِي', 'bangla': 'আল-মুহসী'},
       {'arabic': 'الْمُبْدِئُ', 'bangla': 'আল-মুবদি'},
-      {'arabic': 'الْمُعِيدُ', 'bangla': 'আল-মুঈদ'},
-      {'arabic': 'الْمُحْيِي', 'bangla': 'আল-মুহয়ী'},
-      {'arabic': 'الْمُمِيتُ', 'bangla': 'আল-মুমীত'},
-      {'arabic': 'الْحَيُّ', 'bangla': 'আল-হাইয়্যু'},
-      {'arabic': 'الْقَيُّومُ', 'bangla': 'আল-কাইয়্যুম'},
+      {'arabic': 'الْمُعِيْدُ', 'bangla': 'আল-মুঈদ'},
+      {'arabic': 'الْمُحْيِ', 'bangla': 'আল-মুহয়ী'},
+      {'arabic': 'الْمُمِيْتُ', 'bangla': 'আল-মুমীত'},
+      {'arabic': 'الْحَيُّ', 'bangla': 'আল-হাইয়্য'},
+      {'arabic': 'الْقَيُّوْمُ', 'bangla': 'আল-কাইয়্যুম'},
     ]},
-    {'names': [
+    {'audio': 'part_13', 'names': [
       {'arabic': 'الْوَاجِدُ', 'bangla': 'আল-ওয়াজিদ'},
       {'arabic': 'الْمَاجِدُ', 'bangla': 'আল-মাজিদ'},
       {'arabic': 'الْوَاحِدُ', 'bangla': 'আল-ওয়াহিদ'},
-      {'arabic': 'الْأَحَدُ', 'bangla': 'আল-আহাদ'},
+      {'arabic': 'الْاَحَدُ', 'bangla': 'আল-আহাদ'},
       {'arabic': 'الصَّمَدُ', 'bangla': 'আস-সামাদ'},
       {'arabic': 'الْقَادِرُ', 'bangla': 'আল-কাদির'},
       {'arabic': 'الْمُقْتَدِرُ', 'bangla': 'আল-মুকতাদির'},
     ]},
-    {'names': [
+    {'audio': 'part_14', 'names': [
       {'arabic': 'الْمُقَدِّمُ', 'bangla': 'আল-মুকাদ্দিম'},
       {'arabic': 'الْمُؤَخِّرُ', 'bangla': 'আল-মুআখখির'},
-      {'arabic': 'الْأَوَّلُ', 'bangla': 'আল-আওয়াল'},
-      {'arabic': 'الْآخِرُ', 'bangla': 'আল-আখির'},
+      {'arabic': 'الْاَوَّلُ', 'bangla': 'আল-আওয়্যাল'},
+      {'arabic': 'الْاَخِرُ', 'bangla': 'আল-আখির'},
       {'arabic': 'الظَّاهِرُ', 'bangla': 'আয-যাহির'},
       {'arabic': 'الْبَاطِنُ', 'bangla': 'আল-বাতিন'},
     ]},
-    {'names': [
+    {'audio': 'part_15', 'names': [
       {'arabic': 'الْوَالِي', 'bangla': 'আল-ওয়ালী'},
       {'arabic': 'الْمُتَعَالِي', 'bangla': 'আল-মুতাআলী'},
       {'arabic': 'الْبَرُّ', 'bangla': 'আল-বার্র'},
       {'arabic': 'التَّوَّابُ', 'bangla': 'আত-তাওয়্যাব'},
       {'arabic': 'الْمُنْتَقِمُ', 'bangla': 'আল-মুনতাকিম'},
-      {'arabic': 'الْعَفُوُّ', 'bangla': 'আল-আফুওয়্যু'},
-      {'arabic': 'الرَّءُوفُ', 'bangla': 'আর-রাউফ'},
+      {'arabic': 'الْعَفُوُّ', 'bangla': 'আল-আফুও'},
+      {'arabic': 'الرَّؤُوْفُ', 'bangla': 'আর-রাউফ'},
     ]},
-    {'names': [
+    {'audio': 'part_16', 'names': [
       {'arabic': 'مَالِكُ الْمُلْكِ', 'bangla': 'মালিকুল মুলক'},
-      {'arabic': 'ذُو الْجَلَالِ وَالْإِكْرَامِ', 'bangla': 'যুল জালালি ওয়াল ইকরাম'},
+      {'arabic': 'ذُوْ الْجَلاَلِ وَالْاِكْرَامِ', 'bangla': 'যুল জালালি ওয়াল ইকরাম'},
     ]},
-    {'names': [
+    {'audio': 'part_17', 'names': [
       {'arabic': 'الْمُقْسِطُ', 'bangla': 'আল-মুকসিত'},
       {'arabic': 'الْجَامِعُ', 'bangla': 'আল-জামি'},
       {'arabic': 'الْغَنِيُّ', 'bangla': 'আল-গানী'},
       {'arabic': 'الْمُغْنِي', 'bangla': 'আল-মুগনী'},
       {'arabic': 'الْمَانِعُ', 'bangla': 'আল-মানি'},
-      {'arabic': 'الضَّارُّ', 'bangla': 'আদ-দার্র'},
+      {'arabic': 'الضَّآرُّ', 'bangla': 'আদ-দার্র'},
       {'arabic': 'النَّافِعُ', 'bangla': 'আন-নাফি'},
     ]},
-    {'names': [
-      {'arabic': 'النُّورُ', 'bangla': 'আন-নূর'},
-      {'arabic': 'الْهَادِي', 'bangla': 'আল-হাদী'},
-      {'arabic': 'الْبَدِيعُ', 'bangla': 'আল-বাদী'},
+    {'audio': 'part_18', 'names': [
+      {'arabic': 'النُّوْرُ', 'bangla': 'আন-নুর'},
+      {'arabic': 'الْهَادِيْ', 'bangla': 'আল-হাদী'},
+      {'arabic': 'الْبَدِيْعُ', 'bangla': 'আল-বাদী'},
       {'arabic': 'الْبَاقِي', 'bangla': 'আল-বাকী'},
       {'arabic': 'الْوَارِثُ', 'bangla': 'আল-ওয়ারিস'},
-      {'arabic': 'الرَّشِيدُ', 'bangla': 'আর-রাশীদ'},
-      {'arabic': 'الصَّبُورُ', 'bangla': 'আস-সাবুর'},
+      {'arabic': 'الرَّشِيْدُ', 'bangla': 'আর-রাশীদ'},
+      {'arabic': 'الصَّبُوْرُ', 'bangla': 'আস-সাবুর'},
     ]},
   ];
-
-  List<Map<String, dynamic>> get _allNames =>
-      _groups.expand((g) => g['names'] as List<Map<String, dynamic>>).toList();
 
   @override
   void initState() {
     super.initState();
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    try {
-      await _tts.setVolume(1.0);
-      await _tts.setSpeechRate(0.4);
-      await _tts.setPitch(1.0);
-
-      // Arabic available কিনা চেক করি
-      final languages = await _tts.getLanguages;
-      final langList = (languages as List).map((e) => e.toString().toLowerCase()).toList();
-      final hasArabic = langList.any((l) => l.contains('ar'));
-
-      if (hasArabic) {
-        await _tts.setLanguage('ar-SA');
-      } else {
-        await _tts.setLanguage('en-US');
-      }
-
-      _tts.setCompletionHandler(() {
-        if (!mounted) return;
-        if (_isPlaying) {
-          if (_playingGroupIndex != null) {
-            _playNextInGroup();
-          } else {
-            _playNextAll();
-          }
-        }
-      });
-
-      // সবসময় ready রাখি
-      if (mounted) setState(() => _ttsReady = true);
-    } catch (e) {
-      // Error হলেও ready রাখি যাতে button কাজ করে
-      if (mounted) setState(() => _ttsReady = true);
-    }
-  }
-
-  Future<void> _speakName(String arabic) async {
-    await _tts.stop();
-    await Future.delayed(const Duration(milliseconds: 200));
-    await _tts.speak(arabic);
-  }
-
-  void _playAll() async {
-    if (_isPlaying && _playingGroupIndex == null) {
-      await _tts.stop();
-      setState(() {
-        _isPlaying = false;
-        _currentNameIndex = 0;
-      });
-      return;
-    }
-    setState(() {
-      _isPlaying = true;
-      _playingGroupIndex = null;
-      _currentNameIndex = 0;
-    });
-    await _speakName(_allNames[0]['arabic']);
-  }
-
-  void _playNextAll() async {
-    _currentNameIndex++;
-    if (_currentNameIndex < _allNames.length) {
-      await _speakName(_allNames[_currentNameIndex]['arabic']);
-    } else {
-      if (mounted) {
+    _player.onPlayerComplete.listen((_) {
+      if (mounted && _isPlaying) {
         setState(() {
           _isPlaying = false;
-          _currentNameIndex = 0;
+          _playingGroupIndex = null;
         });
       }
-    }
+    });
+  }
+
+  Future<void> _playAudio(String audioName) async {
+    await _player.stop();
+    await _player.play(AssetSource('audio/$audioName.mp3'));
   }
 
   void _playGroup(int groupIndex) async {
     if (_isPlaying && _playingGroupIndex == groupIndex) {
-      await _tts.stop();
+      await _player.stop();
       setState(() {
         _isPlaying = false;
         _playingGroupIndex = null;
-        _currentNameIndex = 0;
       });
       return;
     }
+    final audioName = _groups[groupIndex]['audio'] as String;
     setState(() {
       _isPlaying = true;
       _playingGroupIndex = groupIndex;
-      _currentNameIndex = 0;
     });
-    final names = _groups[groupIndex]['names'] as List<Map<String, dynamic>>;
-    await _speakName(names[0]['arabic']);
+    await _playAudio(audioName);
   }
 
-  void _playNextInGroup() async {
-    if (_playingGroupIndex == null) return;
-    final names = _groups[_playingGroupIndex!]['names'] as List<Map<String, dynamic>>;
-    _currentNameIndex++;
-    if (_currentNameIndex < names.length) {
-      await _speakName(names[_currentNameIndex]['arabic']);
-    } else {
-      // unlimited repeat — go back to first
-      _currentNameIndex = 0;
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (_isPlaying && _playingGroupIndex != null) {
-        await _speakName(names[0]['arabic']);
-      }
+  void _playAll() async {
+    if (_isPlaying && _playingGroupIndex == null) {
+      await _player.stop();
+      setState(() {
+        _isPlaying = false;
+      });
+      return;
     }
+    // সব audio একটার পর একটা play করা জটিল
+    // তাই "সব" বলতে part_0 (bismillah) থেকে শুরু করব
+    setState(() {
+      _isPlaying = true;
+      _playingGroupIndex = null;
+    });
+    await _playAudio('part_0');
   }
 
   @override
   void dispose() {
-    _tts.stop();
+    _player.dispose();
     super.dispose();
   }
 
@@ -289,12 +228,12 @@ class _NamesScreenState extends State<NamesScreen> {
         title: Text(isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah'),
         actions: [
           IconButton(
-            onPressed: _ttsReady ? _playAll : null,
+            onPressed: _playAll,
             icon: Icon(
               _isPlaying && _playingGroupIndex == null
                   ? Icons.stop_circle
                   : Icons.play_circle,
-              color: _ttsReady ? AppTheme.gold : AppTheme.textSecondary,
+              color: AppTheme.gold,
               size: 32,
             ),
             tooltip: isBn ? 'সব নাম চালু/বন্ধ' : 'Play/Stop All',
@@ -304,32 +243,46 @@ class _NamesScreenState extends State<NamesScreen> {
       body: Column(
         children: [
           // Bismillah
+          GestureDetector(
+            onTap: () async {
+              await _player.stop();
+              await _player.play(AssetSource('audio/part_0.mp3'));
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              color: AppTheme.primary.withOpacity(0.2),
+              child: const Text(
+                'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
+                style: TextStyle(
+                  fontSize: 30,
+                  color: AppTheme.gold,
+                  fontFamily: 'ScheherazadeNew',
+                  height: 1.8,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+
+          // Fazilat (হাদিস)
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            color: AppTheme.primary.withOpacity(0.2),
-            child: const Text(
-              'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
-              style: TextStyle(fontSize: 30, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            color: AppTheme.primary.withOpacity(0.1),
+            child: Text(
+              isBn
+                  ? 'হযরত আবু হুরাইরা রাযি. থেকে বর্ণিত — রাসূল ﷺ বলেন: "আল্লাহর ৯৯টি নাম আছে, যে ব্যক্তি উক্ত নামগুলো মুখস্থ রাখবে সে জান্নাতে প্রবেশ করবে।" [তিরমিজী: ৩৫০৭]'
+                  : 'Abu Hurairah (R) reported: The Prophet ﷺ said: "Allah has 99 names; whoever learns them will enter Paradise." [Tirmidhi: 3507]',
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                height: 1.5,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
 
-          // TTS warning
-          if (!_ttsReady)
-            Container(
-              padding: const EdgeInsets.all(8),
-              color: AppTheme.pending.withOpacity(0.15),
-              child: Text(
-                isBn
-                    ? '⚠️ সাউন্ডের জন্য ডিভাইসে আরবি ভাষা install করুন:\nSettings → General Management → Language → Add Language → Arabic'
-                    : '⚠️ For sound, install Arabic language:\nSettings → General Management → Language → Add Language → Arabic',
-                style: const TextStyle(color: AppTheme.pending, fontSize: 11),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-          // Playing all indicator
+          // Playing indicator
           if (_isPlaying && _playingGroupIndex == null)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -403,20 +356,22 @@ class _NamesScreenState extends State<NamesScreen> {
                       const Divider(color: Colors.white12, height: 1),
                       // Bottom row
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Row(
                           children: [
                             Text(
-                              isBn ? '${names.length} টি নাম' : '${names.length} names',
+                              isBn
+                                  ? '${names.length} টি নাম'
+                                  : '${names.length} names',
                               style: const TextStyle(
                                 color: AppTheme.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
                             const Spacer(),
-                            // Repeat button
                             GestureDetector(
-                              onTap: _ttsReady ? () => _playGroup(groupIndex) : null,
+                              onTap: () => _playGroup(groupIndex),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -437,7 +392,9 @@ class _NamesScreenState extends State<NamesScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      isGroupPlaying ? Icons.stop : Icons.repeat,
+                                      isGroupPlaying
+                                          ? Icons.stop
+                                          : Icons.play_arrow,
                                       color: Colors.white,
                                       size: 16,
                                     ),
@@ -445,7 +402,7 @@ class _NamesScreenState extends State<NamesScreen> {
                                     Text(
                                       isGroupPlaying
                                           ? (isBn ? 'বন্ধ করুন' : 'Stop')
-                                          : (isBn ? '🔁 রিপিট' : '🔁 Repeat'),
+                                          : (isBn ? '🔊 শুনুন' : '🔊 Play'),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,

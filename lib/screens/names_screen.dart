@@ -319,7 +319,15 @@ class _NamesScreenState extends State<NamesScreen> {
       setState(() {
         _allPlayIndex = 0;
       });
-      await Future.delayed(const Duration(milliseconds: 800));
+      // আগে scroll উপরে নিয়ে যাও
+      if (_scrollController.hasClients) {
+        await _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted || !_isPlayingAll) return;
       await _player.play(AssetSource('audio/part_0.mp3'));
     }

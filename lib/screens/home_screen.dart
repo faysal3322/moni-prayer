@@ -408,15 +408,24 @@ class _HomeTabState extends State<_HomeTab> {
       final cd = _countdown(pt.isha);
       alerts.add({'icon': '⭐', 'text': isBn ? 'আওওয়াবিনের ওয়াক্ত শেষ হতে বাকি $cd (৬-২০ রাকাত)' : 'Awwabin ends in $cd (6-20 rakats)', 'color': const Color(0xFF26A69A)});
     }
-    if (lastThird != null) {
-      final isNight = now.hour >= 21 || now.hour <= 6;
-      if (isNight && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-        final cd = _countdown(pt.fajr);
-        alerts.add({'icon': '🌙', 'text': isBn ? 'তাহাজ্জুদের ওয়াক্ত শেষ হতে বাকি $cd — দোয়া কবুলের সর্বোত্তম সময়!' : 'Tahajjud ends in $cd — Best time for duas!', 'color': const Color(0xFF7C4DFF)});
-      } else if (now.isAfter(pt.isha) && now.isBefore(lastThird)) {
-        final cd = _countdown(lastThird);
-        alerts.add({'icon': '🌙', 'text': isBn ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd' : 'Best Tahajjud time starts in $cd', 'color': const Color(0xFF7C4DFF)});
-      }
+    // ══ তাহাজ্জুদ — সময় বাকি + ফজিলত + নির্দেশনা (এশার পর থেকে ফজরের আগ পর্যন্ত) ══
+    final tahajjudStart = lastThird ?? pt.fajr.subtract(const Duration(hours: 2));
+    if (now.isAfter(pt.isha) && now.isBefore(tahajjudStart)) {
+      // তাহাজ্জুদের উত্তম সময় শুরু হতে বাকি
+      final cd = _countdown(tahajjudStart);
+      alerts.add({'icon': '🌙', 'text': isBn ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd' : 'Best Tahajjud time starts in $cd', 'color': const Color(0xFF7C4DFF)});
+    } else if (now.isAfter(tahajjudStart) && now.isBefore(pt.fajr)) {
+      // তাহাজ্জুদের সময় চলছে — ফজর শুরু হওয়া পর্যন্ত বাকি সময়
+      final cd = _countdown(pt.fajr);
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'তাহাজ্জুদের সময় বাকি আছে — $cd (ফজরের আগ পর্যন্ত)'
+          : 'Tahajjud time remaining — $cd (until Fajr)', 'color': const Color(0xFF7C4DFF)});
+      alerts.add({'icon': '✨', 'text': isBn
+          ? 'তাহাজ্জুদের ফজিলত:\n◆ আল্লাহ এ সময় নিচের আকাশে নেমে আসেন: "কে দোয়া করছে? আমি কবুল করব" (বুখারি: ১১৪৫)\n◆ এটি ফরজ ছাড়া সর্বোত্তম নামাজ (মুসলিম: ১১৬৩)\n◆ তাহাজ্জুদ আদায়কারীদের জন্য জান্নাতে বিশেষ মর্যাদা (সূরা সাজদাহ: ১৬-১৭)\n◆ দোয়া কবুলের সবচেয়ে উপযুক্ত সময়'
+          : 'Tahajjud Virtues:\n◆ Allah descends to the lowest heaven now: "Who is asking? I will grant" (Bukhari: 1145)\n◆ Best prayer after the obligatory ones (Muslim: 1163)\n◆ Special rank in Jannah for those who pray it (Surah Sajdah: 16-17)\n◆ Most suitable time for dua acceptance', 'color': const Color(0xFF7C4DFF)});
+      alerts.add({'icon': '📋', 'text': isBn
+          ? 'তাহাজ্জুদ পড়ার নির্দেশনা:\n◆ কমপক্ষে ২ রাকাত, সামর্থ্য অনুযায়ী বেশি পড়তে পারেন\n◆ প্রতি ২ রাকাত পর সালাম দিন\n◆ দীর্ঘ কিরাত ও ধীরে ধীরে পড়ুন\n◆ সিজদায় বেশি বেশি দোয়া করুন\n◆ "রাতের কিছু অংশে তাহাজ্জুদ পড়বে" (সূরা বনি ইসরাঈল: ৭৯)'
+          : 'How to pray Tahajjud:\n◆ At least 2 rakats, more if able\n◆ Give Salam after every 2 rakats\n◆ Recite slowly with long Qiraat\n◆ Make abundant dua in Sujood\n◆ "Pray Tahajjud at night" (Surah Bani Isra\'il: 79)', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ সেহরি / ইফতার countdown ══
@@ -939,14 +948,6 @@ class _HomeTabState extends State<_HomeTab> {
             ? 'রমজানের শেষ দশক — লাইলাতুল কদর খুঁজুন!\n◆ বিজোড় রাতে (২১, ২৩, ২৫, ২৭, ২৯) বেশি ইবাদত করুন\n◆ ইতেকাফ করলে সবচেয়ে ভালো\n◆ দোয়া: "আল্লাহুম্মা ইন্নাকা আফুউউন তুহিব্বুল আফওয়া ফাফু আন্নী"'
             : 'Last 10 nights of Ramadan — seek Laylatul Qadr!\n◆ More worship on odd nights (21,23,25,27,29)\n◆ I\'tikaf is best\n◆ Dua: "Allahumma innaka Afuwwun..."', 'color': const Color(0xFF7C4DFF)});
       }
-    }
-
-    // ══ তাহাজ্জুদ (ফজরের ২ ঘন্টা আগে) ══
-    final lastThirdApprox = pt.fajr.subtract(const Duration(hours: 2));
-    if (now.isAfter(lastThirdApprox) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'এখন তাহাজ্জুদের সর্বোত্তম সময়!\n◆ আল্লাহ এখন নিচের আকাশে: "কে দোয়া করছে? আমি কবুল করব"\n◆ কমপক্ষে ২ রাকাত থেকে যত পারুন পড়ুন\n◆ মনের সব কথা আল্লাহকে বলুন\n◆ "রাতের কিছু অংশে তাহাজ্জুদ পড়বে" (বনি ইসরাঈল: ৭৯)'
-          : 'Best time for Tahajjud now!\n◆ Allah descends: "Who is asking? I will grant"\n◆ Pray at least 2 rakats\n◆ Pour your heart to Allah\n◆ "Pray Tahajjud at night" (Bani Isra\'il: 79)', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ নারীদের বিশেষ আমল ══

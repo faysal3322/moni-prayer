@@ -360,6 +360,15 @@ class _HomeTabState extends State<_HomeTab> {
     if (pt == null) return alerts;
 
     final lastThird = _sunnahTimes?.lastThirdOfTheNight;
+    // রাতের সঠিক ১/৩ অংশ ম্যানুয়ালি হিসাব — মাগরিব থেকে পরের দিনের ফজর পর্যন্ত
+    // (adhan package এর lastThirdOfTheNight কখনো ভুল asymmetric রাত ধরতে পারে, তাই নিজে হিসাব করছি)
+    final nextFajr = pt.fajr.isAfter(pt.maghrib)
+        ? pt.fajr
+        : pt.fajr.add(const Duration(days: 1));
+    final nightDuration = nextFajr.difference(pt.maghrib);
+    final manualLastThird = pt.maghrib.add(
+      Duration(milliseconds: (nightDuration.inMilliseconds * 2 / 3).round()),
+    );
     final h = _HijriSimple.fromDate(now);
     final hijriMonth = _HijriSimple.getMonth(now);
 
@@ -371,7 +380,7 @@ class _HomeTabState extends State<_HomeTab> {
     final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
     final zawalEnd = pt.dhuhr;
     final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
-    final ishaaEnd = lastThird ?? pt.fajr.add(const Duration(days: 1));
+    final ishaaEnd = manualLastThird;
 
     // ══ ফরজ নামাজের ওয়াক্ত countdown ══
     if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
@@ -409,7 +418,7 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '⭐', 'text': isBn ? 'আওওয়াবিনের ওয়াক্ত শেষ হতে বাকি $cd (৬-২০ রাকাত)' : 'Awwabin ends in $cd (6-20 rakats)', 'color': const Color(0xFF26A69A)});
     }
     // ══ তাহাজ্জুদ — সময় বাকি + ফজিলত + নির্দেশনা (এশার পর থেকে ফজরের আগ পর্যন্ত) ══
-    final tahajjudStart = lastThird ?? pt.fajr.subtract(const Duration(hours: 2));
+    final tahajjudStart = manualLastThird;
     if (now.isAfter(pt.isha) && now.isBefore(tahajjudStart)) {
       // তাহাজ্জুদের উত্তম সময় শুরু হতে বাকি
       final cd = _countdown(tahajjudStart);

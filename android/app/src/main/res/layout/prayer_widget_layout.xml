@@ -3,111 +3,71 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_background"
+    android:background="#1B2E1F"
     android:padding="12dp"
     android:gravity="center">
 
-    <!-- সময় -->
     <TextView
         android:id="@+id/widget_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="00:00 am"
+        android:text="Hello Widget"
         android:textColor="#FFFFFF"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:fontFamily="sans-serif-medium" />
+        android:textSize="20sp" />
 
-    <!-- বার (যেমন রবিবার) -->
     <TextView
         android:id="@+id/widget_day"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="রবিবার"
+        android:text=""
         android:textColor="#A5D6A7"
         android:textSize="14sp" />
 
-    <!-- বিভাজক রেখা -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="6dp"
-        android:background="#33FFFFFF" />
-
-    <!-- নিচের তথ্য সারি -->
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/widget_gregorian"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:text=""
+        android:textColor="#E0E0E0"
+        android:textSize="11sp" />
 
-        <!-- বাম পাশ: তারিখ -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+    <TextView
+        android:id="@+id/widget_hijri"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#FFD54F"
+        android:textSize="11sp" />
 
-            <TextView
-                android:id="@+id/widget_gregorian"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="২১ জুন ২০২৬"
-                android:textColor="#E0E0E0"
-                android:textSize="11sp" />
+    <TextView
+        android:id="@+id/widget_sunrise"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#FFD54F"
+        android:textSize="10sp" />
 
-            <TextView
-                android:id="@+id/widget_hijri"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="৫ মুহাররম ১৪৪৮"
-                android:textColor="#FFD54F"
-                android:textSize="11sp" />
-        </LinearLayout>
+    <TextView
+        android:id="@+id/widget_sunset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#FFD54F"
+        android:textSize="10sp" />
 
-        <!-- ডান পাশ: সময়সূচি -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+    <TextView
+        android:id="@+id/widget_sehri"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#81C784"
+        android:textSize="10sp" />
 
-            <TextView
-                android:id="@+id/widget_sunrise"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🌅 সূর্যোদয় 5:12 am"
-                android:textColor="#FFD54F"
-                android:textSize="10sp" />
-
-            <TextView
-                android:id="@+id/widget_sunset"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="🌇 সূর্যাস্ত 6:48 pm"
-                android:textColor="#FFD54F"
-                android:textSize="10sp" />
-
-            <TextView
-                android:id="@+id/widget_sehri"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="🍽️ সেহরি 3:44 am"
-                android:textColor="#81C784"
-                android:textSize="10sp" />
-
-            <TextView
-                android:id="@+id/widget_iftar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="🌙 ইফতার 6:48 pm"
-                android:textColor="#81C784"
-                android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
+    <TextView
+        android:id="@+id/widget_iftar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#81C784"
+        android:textSize="10sp" />
 </LinearLayout>

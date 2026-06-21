@@ -33,7 +33,7 @@
             android:value="2" />
 
         <!-- ══ Prayer Clock Widget ══ -->
-        <receiver android:name="PrayerWidgetProvider"
+        <receiver android:name=".PrayerWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

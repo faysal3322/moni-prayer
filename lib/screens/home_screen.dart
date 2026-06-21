@@ -232,7 +232,10 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _updateHomeWidget() async {
     try {
       final pt = _prayerTimes;
-      if (pt == null) return;
+      if (pt == null) {
+        debugPrint('WIDGET: prayerTimes null, skip');
+        return;
+      }
       final isBn = widget.lang.isBn;
       final now = DateTime.now();
 
@@ -252,10 +255,11 @@ class _HomeTabState extends State<_HomeTab> {
 
       await HomeWidget.updateWidget(
         name: 'PrayerWidgetProvider',
-        androidName: 'PrayerWidgetProvider',
+        androidName: 'com.example.moni_prayer.PrayerWidgetProvider',
       );
-    } catch (_) {
-      // widget update fail হলেও app স্বাভাবিকভাবে চলবে
+      debugPrint('WIDGET: update success');
+    } catch (e) {
+      debugPrint('WIDGET ERROR: $e');
     }
   }
 

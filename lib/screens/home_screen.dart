@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:home_widget/home_widget.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
@@ -219,10 +220,43 @@ class _HomeTabState extends State<_HomeTab> {
     _loadHijri();
     _autoQazaTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) _checkAndAutoMarkQaza();
+      if (mounted) _updateHomeWidget();
     });
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) _checkAndAutoMarkQaza();
+      if (mounted) _updateHomeWidget();
     });
+  }
+
+  // ══ Home Screen Widget এ data পাঠানো (হোমস্ক্রিনের widget আপডেট) ══
+  Future<void> _updateHomeWidget() async {
+    try {
+      final pt = _prayerTimes;
+      if (pt == null) return;
+      final isBn = widget.lang.isBn;
+      final now = DateTime.now();
+
+      await HomeWidget.saveWidgetData('widget_time', DateHelper.formatTime12(now, bangla: isBn));
+      await HomeWidget.saveWidgetData('widget_day', widget.lang.dayName(now.weekday));
+      await HomeWidget.saveWidgetData('widget_gregorian', DateHelper.formatGregorian(now, bangla: isBn));
+      await HomeWidget.saveWidgetData('widget_hijri',
+          _hijriDate.isEmpty ? DateHelper.toHijri(now, bangla: isBn) : _hijriDate);
+      await HomeWidget.saveWidgetData('widget_sunrise',
+          (isBn ? '🌅 সূর্যোদয় ' : '🌅 Sunrise ') + PrayerTimeHelper.formatTime(pt.sunrise));
+      await HomeWidget.saveWidgetData('widget_sunset',
+          (isBn ? '🌇 সূর্যাস্ত ' : '🌇 Sunset ') + PrayerTimeHelper.formatTime(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_sehri',
+          (isBn ? '🍽️ সেহরি ' : '🍽️ Sehri ') + PrayerTimeHelper.formatTime(pt.fajr));
+      await HomeWidget.saveWidgetData('widget_iftar',
+          (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
+
+      await HomeWidget.updateWidget(
+        name: 'PrayerWidgetProvider',
+        androidName: 'PrayerWidgetProvider',
+      );
+    } catch (_) {
+      // widget update fail হলেও app স্বাভাবিকভাবে চলবে
+    }
   }
 
   @override

@@ -269,6 +269,13 @@ class _HomeTabState extends State<_HomeTab> {
       await HomeWidget.saveWidgetData('widget_iftar',
           (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
 
+      // marquee text — live alerts সংক্ষেপে
+      final alerts = _getLiveAlerts(widget.lang);
+      final marqueeText = alerts.isEmpty
+          ? ''
+          : alerts.map((a) => '${a['icon']}  ${(a['text'] as String).replaceAll('\n', ' ')}').join('   ✦   ');
+      await HomeWidget.saveWidgetData('widget_marquee', marqueeText);
+
       await HomeWidget.updateWidget(
         name: 'PrayerWidgetProvider',
         androidName: 'com.example.moni_prayer.PrayerWidgetProvider',
@@ -1515,7 +1522,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // বাম: তারিখ + লোকেশন
+                // বাম: তারিখ
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1550,27 +1557,6 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      // লোকেশন
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 14),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              widget.locationName.isEmpty
-                                  ? (isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...')
-                                  : widget.locationName,
-                              style: const TextStyle(
-                                color: Color(0xFF80DEEA),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -1608,6 +1594,34 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
           ),
 
           const SizedBox(height: 10),
+
+          // ══ লোকেশন — মাঝ বরাবর ══
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 14),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    widget.locationName.isEmpty
+                        ? (isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...')
+                        : widget.locationName,
+                    style: const TextStyle(
+                      color: Color(0xFF80DEEA),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
 
           // ══ নিচে: Scrolling Marquee Text ══
           Container(

@@ -94,6 +94,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
+        views.setTextViewText(R.id.widget_bangla_date, prefs.getString("widget_bangla_date", "") ?: "")
         views.setTextViewText(R.id.widget_sunrise, prefs.getString("widget_sunrise", "") ?: "")
         views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")

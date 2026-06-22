@@ -131,7 +131,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- নিচে rotating alert -->
     <TextView
         android:id="@+id/widget_alert"
         android:layout_width="match_parent"
@@ -146,8 +145,8 @@
         android:textColor="#FFD54F"
         android:textSize="13sp"
         android:textStyle="bold"
-        android:singleLine="true"
+        android:gravity="center"
         android:ellipsize="end"
-        android:gravity="center" />
+        android:singleLine="true" />
 
 </LinearLayout>

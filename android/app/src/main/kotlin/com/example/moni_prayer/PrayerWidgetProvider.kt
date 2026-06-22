@@ -99,6 +99,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
+        views.setTextViewText(R.id.widget_marquee, prefs.getString("widget_marquee", "") ?: "")
 
         appWidgetManager.updateAppWidget(widgetId, views)
     }

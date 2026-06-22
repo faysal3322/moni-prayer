@@ -91,6 +91,16 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         if (isBn) timeStr = toBanglaDigits(timeStr)
 
         views.setTextViewText(R.id.widget_time, timeStr)
+
+        // widget_time এ click করলে app open হবে
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        if (launchIntent != null) {
+            val pendingLaunch = PendingIntent.getActivity(
+                context, 0, launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
+        }
         views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")

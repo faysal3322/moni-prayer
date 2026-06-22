@@ -28,17 +28,26 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
-        scheduleNextUpdate(context)
+        try {
+            scheduleNextUpdate(context)
+        } catch (e: Exception) {
+        }
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        scheduleNextUpdate(context)
+        try {
+            scheduleNextUpdate(context)
+        } catch (e: Exception) {
+        }
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        cancelUpdate(context)
+        try {
+            cancelUpdate(context)
+        } catch (e: Exception) {
+        }
     }
 
     private fun scheduleNextUpdate(context: Context) {
@@ -58,7 +67,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC, nextMinute.timeInMillis, pendingIntent)
+        // setExactAndAllowWhileIdle() এর জন্য বিশেষ permission লাগে এবং crash করতে পারে
+        // তাই সাধারণ set() ব্যবহার করছি, কোনো permission লাগে না
+        alarmManager.set(AlarmManager.RTC, nextMinute.timeInMillis, pendingIntent)
     }
 
     private fun cancelUpdate(context: Context) {
@@ -92,7 +103,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_time, timeStr)
 
-        // click করলে app open
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         if (launchIntent != null) {
             val pendingLaunch = PendingIntent.getActivity(
@@ -111,7 +121,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
 
-        // rotating alert
         val alertFull = prefs.getString("widget_alert", "") ?: ""
         if (alertFull.isNotEmpty()) {
             val parts = alertFull.split(" | ")

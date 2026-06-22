@@ -283,64 +283,91 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _fetchLocationAndWeather() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      if (!serviceEnabled) {
+        if (mounted) setState(() => _locationName = widget.lang.isBn ? 'লোকেশন বন্ধ' : 'Location off');
+        return;
+      }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return;
+        if (permission == LocationPermission.denied) {
+          if (mounted) setState(() => _locationName = widget.lang.isBn ? 'অনুমতি নেই' : 'No permission');
+          return;
+        }
       }
-      if (permission == LocationPermission.deniedForever) return;
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationName = widget.lang.isBn ? 'অনুমতি বন্ধ' : 'Permission denied');
+        return;
+      }
 
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 10),
+        timeLimit: const Duration(seconds: 15),
       );
       _lat = pos.latitude;
       _lng = pos.longitude;
 
-      // Reverse geocode via nominatim (free, no API key)
-      final geoUrl = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=${pos.latitude}&lon=${pos.longitude}&format=json&accept-language=bn',
-      );
-      final geoRes = await http.get(geoUrl, headers: {'User-Agent': 'MoniPrayerApp/1.0'});
-      if (geoRes.statusCode == 200) {
-        final geoData = jsonDecode(geoRes.body);
-        final addr = geoData['address'] as Map<String, dynamic>? ?? {};
-        final sub = addr['suburb'] ?? addr['village'] ?? addr['town'] ?? addr['city_district'] ?? addr['neighbourhood'] ?? '';
-        final district = addr['county'] ?? addr['state_district'] ?? addr['city'] ?? '';
-        final locationStr = [sub, district].where((s) => s.toString().isNotEmpty).join(', ');
-        if (mounted && locationStr.isNotEmpty) {
-          setState(() => _locationName = locationStr);
+      // ══ আবহাওয়া: Open-Meteo ══
+      try {
+        final wUrl = Uri.parse(
+          'https://api.open-meteo.com/v1/forecast'
+          '?latitude=${pos.latitude}&longitude=${pos.longitude}'
+          '&current=temperature_2m,weather_code'
+          '&timezone=auto',
+        );
+        final wRes = await http.get(wUrl).timeout(const Duration(seconds: 10));
+        if (wRes.statusCode == 200) {
+          final wData = jsonDecode(wRes.body);
+          final current = wData['current'] as Map<String, dynamic>? ?? {};
+          final temp = (current['temperature_2m'] as num? ?? 0).round();
+          final wcode = (current['weather_code'] as num? ?? 0).toInt();
+          final icon = _weatherCodeIcon(wcode);
+          final desc = _weatherCodeShort(wcode, widget.lang.isBn);
+          if (mounted) {
+            setState(() {
+              _weatherIcon = icon;
+              _weatherText = '$temp° $desc';
+            });
+          }
         }
+      } catch (e) {
+        debugPrint('Weather error: $e');
+        if (mounted) setState(() => _weatherText = widget.lang.isBn ? 'ডাটা নেই' : 'N/A');
       }
 
-      // আবহাওয়া: Open-Meteo (free, no API key, caiyunapp এর মতো ডাটা)
-      final wUrl = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}'
-        '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m'
-        '&timezone=auto',
-      );
-      final wRes = await http.get(wUrl);
-      if (wRes.statusCode == 200) {
-        final wData = jsonDecode(wRes.body);
-        final current = wData['current'] as Map<String, dynamic>? ?? {};
-        final temp = (current['temperature_2m'] ?? 0).round();
-        final feelsLike = (current['apparent_temperature'] ?? 0).round();
-        final wcode = current['weathercode'] ?? 0;
-        final isBn = widget.lang.isBn;
-        final icon = _weatherCodeIcon(wcode);
-        final desc = _weatherCodeDesc(wcode, isBn);
-        if (mounted) {
-          setState(() {
-            _weatherIcon = icon;
-            _weatherText = isBn
-                ? '$temp°C (অনুভব ${feelsLike}°C) $desc'
-                : '${temp}°C (feels ${feelsLike}°C) $desc';
-          });
+      // ══ Reverse Geocode: Nominatim ══
+      try {
+        final geoUrl = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse'
+          '?lat=${pos.latitude}&lon=${pos.longitude}&format=json&accept-language=bn',
+        );
+        final geoRes = await http.get(
+          geoUrl,
+          headers: {'User-Agent': 'MoniPrayerApp/1.0'},
+        ).timeout(const Duration(seconds: 10));
+        if (geoRes.statusCode == 200) {
+          final geoData = jsonDecode(geoRes.body);
+          final addr = geoData['address'] as Map<String, dynamic>? ?? {};
+          final sub = (addr['suburb'] ?? addr['village'] ?? addr['town']
+              ?? addr['city_district'] ?? addr['neighbourhood'] ?? '').toString();
+          final district = (addr['county'] ?? addr['state_district']
+              ?? addr['city'] ?? addr['state'] ?? '').toString();
+          final locationStr = [sub, district].where((s) => s.isNotEmpty).join(', ');
+          if (mounted && locationStr.isNotEmpty) {
+            setState(() => _locationName = locationStr);
+          }
+        }
+      } catch (e) {
+        debugPrint('Geocode error: $e');
+        // lat/lng দিয়ে fallback দেখাও
+        if (mounted && _locationName.isEmpty) {
+          setState(() => _locationName =
+            '${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)}');
         }
       }
     } catch (e) {
-      debugPrint('Location/Weather error: $e');
+      debugPrint('Location error: $e');
+      if (mounted) setState(() => _locationName = widget.lang.isBn ? 'লোকেশন পাওয়া যায়নি' : 'Location failed');
     }
   }
 
@@ -349,6 +376,7 @@ class _HomeTabState extends State<_HomeTab> {
     if (code <= 2) return '⛅';
     if (code == 3) return '☁️';
     if (code <= 49) return '🌫️';
+    if (code <= 55) return '🌦️';
     if (code <= 67) return '🌧️';
     if (code <= 77) return '❄️';
     if (code <= 82) return '🌦️';
@@ -357,7 +385,20 @@ class _HomeTabState extends State<_HomeTab> {
     return '🌤️';
   }
 
-  String _weatherCodeDesc(int code, bool isBn) {
+  String _weatherCodeShort(int code, bool isBn) {
+    if (code == 0) return isBn ? 'পরিষ্কার' : 'Clear';
+    if (code <= 2) return isBn ? 'আংশিক মেঘ' : 'Partly Cloudy';
+    if (code == 3) return isBn ? 'মেঘলা' : 'Cloudy';
+    if (code <= 49) return isBn ? 'কুয়াশা' : 'Foggy';
+    if (code <= 55) return isBn ? 'গুঁড়ি বৃষ্টি' : 'Drizzle';
+    if (code <= 65) return isBn ? 'বৃষ্টি' : 'Rain';
+    if (code <= 67) return isBn ? 'ঠান্ডা বৃষ্টি' : 'Freezing Rain';
+    if (code <= 77) return isBn ? 'তুষার' : 'Snow';
+    if (code <= 82) return isBn ? 'হালকা বৃষ্টি' : 'Light Rain';
+    if (code <= 86) return isBn ? 'তুষার ঝড়' : 'Snow Shower';
+    if (code <= 99) return isBn ? 'বজ্রঝড়' : 'Thunderstorm';
+    return '';
+  }
     if (code == 0) return isBn ? 'পরিষ্কার আকাশ' : 'Clear sky';
     if (code == 1) return isBn ? 'প্রায় পরিষ্কার' : 'Mainly clear';
     if (code == 2) return isBn ? 'আংশিক মেঘলা' : 'Partly cloudy';

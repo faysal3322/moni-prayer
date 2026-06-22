@@ -92,7 +92,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_time, timeStr)
 
-        // widget_time এ click করলে app open হবে
+        // click করলে app open
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         if (launchIntent != null) {
             val pendingLaunch = PendingIntent.getActivity(
@@ -101,6 +101,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
         }
+
         views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
@@ -109,7 +110,16 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
-        views.setTextViewText(R.id.widget_marquee, prefs.getString("widget_marquee", "") ?: "")
+
+        // rotating alert
+        val alertFull = prefs.getString("widget_alert", "") ?: ""
+        if (alertFull.isNotEmpty()) {
+            val parts = alertFull.split(" | ")
+            val idx = now.get(Calendar.MINUTE) % parts.size
+            views.setTextViewText(R.id.widget_alert, parts[idx].trim())
+        } else {
+            views.setTextViewText(R.id.widget_alert, "")
+        }
 
         appWidgetManager.updateAppWidget(widgetId, views)
     }

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
 import '../utils/app_theme.dart';
@@ -213,14 +216,26 @@ class _HomeTabState extends State<_HomeTab> {
   String _hijriDate = '';
   Timer? _autoQazaTimer;
 
+  // ══ লোকেশন ও আবহাওয়া ══
+  String _locationName = '';
+  String _weatherText = '';
+  String _weatherIcon = '🌤️';
+  double? _lat;
+  double? _lng;
+
   @override
   void initState() {
     super.initState();
     _loadToday();
     _loadHijri();
+    _fetchLocationAndWeather();
     _autoQazaTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) _checkAndAutoMarkQaza();
       if (mounted) _updateHomeWidget();
+    });
+    // আবহাওয়া প্রতি ১৫ মিনিটে আপডেট
+    Timer.periodic(const Duration(minutes: 15), (_) {
+      if (mounted) _fetchLocationAndWeather();
     });
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) _checkAndAutoMarkQaza();
@@ -262,6 +277,100 @@ class _HomeTabState extends State<_HomeTab> {
     } catch (e) {
       debugPrint('WIDGET ERROR: $e');
     }
+  }
+
+  // ══ লোকেশন ও আবহাওয়া fetch ══
+  Future<void> _fetchLocationAndWeather() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 10),
+      );
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+
+      // Reverse geocode via nominatim (free, no API key)
+      final geoUrl = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=${pos.latitude}&lon=${pos.longitude}&format=json&accept-language=bn',
+      );
+      final geoRes = await http.get(geoUrl, headers: {'User-Agent': 'MoniPrayerApp/1.0'});
+      if (geoRes.statusCode == 200) {
+        final geoData = jsonDecode(geoRes.body);
+        final addr = geoData['address'] as Map<String, dynamic>? ?? {};
+        final sub = addr['suburb'] ?? addr['village'] ?? addr['town'] ?? addr['city_district'] ?? addr['neighbourhood'] ?? '';
+        final district = addr['county'] ?? addr['state_district'] ?? addr['city'] ?? '';
+        final locationStr = [sub, district].where((s) => s.toString().isNotEmpty).join(', ');
+        if (mounted && locationStr.isNotEmpty) {
+          setState(() => _locationName = locationStr);
+        }
+      }
+
+      // আবহাওয়া: Open-Meteo (free, no API key, caiyunapp এর মতো ডাটা)
+      final wUrl = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}'
+        '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m'
+        '&timezone=auto',
+      );
+      final wRes = await http.get(wUrl);
+      if (wRes.statusCode == 200) {
+        final wData = jsonDecode(wRes.body);
+        final current = wData['current'] as Map<String, dynamic>? ?? {};
+        final temp = (current['temperature_2m'] ?? 0).round();
+        final feelsLike = (current['apparent_temperature'] ?? 0).round();
+        final wcode = current['weathercode'] ?? 0;
+        final isBn = widget.lang.isBn;
+        final icon = _weatherCodeIcon(wcode);
+        final desc = _weatherCodeDesc(wcode, isBn);
+        if (mounted) {
+          setState(() {
+            _weatherIcon = icon;
+            _weatherText = isBn
+                ? '$temp°C (অনুভব ${feelsLike}°C) $desc'
+                : '${temp}°C (feels ${feelsLike}°C) $desc';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Location/Weather error: $e');
+    }
+  }
+
+  String _weatherCodeIcon(int code) {
+    if (code == 0) return '☀️';
+    if (code <= 2) return '⛅';
+    if (code == 3) return '☁️';
+    if (code <= 49) return '🌫️';
+    if (code <= 67) return '🌧️';
+    if (code <= 77) return '❄️';
+    if (code <= 82) return '🌦️';
+    if (code <= 86) return '🌨️';
+    if (code <= 99) return '⛈️';
+    return '🌤️';
+  }
+
+  String _weatherCodeDesc(int code, bool isBn) {
+    if (code == 0) return isBn ? 'পরিষ্কার আকাশ' : 'Clear sky';
+    if (code == 1) return isBn ? 'প্রায় পরিষ্কার' : 'Mainly clear';
+    if (code == 2) return isBn ? 'আংশিক মেঘলা' : 'Partly cloudy';
+    if (code == 3) return isBn ? 'মেঘলা' : 'Overcast';
+    if (code <= 49) return isBn ? 'কুয়াশা' : 'Foggy';
+    if (code <= 55) return isBn ? 'গুঁড়ি বৃষ্টি' : 'Drizzle';
+    if (code <= 65) return isBn ? 'বৃষ্টি' : 'Rain';
+    if (code <= 67) return isBn ? 'ঠান্ডা বৃষ্টি' : 'Freezing rain';
+    if (code <= 77) return isBn ? 'তুষারপাত' : 'Snowfall';
+    if (code <= 82) return isBn ? 'বৃষ্টি ঝরছে' : 'Rain showers';
+    if (code <= 86) return isBn ? 'তুষার ঝড়' : 'Snow showers';
+    if (code <= 99) return isBn ? 'বজ্রঝড়' : 'Thunderstorm';
+    return '';
   }
 
   @override
@@ -1123,7 +1232,7 @@ class _HomeTabState extends State<_HomeTab> {
               const SizedBox(height: 12),
             ],
 
-            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang)),
+            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon),
             const SizedBox(height: 12),
 
             Row(children: [
@@ -1247,6 +1356,9 @@ class _ClockCard extends StatefulWidget {
   final PrayerTimes? prayerTimes;
   final String hijriDate;
   final List<Map<String, dynamic>> liveAlerts;
+  final String locationName;
+  final String weatherText;
+  final String weatherIcon;
 
   const _ClockCard({
     required this.now,
@@ -1254,6 +1366,9 @@ class _ClockCard extends StatefulWidget {
     required this.prayerTimes,
     required this.hijriDate,
     required this.liveAlerts,
+    required this.locationName,
+    required this.weatherText,
+    required this.weatherIcon,
   });
 
   @override
@@ -1355,7 +1470,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         letterSpacing: 0.5,
                       ),
                     ),
-                    // আবহাওয়া (static placeholder — weather package নেই)
+                    // আবহাওয়া (real data)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
@@ -1365,14 +1480,20 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       ),
                       child: Row(
                         children: [
-                          const Text('🌤️', style: TextStyle(fontSize: 18)),
+                          Text(widget.weatherIcon, style: const TextStyle(fontSize: 18)),
                           const SizedBox(width: 6),
-                          Text(
-                            isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Weather...',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              widget.weatherText.isEmpty
+                                  ? (isBn ? 'লোড হচ্ছে...' : 'Loading...')
+                                  : widget.weatherText,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
                           ),
                         ],
@@ -1438,7 +1559,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              isBn ? 'রামু চৌমুহন, কক্সবাজার' : 'Ramu, Cox\'s Bazar',
+                              widget.locationName.isEmpty
+                                  ? (isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...')
+                                  : widget.locationName,
                               style: const TextStyle(
                                 color: Color(0xFF80DEEA),
                                 fontSize: 12,

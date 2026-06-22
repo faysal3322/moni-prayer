@@ -269,6 +269,15 @@ class _HomeTabState extends State<_HomeTab> {
       await HomeWidget.saveWidgetData('widget_iftar',
           (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
 
+      // rotating alert — সব alerts একটা string-এ pipe দিয়ে আলাদা করে save
+      final alertList = _getLiveAlerts(widget.lang);
+      final alertText = alertList.isEmpty
+          ? ''
+          : alertList.map((a) =>
+              '${a['icon']} ${(a['text'] as String).split('\n').first}'
+            ).join(' | ');
+      await HomeWidget.saveWidgetData('widget_alert', alertText);
+
       // marquee text — live alerts সংক্ষেপে
       final alerts = _getLiveAlerts(widget.lang);
       final marqueeText = alerts.isEmpty

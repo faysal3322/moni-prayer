@@ -244,6 +244,7 @@ class _HomeTabState extends State<_HomeTab> {
       await HomeWidget.saveWidgetData('widget_gregorian', DateHelper.formatGregorian(now, bangla: isBn));
       await HomeWidget.saveWidgetData('widget_hijri',
           _hijriDate.isEmpty ? DateHelper.toHijri(now, bangla: isBn) : _hijriDate);
+      await HomeWidget.saveWidgetData('widget_bangla_date', DateHelper.toBangla(now));
       await HomeWidget.saveWidgetData('widget_sunrise',
           (isBn ? '🌅 সূর্যোদয় ' : '🌅 Sunrise ') + PrayerTimeHelper.formatTime(pt.sunrise));
       await HomeWidget.saveWidgetData('widget_sunset',

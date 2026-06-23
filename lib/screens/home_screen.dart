@@ -269,13 +269,26 @@ class _HomeTabState extends State<_HomeTab> {
       await HomeWidget.saveWidgetData('widget_iftar',
           (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
 
-      // rotating alert — সব alerts একটা string-এ pipe দিয়ে আলাদা করে save
+      // আবহাওয়া save
+      await HomeWidget.saveWidgetData('widget_weather',
+          _weatherText.isEmpty ? '' : '$_weatherIcon $_weatherText');
+
+      // alert: নিষিদ্ধ সময়ে শুধু সেটাই দেখাও, নইলে rotating
       final alertList = _getLiveAlerts(widget.lang);
-      final alertText = alertList.isEmpty
-          ? ''
-          : alertList.map((a) =>
-              '${a['icon']} ${(a['text'] as String).split('\n').first}'
-            ).join(' | ');
+      final forbiddenAlerts = alertList.where((a) =>
+          (a['text'] as String).contains('নিষিদ্ধ') ||
+          (a['text'] as String).contains('Forbidden')).toList();
+      final String alertText;
+      if (forbiddenAlerts.isNotEmpty) {
+        // নিষিদ্ধ সময় — শুধু এই সতর্কবার্তাই দেখাও
+        alertText = '${forbiddenAlerts.first['icon']} ${(forbiddenAlerts.first['text'] as String).split('\n').first}';
+      } else {
+        alertText = alertList.isEmpty
+            ? ''
+            : alertList.map((a) =>
+                '${a['icon']} ${(a['text'] as String).split('\n').first}'
+              ).join(' | ');
+      }
       await HomeWidget.saveWidgetData('widget_alert', alertText);
 
       await HomeWidget.updateWidget(

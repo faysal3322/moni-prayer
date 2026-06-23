@@ -278,13 +278,6 @@ class _HomeTabState extends State<_HomeTab> {
             ).join(' | ');
       await HomeWidget.saveWidgetData('widget_alert', alertText);
 
-      // marquee text — live alerts সংক্ষেপে
-      final alerts = _getLiveAlerts(widget.lang);
-      final marqueeText = alerts.isEmpty
-          ? ''
-          : alerts.map((a) => '${a['icon']}  ${(a['text'] as String).replaceAll('\n', ' ')}').join('   ✦   ');
-      await HomeWidget.saveWidgetData('widget_marquee', marqueeText);
-
       await HomeWidget.updateWidget(
         name: 'PrayerWidgetProvider',
         androidName: 'com.example.moni_prayer.PrayerWidgetProvider',

@@ -123,7 +123,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 val parts = alertFull.split(" | ").filter { it.isNotEmpty() }
                 if (parts.isNotEmpty()) {
                     val idx = now.get(Calendar.MINUTE) % parts.size
-                    views.setTextViewText(R.id.widget_alert, parts[idx].trim())
+                    // seconds কাউন্টডাউন (HH:MM:SS) সরিয়ে শুধু HH:MM দেখাও
+                    val alertText = parts[idx].trim()
+                        .replace(Regex("(\\d{2}):(\\d{2}):\\d{2}"), "$1:$2")
+                    views.setTextViewText(R.id.widget_alert, alertText)
                 } else {
                     views.setTextViewText(R.id.widget_alert, "")
                 }

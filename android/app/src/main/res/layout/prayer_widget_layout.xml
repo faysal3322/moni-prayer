@@ -31,7 +31,7 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="#FFFFFF"
-            android:textSize="22sp"
+            android:textSize="25sp"
             android:textStyle="bold" />
 
         <TextView
@@ -41,7 +41,7 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="#80DEEA"
-            android:textSize="13sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:gravity="end"
             android:singleLine="true"
@@ -151,8 +151,8 @@
         android:layout_marginTop="5dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
         android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"

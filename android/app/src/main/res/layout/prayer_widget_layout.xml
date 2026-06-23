@@ -31,7 +31,7 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="#FFFFFF"
-            android:textSize="25sp"
+            android:textSize="30sp"
             android:textStyle="bold" />
 
         <TextView
@@ -41,7 +41,7 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="#80DEEA"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:gravity="end"
             android:singleLine="true"
@@ -69,7 +69,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -89,7 +89,7 @@
                 android:layout_marginTop="3dp"
                 android:text=""
                 android:textColor="#80DEEA"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -151,8 +151,8 @@
         android:layout_marginTop="5dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
-        android:paddingStart="2dp"
-        android:paddingEnd="2dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
         android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"

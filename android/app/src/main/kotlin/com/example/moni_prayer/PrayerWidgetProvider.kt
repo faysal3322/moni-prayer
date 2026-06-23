@@ -23,31 +23,24 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             try {
                 updateWidget(context, appWidgetManager, widgetId)
             } catch (e: Exception) {
-                val views = RemoteViews(context.packageName, R.layout.prayer_widget_layout)
-                views.setTextViewText(R.id.widget_time, "--:--")
-                appWidgetManager.updateAppWidget(widgetId, views)
+                try {
+                    val views = RemoteViews(context.packageName, R.layout.prayer_widget_layout)
+                    views.setTextViewText(R.id.widget_time, "--:--")
+                    appWidgetManager.updateAppWidget(widgetId, views)
+                } catch (e2: Exception) { }
             }
         }
-        try {
-            scheduleNextUpdate(context)
-        } catch (e: Exception) {
-        }
+        try { scheduleNextUpdate(context) } catch (e: Exception) { }
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        try {
-            scheduleNextUpdate(context)
-        } catch (e: Exception) {
-        }
+        try { scheduleNextUpdate(context) } catch (e: Exception) { }
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        try {
-            cancelUpdate(context)
-        } catch (e: Exception) {
-        }
+        try { cancelUpdate(context) } catch (e: Exception) { }
     }
 
     private fun scheduleNextUpdate(context: Context) {
@@ -67,8 +60,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        // setExactAndAllowWhileIdle() এর জন্য বিশেষ permission লাগে এবং crash করতে পারে
-        // তাই সাধারণ set() ব্যবহার করছি, কোনো permission লাগে না
         alarmManager.set(AlarmManager.RTC, nextMinute.timeInMillis, pendingIntent)
     }
 
@@ -103,14 +94,17 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_time, timeStr)
 
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        if (launchIntent != null) {
-            val pendingLaunch = PendingIntent.getActivity(
-                context, 0, launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
-        }
+        // click করলে app open
+        try {
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            if (launchIntent != null) {
+                val pendingLaunch = PendingIntent.getActivity(
+                    context, 1, launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
+            }
+        } catch (e: Exception) { }
 
         views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
@@ -121,12 +115,21 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
 
-        val alertFull = prefs.getString("widget_alert", "") ?: ""
-        if (alertFull.isNotEmpty()) {
-            val parts = alertFull.split(" | ")
-            val idx = now.get(Calendar.MINUTE) % parts.size
-            views.setTextViewText(R.id.widget_alert, parts[idx].trim())
-        } else {
+        // rotating alert - crash safe
+        try {
+            val alertFull = prefs.getString("widget_alert", "") ?: ""
+            if (alertFull.isNotEmpty()) {
+                val parts = alertFull.split(" | ").filter { it.isNotEmpty() }
+                if (parts.isNotEmpty()) {
+                    val idx = now.get(Calendar.MINUTE) % parts.size
+                    views.setTextViewText(R.id.widget_alert, parts[idx].trim())
+                } else {
+                    views.setTextViewText(R.id.widget_alert, "")
+                }
+            } else {
+                views.setTextViewText(R.id.widget_alert, "")
+            }
+        } catch (e: Exception) {
             views.setTextViewText(R.id.widget_alert, "")
         }
 
@@ -134,8 +137,8 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     }
 
     private fun toBanglaDigits(input: String): String {
-        val en = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-        val bn = charArrayOf('০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯')
+        val en = charArrayOf('0','1','2','3','4','5','6','7','8','9')
+        val bn = charArrayOf('০','১','২','৩','৪','৫','৬','৭','৮','৯')
         val sb = StringBuilder()
         for (c in input) {
             val idx = en.indexOf(c)

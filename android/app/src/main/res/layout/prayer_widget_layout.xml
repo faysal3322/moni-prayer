@@ -4,33 +4,59 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:padding="12dp">
+    android:padding="10dp">
 
+    <!-- সময় — center -->
     <TextView
         android:id="@+id/widget_time"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="--:--"
         android:textColor="#FFFFFF"
-        android:textSize="48sp"
-        android:textStyle="bold" />
+        android:textSize="54sp"
+        android:textStyle="bold"
+        android:gravity="center" />
 
-    <TextView
-        android:id="@+id/widget_day"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text=""
-        android:textColor="#B0BEC5"
-        android:textSize="20sp"
-        android:textStyle="bold" />
-
+    <!-- বার + আবহাওয়া পাশাপাশি -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_day"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#B0BEC5"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_weather"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#80DEEA"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="end"
+            android:singleLine="true"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+    <!-- তারিখ + নামাজ পাশাপাশি -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
+        <!-- বাম: তারিখ -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -43,7 +69,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="13sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -53,7 +79,7 @@
                 android:layout_marginTop="3dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="13sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -63,11 +89,12 @@
                 android:layout_marginTop="3dp"
                 android:text=""
                 android:textColor="#80DEEA"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
 
+        <!-- ডান: নামাজের সময় -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -80,52 +107,59 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_sunset"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_sehri"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_iftar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
     </LinearLayout>
 
+    <!-- নিচে alert -->
     <TextView
         android:id="@+id/widget_alert"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="5dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:ellipsize="end" />
 
 </LinearLayout>

@@ -269,10 +269,8 @@ class _HomeTabState extends State<_HomeTab> {
       await HomeWidget.saveWidgetData('widget_iftar',
           (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
 
-      // weather: icon + temperature সংক্ষেপে
-      final tempMatch = RegExp(r'(\d+)°').firstMatch(_weatherText);
-      final tempOnly = tempMatch != null ? '${tempMatch.group(0)}' : '';
-      final shortWeather = _weatherText.isEmpty ? '' : '$_weatherIcon $tempOnly $_weatherText'.trim();
+      // weather: icon + temp + short description
+      final shortWeather = _weatherText.isEmpty ? '' : '$_weatherIcon $_weatherText';
       await HomeWidget.saveWidgetData('widget_weather', shortWeather);
 
       // alert: নিষিদ্ধ সময়ে শুধু সেটাই দেখাও, নইলে rotating

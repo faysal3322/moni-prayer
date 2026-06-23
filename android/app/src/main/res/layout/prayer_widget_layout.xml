@@ -41,11 +41,11 @@
             android:layout_weight="1"
             android:text=""
             android:textColor="#80DEEA"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:gravity="end"
             android:singleLine="true"
-            android:ellipsize="end" />
+            android:ellipsize="start" />
 
     </LinearLayout>
 

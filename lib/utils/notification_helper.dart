@@ -74,6 +74,19 @@ class NotificationHelper {
       scheduledTime: sehriWarning,
     );
 
+    // তাহাজ্জুদ notification — রাতের শেষ তৃতীয়াংশ
+    // এশা থেকে ফজর পর্যন্ত মোট সময়ের ২/৩ পার হলে তাহাজ্জুদের উত্তম সময়
+    final ishaTime = times.isha;
+    final fajrTime = times.fajr.add(const Duration(days: 1)); // পরের দিনের ফজর
+    final totalNight = fajrTime.difference(ishaTime).inMinutes;
+    final tahajjudStart = ishaTime.add(Duration(minutes: (totalNight * 2 / 3).round()));
+    await _scheduleNotification(
+      id: id++,
+      title: '🌙 তাহাজ্জুদের সময় শুরু হয়েছে',
+      body: 'এখন রাতের শেষ তৃতীয়াংশ। তাহাজ্জুদ নামাজ পড়ুন — দোয়া কবুলের সর্বোত্তম সময়।',
+      scheduledTime: tahajjudStart,
+    );
+
     // Ayyam al-Beed reminder (13, 14, 15 of each Hijri month)
     // This is handled separately
   }

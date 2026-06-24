@@ -273,19 +273,31 @@ class _HomeTabState extends State<_HomeTab> {
       final shortWeather = _weatherText.isEmpty ? '' : '$_weatherIcon $_weatherText';
       await HomeWidget.saveWidgetData('widget_weather', shortWeather);
 
-      // alert: নিষিদ্ধ সময়ে শুধু সেটাই দেখাও, নইলে rotating
+      // alert logic:
+      // শুধু সূর্যোদয় ও দ্বিপ্রহরের নিষিদ্ধ সময়ে শুধু সেই সতর্কবার্তা
+      // বাকি সব সময় rotating alerts
       final alertList = _getLiveAlerts(widget.lang);
-      final forbiddenAlerts = alertList.where((a) =>
-          (a['text'] as String).contains('নিষিদ্ধ') ||
-          (a['text'] as String).contains('Forbidden')).toList();
+      final isBn = widget.lang.isBn;
+      final strictForbidden = alertList.where((a) {
+        final txt = (a['text'] as String);
+        return txt.contains('সূর্যোদয়কালীন') ||
+               txt.contains('দ্বিপ্রহর') ||
+               txt.contains('Sunrise') ||
+               txt.contains('Noon');
+      }).toList();
+
       final String alertText;
-      if (forbiddenAlerts.isNotEmpty) {
-        // নিষিদ্ধ সময় — শুধু এই সতর্কবার্তাই দেখাও
-        alertText = '${forbiddenAlerts.first['icon']} ${(forbiddenAlerts.first['text'] as String).split('\n').first}';
+      if (strictForbidden.isNotEmpty) {
+        final txt = (strictForbidden.first['text'] as String).split('\n').first;
+        alertText = '${strictForbidden.first['icon']} $txt';
       } else {
-        alertText = alertList.isEmpty
+        // নিষিদ্ধ সতর্কবার্তা বাদ দিয়ে বাকি alerts rotate করো
+        final normalAlerts = alertList.where((a) =>
+            !(a['text'] as String).contains('নিষিদ্ধ') &&
+            !(a['text'] as String).contains('Forbidden')).toList();
+        alertText = normalAlerts.isEmpty
             ? ''
-            : alertList.map((a) =>
+            : normalAlerts.map((a) =>
                 '${a['icon']} ${(a['text'] as String).split('\n').first}'
               ).join(' | ');
       }

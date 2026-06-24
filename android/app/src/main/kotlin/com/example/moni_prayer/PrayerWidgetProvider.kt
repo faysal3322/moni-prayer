@@ -60,7 +60,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        alarmManager.set(AlarmManager.RTC, nextMinute.timeInMillis, pendingIntent)
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMinute.timeInMillis, pendingIntent)
     }
 
     private fun cancelUpdate(context: Context) {

@@ -50,7 +50,7 @@
             android:layout_weight="4"
             android:text=""
             android:textColor="#80DEEA"
-            android:textSize="15sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:gravity="end"
             android:singleLine="true"

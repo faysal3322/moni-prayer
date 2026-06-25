@@ -1098,23 +1098,6 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '📅', 'text': isBn
           ? 'মুহররম মাসের বিশেষ আমল:\n◆ রমজানের পর সবচেয়ে উত্তম রোজা মুহররমের (মুসলিম: ১১৬৩)\n◆ ১০ মুহররম (আশুরার রোজা) রাখুন — আগের ১ বছরের গুনাহ মাফ\n◆ পুরো মাস নফল রোজার চেষ্টা করুন\n◆ সম্মানিত মাসে পাপ থেকে বিরত থাকুন'
           : 'Muharram special deeds:\n◆ Best nafl fast after Ramadan is Muharram (Muslim: 1163)\n◆ 10 Muharram (Ashura fast) — 1 year of sins forgiven\n◆ Try to fast throughout the month\n◆ Avoid sins in this sacred month', 'color': AppTheme.gold});
-
-      // ── মুহররম মাসের বিস্তারিত ফযীলত ও করণীয় ──
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'মুহাররম মাস (সহীহ হাদীসের আলোকে):\n◆ বছরের ৪টি সম্মানিত মাসের একটি — মুহাররম, রজব, যিলকদ, যুলহজ্জ। এ মাসগুলোয় অন্যায়-যুদ্ধ নিষিদ্ধ (সূরা তাওবা: ৩৬)\n◆ এটি "আল্লাহর মাস" ও রমজানের পর সর্বোত্তম নফল সিয়ামের মাস (মুসলিম)\n◆ ১০ মুহাররম (আশুরা)-র সিয়াম গত এক বছরের গুনাহ মার্জনা করে'
-          : 'Month of Muharram (per authentic Hadith):\n◆ One of the 4 sacred months — Muharram, Rajab, Dhul-Qa\'dah, Dhul-Hijjah. Fighting is forbidden in these (Surah At-Tawbah: 36)\n◆ Called "Allah\'s month" — best nafl fasting month after Ramadan (Muslim)\n◆ Fasting on 10 Muharram (Ashura) erases the sins of the past year', 'color': AppTheme.gold});
-
-      alerts.add({'icon': '✅', 'text': isBn
-          ? 'মুহাররমে করণীয়:\n◆ আশুরার রোযা রাখুন — ৯ বা ১১ তারিখ মিলিয়ে রাখা উত্তম। নবী ﷺ বলেন, "ইয়াহুদীদের থেকে ভিন্নতা অবলম্বন করে আগে বা পরে একদিন রোযা রাখো" (মুসনাদে আহমাদ: ২৪১)\n◆ বেশি বেশি তাওবা-ইস্তিগফার করুন — এ মাসে আল্লাহ অতীতে এক সম্প্রদায়কে ক্ষমা করেছেন (তিরমিযী: ৭৪১)\n◆ হযরত হুসাইন (রাযি.)-এর ত্যাগ-তিতিক্ষা থেকে দীনের জন্য কুরবানীর শিক্ষা নিন'
-          : 'What to do in Muharram:\n◆ Fast on Ashura — best paired with the 9th or 11th. The Prophet ﷺ said: "Differ from the Jews, fast a day before or after it too" (Musnad Ahmad: 241)\n◆ Increase Tawbah & Istighfar — Allah forgave a nation in this month before (Tirmidhi: 741)\n◆ Reflect on Hussain\'s (RA) sacrifice for the sake of faith', 'color': AppTheme.gold});
-    }
-
-    // ══ আশুরার রোযার প্রস্তুতি — ৮, ৯ ও ১০ মুহাররম সন্ধ্যা থেকে সেহরি পর্যন্ত ══
-    // (পরদিনের রোযার জন্য রাতেই নিয়ত/প্রস্তুতির কথা মনে করিয়ে দেয়)
-    if (hijriMonth == 1 && (h == 8 || h == 9 || h == 10) && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'কাল আশুরা! আজ সন্ধ্যা থেকেই রোযার নিয়ত করে প্রস্তুতি নিন — এই দিনের রোযায় এক বছরের গুনাহ মাফ হয়। ৯ বা ১১ তারিখ মিলিয়ে রাখা উত্তম।'
-          : 'Tomorrow is a fasting day! Make your intention tonight and prepare for Sehri — fasting around Ashura erases a year of sins.', 'color': AppTheme.gold});
     }
 
     // ══ রজব মাসের বিশেষ আমল ══

@@ -15,7 +15,8 @@
         android:textColor="#FFFFFF"
         android:textSize="60sp"
         android:textStyle="bold"
-        android:lineSpacingMultiplier="0.85"
+        android:lineSpacingMultiplier="0.8"
+        android:includeFontPadding="false"
         android:gravity="center" />
 
     <!-- বার + আবহাওয়া পাশাপাশি -->
@@ -34,6 +35,7 @@
             android:textColor="#FFFFFF"
             android:textSize="25sp"
             android:textStyle="bold"
+            android:includeFontPadding="false"
             android:singleLine="true"
             android:ellipsize="end" />
 

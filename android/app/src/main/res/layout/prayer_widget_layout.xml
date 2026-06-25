@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:padding="10dp">
+    android:padding="8dp">
 
     <!-- সময় — center -->
     <TextView
@@ -15,6 +15,7 @@
         android:textColor="#FFFFFF"
         android:textSize="60sp"
         android:textStyle="bold"
+        android:lineSpacingMultiplier="0.85"
         android:gravity="center" />
 
     <!-- বার + আবহাওয়া পাশাপাশি -->

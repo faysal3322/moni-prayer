@@ -15,7 +15,7 @@
         android:textColor="#FFFFFF"
         android:textSize="60sp"
         android:textStyle="bold"
-        android:lineSpacingMultiplier="0.8"
+        android:lineSpacingMultiplier="0.5"
         android:includeFontPadding="false"
         android:gravity="center" />
 

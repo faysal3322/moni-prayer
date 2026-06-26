@@ -1078,15 +1078,32 @@ class _HomeTabState extends State<_HomeTab> {
         ? 'বিশেষ নফল নামাজ:\n◆ সালাতুত তওবা — গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান (ইবনে মাজাহ: ১৩৯৫)\n◆ সিজদাতুস শুকুর — সুসংবাদ পেলে শুকরানার সিজদা দিন\n◆ সালাতুল হাজত — যেকোনো প্রয়োজনে ২ রাকাত পড়ুন\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
         : 'Special Nafl prayers:\n◆ Salat al-Tawbah — 2 rakats after sin, seek forgiveness (Ibn Majah: 1395)\n◆ Sajda al-Shukr — prostrate in gratitude for good news\n◆ Salat al-Hajat — 2 rakats for any need\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
 
-    // ══ দান-সদকার reminder ══
+    // ══ দান-সদকার reminder — সকাল ৬টা থেকে দুপুর ১২টা ══
+    if (now.hour >= 6 && now.hour < 12) {
+      alerts.add({'icon': '💝', 'text': isBn
+          ? 'আজকের দানের অনুপ্রেরণা:\n◆ আল্লাহ বলেন: যে আল্লাহর পথে ব্যয় করে — প্রতিটি বীজ থেকে ৭০০ গুণ সওয়াব (বাকারা: ২৬১)\n◆ রাসূল ﷺ: সদকা করলে সম্পদ কমে না — বরং আল্লাহ বরকত দেন (সহীহ মুসলিম)\n◆ প্রতিদিন ফেরেশতা দোয়া করেন: "হে আল্লাহ! দানকারীকে আরও দান করুন" (বুখারী ও মুসলিম)\n◆ অর্ধেক খেজুর দান করেও জাহান্নাম থেকে বাঁচার চেষ্টা করুন (বুখারী)'
+          : 'Today\'s Sadaqah Inspiration:\n◆ Allah says: Spend in His path — each seed grows 700 fold (Baqarah: 261)\n◆ Prophet ﷺ: Sadaqah does not decrease wealth — Allah adds barakah (Sahih Muslim)\n◆ Angels make dua daily: "O Allah! Give more to the one who gives" (Bukhari & Muslim)\n◆ Save yourself from Hellfire even with half a date (Bukhari)', 'color': const Color(0xFFFF8F00)});
+    }
+
+    // ══ দান-সদকার ফজিলত (সারাদিন) ══
     alerts.add({'icon': '💰', 'text': isBn
-        ? 'দান সদকার ফজিলত:\n◆ প্রতিদিন ছোট হলেও কিছু সদকা করুন\n◆ সদকা গুনাহ মুছে দেয় — যেমন পানি আগুন নেভায় (আহমাদ: ২২০১৬)\n◆ মাসিক আয়ের অংশ এতিম, মসজিদ বা গরিবদের দিন — জিহাদের সওয়াব (বুখারি: ৬০০৭)\n◆ রোগীকে দেখতে যান — ৭০ হাজার ফেরেশতা সন্ধ্যা পর্যন্ত দোয়া করবে (আহমাদ: ৯৫৫)'
+        ? 'দান-সদকার ফজিলত:\n◆ প্রতিদিন ছোট হলেও কিছু সদকা করুন\n◆ সদকা গুনাহ মুছে দেয় — যেমন পানি আগুন নেভায় (আহমাদ: ২২০১৬)\n◆ মাসিক আয়ের অংশ এতিম, মসজিদ বা গরিবদের দিন — জিহাদের সওয়াব (বুখারি: ৬০০৭)\n◆ রোগীকে দেখতে যান — ৭০ হাজার ফেরেশতা সন্ধ্যা পর্যন্ত দোয়া করবে (আহমাদ: ৯৫৫)'
         : 'Sadaqah reward:\n◆ Give Sadaqah daily, even small\n◆ Sadaqah erases sins like water extinguishes fire (Ahmad: 22016)\n◆ Monthly donation to orphans/mosque — equals Jihad reward (Bukhari: 6007)\n◆ Visit the sick — 70,000 angels make dua till evening (Ahmad: 955)', 'color': const Color(0xFFFF8F00)});
+
+    // ══ দান: কাদেরকে দেবেন ══
+    alerts.add({'icon': '🤲', 'text': isBn
+        ? 'কাদেরকে দান করবেন (অগ্রাধিকার):\n◆ দরিদ্র আত্মীয় — দুটি সওয়াব: সদকা + আত্মীয়তা (তিরমিজি, ইবনে মাজাহ)\n◆ এতিম শিশু, বিধবা ও অসহায় নারী\n◆ গরিব, ঋণগ্রস্ত ও মুসাফির\n◆ মসজিদ, মাদরাসা ও ইসলামি শিক্ষা প্রতিষ্ঠান\n◆ দ্বীনের দাওয়াহ ও জনকল্যাণমূলক প্রকল্প'
+        : 'Who to give Sadaqah to (priority):\n◆ Poor relatives — double reward: sadaqah + kinship (Tirmidhi, Ibn Majah)\n◆ Orphans, widows & helpless women\n◆ Poor, indebted & travelers\n◆ Mosques, madrasas & Islamic institutions\n◆ Dawah work & public welfare projects', 'color': const Color(0xFFFF8F00)});
+
+    // ══ দানের আদব ══
+    alerts.add({'icon': '🌸', 'text': isBn
+        ? 'দান করার আদব:\n◆ শুধু আল্লাহর সন্তুষ্টির জন্য দান করুন — লোক দেখানো নয়\n◆ সম্ভব হলে গোপনে দান করুন — ডান হাত দিলে বাম হাত যেন না জানে\n◆ হালাল উপার্জন থেকে দান করুন\n◆ দান করে খোঁটা বা কষ্ট দেবেন না\n◆ অল্প হলেও নিয়মিত দান করুন — আল্লাহ নিয়মিত আমল পছন্দ করেন (বুখারী)'
+        : 'Etiquette of giving Sadaqah:\n◆ Give only for Allah\'s pleasure — not to show off\n◆ Give secretly when possible — right hand gives, left hand doesn\'t know\n◆ Give from halal earnings only\n◆ Never remind or hurt after giving\n◆ Give regularly even if small — Allah loves consistent deeds (Bukhari)', 'color': const Color(0xFFFF8F00)});
 
     // ══ সাদাকায়ে জারিয়াহ ══
     alerts.add({'icon': '🌱', 'text': isBn
-        ? 'সাদাকায়ে জারিয়াহ:\n◆ মৃত্যুর পরও তিনটি আমল বন্ধ হয় না:\n  ১. সাদাকায়ে জারিয়াহ\n  ২. উপকারী ইলম\n  ৩. সুসন্তান যে দোয়া করে\n◆ (তিরমিজি: ১৩৭৬)\n◆ এখনই অসিয়ত লিখুন — মুসলিমের উচিত অসিয়ত লিখে রাখা (বুখারি: ২৫৮৭)'
-        : 'Sadaqah Jariyah:\n◆ 3 deeds continue after death:\n  1. Ongoing charity\n  2. Beneficial knowledge\n  3. Righteous child making dua\n◆ (Tirmidhi: 1376)\n◆ Write your wasiyyah now (Bukhari: 2587)', 'color': const Color(0xFF26A69A)});
+        ? 'সাদাকায়ে জারিয়াহ:\n◆ মৃত্যুর পরও তিনটি আমল বন্ধ হয় না:\n  ১. সাদাকায়ে জারিয়াহ\n  ২. উপকারী ইলম\n  ৩. সুসন্তান যে দোয়া করে\n◆ (তিরমিজি: ১৩৭৬)\n◆ সদকায়ে জারিয়ার উদাহরণ: মসজিদ, কুরআন দান, পানির কূপ, গাছ রোপণ, ইসলামি অ্যাপ\n◆ এখনই অসিয়ত লিখুন (বুখারি: ২৫৮৭)'
+        : 'Sadaqah Jariyah:\n◆ 3 deeds continue after death:\n  1. Ongoing charity\n  2. Beneficial knowledge\n  3. Righteous child making dua\n◆ (Tirmidhi: 1376)\n◆ Examples: mosque, Quran, water well, tree planting, Islamic app\n◆ Write your wasiyyah now (Bukhari: 2587)', 'color': const Color(0xFF26A69A)});
 
     // ══ আত্মীয়তা ও মানুষের সাথে ব্যবহার ══
     alerts.add({'icon': '🤝', 'text': isBn

@@ -701,15 +701,39 @@ class _HomeTabState extends State<_HomeTab> {
 
     // ══ জুমার দিন ══
     if (now.weekday == DateTime.friday) {
-      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
-        alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.', 'color': AppTheme.accent});
-      } else if (now.isBefore(pt.maghrib)) {
-        final cd = _countdown(pt.maghrib);
-        alerts.add({'icon': '🕌', 'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)', 'color': AppTheme.accent});
+      final jummaCutoff = pt.dhuhr.add(const Duration(hours: 1, minutes: 30));
+
+      // সকাল ৮টা থেকে দুপুর ১:৩০ — জুমার প্রস্তুতি
+      if (now.hour >= 8 && now.isBefore(jummaCutoff)) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'জুমার নামাজ আদায়ের প্রস্তুতি নিন:\n◆ গোসল করুন (বুখারি: ৮৭৭)\n◆ সুগন্ধি ও পরিষ্কার পোশাক পরুন\n◆ হেঁটে আগে আগে মসজিদে যান\n◆ খুতবার আগে পৌঁছান ও নফল নামাজ পড়ুন\n◆ সামনের কাতারে বসুন'
+            : 'Prepare for Jumu\'ah:\n◆ Take a bath (Bukhari: 877)\n◆ Apply perfume & wear clean clothes\n◆ Walk early to the mosque\n◆ Arrive before khutbah & pray nafl\n◆ Sit in front rows', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '🚶', 'text': isBn
+            ? 'জুমায় আগে গেলে সওয়াব (বুখারি: ৮৮১):\n◆ ১ম ঘণ্টায় — উট কুরবানির সওয়াব\n◆ ২য় ঘণ্টায় — গরু কুরবানির সওয়াব\n◆ ৩য় ঘণ্টায় — ছাগল কুরবানির সওয়াব\n◆ ৪র্থ ঘণ্টায় — মুরগি সদকার সওয়াব\n◆ ৫ম ঘণ্টায় — ডিম সদকার সওয়াব'
+            : 'Reward for going early (Bukhari: 881):\n◆ 1st hour — sacrificing a camel\n◆ 2nd hour — sacrificing a cow\n◆ 3rd hour — sacrificing a goat\n◆ 4th hour — giving a chicken\n◆ 5th hour — giving an egg', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '📿', 'text': isBn
+            ? 'জুমার নামাজে করণীয়:\n◆ ইমামের খুতবা মনোযোগ দিয়ে শুনুন\n◆ খুতবার সময় কথা বলবেন না — সওয়াব নষ্ট হয়\n◆ জুমার পরে ৪ রাকাত সুন্নত পড়ুন\n◆ বেশি বেশি দরুদ পড়ুন (আবু দাউদ: ১০৪৭)'
+            : 'During Jumu\'ah:\n◆ Listen to khutbah attentively\n◆ Don\'t talk during khutbah — reward is lost\n◆ Pray 4 sunnah after Jumu\'ah\n◆ Send lots of Salawat (Abu Dawud: 1047)', 'color': AppTheme.accent});
       }
-      // জুমার দিন সূরা কাহাফ reminder
-      if (now.hour < 20) {
-        alerts.add({'icon': '📖', 'text': isBn ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।' : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
+
+      // দুপুর ১:৩০ থেকে মাগরিব
+      if (!now.isBefore(jummaCutoff) && now.isBefore(pt.maghrib)) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'জুমার দিন — দরূদ ও দোয়া করুন:\n◆ আসর থেকে মাগরিব — দোয়া কবুলের বিশেষ সময়!\n◆ বেশি বেশি দরুদ ও ইস্তিগফার করুন\n◆ সূরা কাহাফ তেলাওয়াত করুন — কিয়ামতে নূরের আলো হবে'
+            : 'Friday — Salawat & dua:\n◆ Asr to Maghrib — special time for accepted dua!\n◆ Send lots of Salawat & Istighfar\n◆ Recite Surah Kahaf — light on Judgment Day', 'color': AppTheme.accent});
+      }
+
+      // সারাদিন ফজর থেকে মাগরিব
+      if (now.isBefore(pt.maghrib)) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'জুমার দিনের ফজিলত:\n◆ সপ্তাহের শ্রেষ্ঠ দিন (মুসলিম: ৮৫৪)\n◆ জুমার নামাজ দুই জুমার মাঝের গুনাহ মাফ করে (মুসলিম: ২৩৩)\n◆ এই দিনে একটি বিশেষ মুহূর্তে সব দোয়া কবুল হয়\n◆ বেশি বেশি দরুদ পড়ুন'
+            : 'Friday Virtues:\n◆ Best day of the week (Muslim: 854)\n◆ Expiates sins between two Fridays (Muslim: 233)\n◆ Special moment when all duas are accepted\n◆ Send lots of Salawat', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '📖', 'text': isBn
+            ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।'
+            : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
       }
     }
 
@@ -869,14 +893,36 @@ class _HomeTabState extends State<_HomeTab> {
 
     // ══ জুমার দিন ══
     if (now.weekday == DateTime.friday) {
-      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
-        alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.', 'color': AppTheme.accent});
-      } else if (now.isBefore(pt.maghrib)) {
-        final cd = _countdown(pt.maghrib);
-        alerts.add({'icon': '🕌', 'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)', 'color': AppTheme.accent});
+      final jummaCutoff2 = pt.dhuhr.add(const Duration(hours: 1, minutes: 30));
+
+      if (now.hour >= 8 && now.isBefore(jummaCutoff2)) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'জুমার নামাজ আদায়ের প্রস্তুতি নিন:\n◆ গোসল করুন (বুখারি: ৮৭৭)\n◆ সুগন্ধি ও পরিষ্কার পোশাক পরুন\n◆ হেঁটে আগে আগে মসজিদে যান\n◆ খুতবার আগে পৌঁছান ও নফল পড়ুন\n◆ সামনের কাতারে বসুন'
+            : 'Prepare for Jumu\'ah:\n◆ Take a bath (Bukhari: 877)\n◆ Apply perfume & wear clean clothes\n◆ Walk early to the mosque\n◆ Arrive before khutbah & pray nafl\n◆ Sit in front rows', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '🚶', 'text': isBn
+            ? 'জুমায় আগে গেলে সওয়াব (বুখারি: ৮৮১):\n◆ ১ম ঘণ্টায় — উট কুরবানির সওয়াব\n◆ ২য় ঘণ্টায় — গরু কুরবানির সওয়াব\n◆ ৩য় ঘণ্টায় — ছাগল কুরবানির সওয়াব\n◆ ৪র্থ ঘণ্টায় — মুরগি সদকার সওয়াব\n◆ ৫ম ঘণ্টায় — ডিম সদকার সওয়াব'
+            : 'Reward for going early (Bukhari: 881):\n◆ 1st hour — sacrificing a camel\n◆ 2nd hour — sacrificing a cow\n◆ 3rd hour — sacrificing a goat\n◆ 4th hour — giving a chicken\n◆ 5th hour — giving an egg', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '📿', 'text': isBn
+            ? 'জুমার নামাজে করণীয়:\n◆ ইমামের খুতবা মনোযোগ দিয়ে শুনুন\n◆ খুতবার সময় কথা বলবেন না — সওয়াব নষ্ট হয়\n◆ জুমার পরে ৪ রাকাত সুন্নত পড়ুন\n◆ বেশি বেশি দরুদ পড়ুন (আবু দাউদ: ১০৪৭)'
+            : 'During Jumu\'ah:\n◆ Listen to khutbah attentively\n◆ Don\'t talk during khutbah — reward is lost\n◆ Pray 4 sunnah after Jumu\'ah\n◆ Send lots of Salawat (Abu Dawud: 1047)', 'color': AppTheme.accent});
       }
-      if (now.hour < 20) {
-        alerts.add({'icon': '📖', 'text': isBn ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।' : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
+
+      if (!now.isBefore(jummaCutoff2) && now.isBefore(pt.maghrib)) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'জুমার দিন — দরূদ ও দোয়া করুন:\n◆ আসর থেকে মাগরিব — দোয়া কবুলের বিশেষ সময়!\n◆ বেশি বেশি দরুদ ও ইস্তিগফার করুন\n◆ সূরা কাহাফ তেলাওয়াত করুন'
+            : 'Friday — Salawat & dua:\n◆ Asr to Maghrib — special dua time!\n◆ Send lots of Salawat & Istighfar\n◆ Recite Surah Kahaf', 'color': AppTheme.accent});
+      }
+
+      if (now.isBefore(pt.maghrib)) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'জুমার দিনের ফজিলত:\n◆ সপ্তাহের শ্রেষ্ঠ দিন (মুসলিম: ৮৫৪)\n◆ জুমার নামাজ দুই জুমার মাঝের গুনাহ মাফ করে (মুসলিম: ২৩৩)\n◆ এই দিনে একটি বিশেষ মুহূর্তে সব দোয়া কবুল হয়'
+            : 'Friday Virtues:\n◆ Best day of the week (Muslim: 854)\n◆ Expiates sins between two Fridays (Muslim: 233)\n◆ Special moment when all duas are accepted', 'color': AppTheme.accent});
+
+        alerts.add({'icon': '📖', 'text': isBn
+            ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।'
+            : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
       }
     }
 
@@ -1073,10 +1119,24 @@ class _HomeTabState extends State<_HomeTab> {
         ? 'বাজারে প্রবেশের দোয়া পড়ুন:\n◆ "লা ইলাহা ইল্লাল্লাহু ওয়াহদাহু লা শারিকালাহু, লাহুল মুলকু ওয়ালা হুল হামদু, ইয়ুহয়ি ওয়া ইয়ুমিতু, ওয়া হুয়া হাইয়ুন লা ইয়ামুতু, বিয়াদিহিল খাইর, ওয়া হুয়া আলা কুল্লি শাইয়িন কাদির।" পড়ুন\n◆ ১০ লক্ষ পুণ্য + ১০ লক্ষ পাপ মোচন + জান্নাতে ঘর নির্মাণ\n◆ (তিরমিজি: ৩৪২৮)\n◆ ব্যবসায় সততা রাখুন — মিথ্যা কসম করবেন না'
         : 'Market entry dua:\n◆ "La ilaha illallahu wahdahu la sharika lahu..."\n◆ 1 million good deeds + 1 million sins erased + house in Jannah\n◆ (Tirmidhi: 3428)\n◆ Be honest in trade — never false oath', 'color': const Color(0xFFFDD835)});
 
-    // ══ বিশেষ নফল নামাজের reminder ══
-    alerts.add({'icon': '🙏', 'text': isBn
-        ? 'বিশেষ নফল নামাজ:\n◆ সালাতুত তওবা — গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান (ইবনে মাজাহ: ১৩৯৫)\n◆ সিজদাতুস শুকুর — সুসংবাদ পেলে শুকরানার সিজদা দিন\n◆ সালাতুল হাজত — যেকোনো প্রয়োজনে ২ রাকাত পড়ুন\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
-        : 'Special Nafl prayers:\n◆ Salat al-Tawbah — 2 rakats after sin, seek forgiveness (Ibn Majah: 1395)\n◆ Sajda al-Shukr — prostrate in gratitude for good news\n◆ Salat al-Hajat — 2 rakats for any need\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
+    // ══ বিশেষ নফল নামাজের reminder — সকাল ৯টা থেকে দুপুর ১২:৩০ ══
+    if (now.hour >= 9 && (now.hour < 12 || (now.hour == 12 && now.minute <= 30))) {
+      alerts.add({'icon': '🙏', 'text': isBn
+          ? 'সালাতুত তাসবীহ — জীবনে একবার হলেও পড়ুন:\n◆ ৪ রাকাত নামাজে ৩০০ বার তাসবীহ: "সুবহানাল্লাহ ওয়াল হামদুলিল্লাহ ওয়ালা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার"\n◆ ফজিলত: আগের ও পরের, পুরনো ও নতুন, গোপন ও প্রকাশ্য সব গুনাহ মাফ হয়\n◆ (আবু দাউদ: ১২৯৭, ইবনে মাজাহ: ১৩৮৭)\n◆ প্রতিদিন, সপ্তাহে, মাসে বা বছরে একবার পড়া উত্তম'
+          : 'Salat al-Tasbih — Pray at least once in life:\n◆ 4 rakats with 300 tasbeeh: "SubhanAllah walhamdulillah wala ilaha illallahu wallahu akbar"\n◆ Virtue: All past & future, old & new, secret & open sins forgiven\n◆ (Abu Dawud: 1297, Ibn Majah: 1387)\n◆ Best to pray daily, weekly, monthly or yearly', 'color': const Color(0xFF7C4DFF)});
+
+      alerts.add({'icon': '🤲', 'text': isBn
+          ? 'সালাতুল ইস্তিখারা — সিদ্ধান্ত নিতে পড়ুন:\n◆ যেকোনো গুরুত্বপূর্ণ সিদ্ধান্তে ২ রাকাত পড়ে দোয়া করুন\n◆ আল্লাহ যা ভালো মনে করেন তাই করার তাওফিক দেন\n◆ নামাজের পর নির্দিষ্ট দোয়া পড়ুন (বুখারি: ১১৬৬)\n◆ স্বপ্ন বা মনের প্রশান্তির দিকে লক্ষ্য রাখুন'
+          : 'Salat al-Istikhara — Pray for guidance:\n◆ Pray 2 rakats before any important decision\n◆ Allah guides you to what is best for you\n◆ Recite the specific dua after prayer (Bukhari: 1166)\n◆ Notice signs in dreams or heart\'s peace', 'color': const Color(0xFF7C4DFF)});
+
+      alerts.add({'icon': '💫', 'text': isBn
+          ? 'সালাতুল হাজত — প্রয়োজনে পড়ুন:\n◆ যেকোনো প্রয়োজন বা বিপদে ২ রাকাত পড়ে দোয়া করুন\n◆ আল্লাহ প্রয়োজন পূরণ করেন — চাই দুনিয়ার হোক বা আখিরাতের\n◆ (তিরমিজি: ৪৭৯, ইবনে মাজাহ: ১৩৮৫)\n◆ নামাজের পর পূর্ণ আস্থার সাথে দোয়া করুন'
+          : 'Salat al-Hajat — Pray for any need:\n◆ Pray 2 rakats for any need or difficulty\n◆ Allah fulfills needs — worldly or for the hereafter\n◆ (Tirmidhi: 479, Ibn Majah: 1385)\n◆ Make dua with full trust after prayer', 'color': const Color(0xFF7C4DFF)});
+
+      alerts.add({'icon': '💧', 'text': isBn
+          ? 'সালাতুত তাওবা ও তাহিয়্যাতুল ওযু:\n◆ সালাতুত তাওবা: গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান — আল্লাহ মাফ করে দেন (ইবনে মাজাহ: ১৩৯৫)\n◆ তাহিয়্যাতুল ওযু: ওযুর পর ২ রাকাত — জান্নাতে পথ খোলে (মুসলিম: ৪৪১)\n◆ তাহিয়্যাতুল মসজিদ: মসজিদে ঢুকে বসার আগে ২ রাকাত পড়ুন (বুখারি: ১১৬৭)\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
+          : 'Salat al-Tawbah & Tahiyyat:\n◆ Salat al-Tawbah: 2 rakats after sin, seek forgiveness — Allah forgives (Ibn Majah: 1395)\n◆ Tahiyyat al-Wudhu: 2 rakats after wudu — opens path to Jannah (Muslim: 441)\n◆ Tahiyyat al-Masjid: Pray 2 rakats before sitting in mosque (Bukhari: 1167)\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
+    }
 
     // ══ দান-সদকার reminder — সকাল ৬টা থেকে দুপুর ১২টা ══
     if (now.hour >= 6 && now.hour < 12) {

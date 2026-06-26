@@ -1095,9 +1095,38 @@ class _HomeTabState extends State<_HomeTab> {
 
     // ══ মুহররম মাসের বিশেষ আমল ══
     if (hijriMonth == 1) {
-      alerts.add({'icon': '📅', 'text': isBn
-          ? 'মুহররম মাসের বিশেষ আমল:\n◆ রমজানের পর সবচেয়ে উত্তম রোজা মুহররমের (মুসলিম: ১১৬৩)\n◆ ১০ মুহররম (আশুরার রোজা) রাখুন — আগের ১ বছরের গুনাহ মাফ\n◆ পুরো মাস নফল রোজার চেষ্টা করুন\n◆ সম্মানিত মাসে পাপ থেকে বিরত থাকুন'
-          : 'Muharram special deeds:\n◆ Best nafl fast after Ramadan is Muharram (Muslim: 1163)\n◆ 10 Muharram (Ashura fast) — 1 year of sins forgiven\n◆ Try to fast throughout the month\n◆ Avoid sins in this sacred month', 'color': AppTheme.gold});
+      // সারা মাস দেখাবে — মুহররমের ফজিলত
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'মুহররম — আল্লাহর মাস:\n◆ এটি ইসলামের ৪টি সম্মানিত (হারাম) মাসের একটি\n◆ রাসূল ﷺ এ মাসকে "আল্লাহর মাস" বলেছেন\n◆ রমজানের পর সর্বোত্তম নফল রোজা মুহররমের (সহীহ মুসলিম)\n◆ এ মাসে গুনাহ ও অন্যায় থেকে বিশেষভাবে বিরত থাকুন\n◆ বেশি বেশি তাওবা, ইস্তিগফার ও নফল ইবাদত করুন'
+          : 'Muharram — Month of Allah:\n◆ One of the 4 sacred (Haram) months in Islam\n◆ Prophet ﷺ called it "Month of Allah"\n◆ Best nafl fast after Ramadan is Muharram (Sahih Muslim)\n◆ Especially avoid sins this month\n◆ Increase tawbah, istighfar & nafl worship', 'color': AppTheme.gold});
+
+      // আশুরার রোজার ফজিলত — ১-১১ তারিখ দেখাবে
+      if (h >= 1 && h <= 11) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'আশুরার রোজার ফজিলত (১০ মুহররম):\n◆ আশুরার রোজা পূর্ববর্তী ১ বছরের গুনাহ মাফের কারণ (সহীহ মুসলিম)\n◆ উত্তম: ৯ ও ১০ মুহররম অথবা ১০ ও ১১ মুহররম একসাথে রোজা রাখা\n◆ মুসনাদে আহমাদ: ২৪১ | তিরমিযী: ৭৪১ | সহীহ মুসলিম\n◆ হযরত হুসাইন (রা.)-এর ত্যাগ থেকে শিক্ষা — সত্যের পথে অটল থাকুন'
+            : 'Ashura Fast Virtue (10 Muharram):\n◆ Ashura fast expiates 1 year of sins (Sahih Muslim)\n◆ Best: Fast 9 & 10 OR 10 & 11 Muharram together\n◆ Musnad Ahmad: 241 | Tirmidhi: 741 | Sahih Muslim\n◆ Learn from Husain (RA) — stand firm on the truth', 'color': AppTheme.gold});
+      }
+
+      // ৮ মুহররম রাত (মাগরিবের পর) — ৯ তারিখের রোজার প্রস্তুতি
+      if (h == 8 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? 'আগামীকাল ৯ মুহররম — আশুরার আগের রোজা!\n◆ উত্তম হলো ৯ ও ১০ মুহররম একসাথে রোজা রাখা\n◆ আজ রাতেই সেহরির নিয়ত ও প্রস্তুতি করুন\n◆ ফজিলত: পূর্ববর্তী ১ বছরের গুনাহ মাফ (সহীহ মুসলিম)\n◆ বেশি বেশি দরূদ, ইস্তিগফার ও নফল ইবাদত করুন'
+            : 'Tomorrow 9 Muharram — fast before Ashura!\n◆ Best to fast 9 & 10 Muharram together\n◆ Prepare your Sehri intention tonight\n◆ Reward: Expiation of 1 year of sins (Sahih Muslim)\n◆ Increase Salawat, Istighfar & nafl worship', 'color': AppTheme.gold});
+      }
+
+      // ৯ মুহররম রাত (মাগরিবের পর) — ১০ তারিখ আশুরার প্রস্তুতি
+      if (h == 9 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'আগামীকাল ১০ মুহররম — পবিত্র আশুরার দিন!\n◆ আশুরার রোজা রাখুন — ১ বছরের গুনাহ মাফ হবে\n◆ আজ রাতেই সেহরির প্রস্তুতি নিন\n◆ ৯ ও ১০ মুহররম একসাথে রোজা রাখা সর্বোত্তম (সহীহ মুসলিম: ১১৬২)\n◆ আল্লাহর কাছে আন্তরিকভাবে তাওবা ও ক্ষমা প্রার্থনা করুন'
+            : 'Tomorrow 10 Muharram — Sacred Ashura Day!\n◆ Fast on Ashura — 1 year of sins forgiven\n◆ Prepare for Sehri tonight\n◆ Fasting 9 & 10 together is best (Sahih Muslim: 1162)\n◆ Make sincere Tawbah & seek forgiveness from Allah', 'color': const Color(0xFFFFD700)});
+      }
+
+      // ১০ মুহররম রাত (মাগরিবের পর) — ১১ তারিখের রোজার প্রস্তুতি
+      if (h == 10 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? 'আগামীকাল ১১ মুহররম — আশুরার পরের রোজা!\n◆ উত্তম হলো ১০ ও ১১ মুহররম একসাথে রোজা রাখা\n◆ আজ রাতেই সেহরির নিয়ত করুন\n◆ ইহুদিদের থেকে পার্থক্যের জন্য ১১ তারিখও রোজা মুস্তাহাব\n◆ বেশি বেশি দোয়া, জিকির ও ইস্তিগফার করুন'
+            : 'Tomorrow 11 Muharram — fast after Ashura!\n◆ Best to fast 10 & 11 Muharram together\n◆ Make intention for Sehri tonight\n◆ Fasting 11th is mustahab to differ from Jews\n◆ Increase dua, dhikr & istighfar', 'color': AppTheme.gold});
+      }
     }
 
     // ══ রজব মাসের বিশেষ আমল ══

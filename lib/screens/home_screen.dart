@@ -802,6 +802,59 @@ class _HomeTabState extends State<_HomeTab> {
       }
     }
 
+    // ══ বিশেষ নফল নামাজ — সকাল ৯টা থেকে দুপুর ১২:৩০ ══
+    if (now.hour >= 9 && (now.hour < 12 || (now.hour == 12 && now.minute <= 30))) {
+      alerts.add({'icon': '🙏', 'text': isBn
+          ? 'সালাতুত তাসবীহ — জীবনে অবশ্যই পড়ুন:\n◆ ৪ রাকাত নামাজে ৩০০ বার তাসবীহ পড়ুন\n◆ তাসবীহ: "সুবহানাল্লাহ ওয়াল হামদুলিল্লাহ ওয়ালা ইলাহা ইল্লাল্লাহু ওয়াল্লাহু আকবার"\n◆ ফজিলত: আগের ও পরের সব গুনাহ মাফ হয়\n◆ (আবু দাউদ: ১২৯৭, ইবনে মাজাহ: ১৩৮৭)\n◆ প্রতিদিন, সপ্তাহে বা মাসে একবার পড়া উত্তম'
+          : 'Salat al-Tasbih — Must pray in lifetime:\n◆ 4 rakats with 300 tasbeeh\n◆ "SubhanAllah walhamdulillah wala ilaha illallahu wallahu akbar"\n◆ Virtue: All sins forgiven\n◆ (Abu Dawud: 1297, Ibn Majah: 1387)', 'color': const Color(0xFF7C4DFF)});
+
+      alerts.add({'icon': '🤲', 'text': isBn
+          ? 'সালাতুল ইস্তিখারা — সিদ্ধান্তে পড়ুন:\n◆ যেকোনো গুরুত্বপূর্ণ সিদ্ধান্তে ২ রাকাত পড়ুন\n◆ আল্লাহ যা ভালো মনে করেন তাই করার তাওফিক দেন\n◆ নামাজের পর নির্দিষ্ট দোয়া পড়ুন (বুখারি: ১১৬৬)\n◆ সালাতুল হাজত: যেকোনো প্রয়োজনে ২ রাকাত পড়ুন (তিরমিজি: ৪৭৯)'
+          : 'Salat al-Istikhara — For decisions:\n◆ 2 rakats before any important decision\n◆ Allah guides you to what is best\n◆ Recite specific dua after (Bukhari: 1166)\n◆ Salat al-Hajat: 2 rakats for any need (Tirmidhi: 479)', 'color': const Color(0xFF7C4DFF)});
+
+      alerts.add({'icon': '💧', 'text': isBn
+          ? 'তাহিয়্যাতুল ওযু ও মসজিদ:\n◆ তাহিয়্যাতুল ওযু: ওযুর পর ২ রাকাত — জান্নাতে পথ খোলে (মুসলিম: ৪৪১)\n◆ তাহিয়্যাতুল মসজিদ: মসজিদে ঢুকে বসার আগে ২ রাকাত পড়ুন (বুখারি: ১১৬৭)\n◆ সালাতুত তাওবা: গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান (ইবনে মাজাহ: ১৩৯৫)\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
+          : 'Tahiyyatul Wudhu & Masjid:\n◆ Tahiyyatul Wudhu: 2 rakats after wudu — path to Jannah (Muslim: 441)\n◆ Tahiyyatul Masjid: 2 rakats before sitting (Bukhari: 1167)\n◆ Salat al-Tawbah: 2 rakats after sin, seek forgiveness (Ibn Majah: 1395)\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ দান-সদকার reminder — সকাল ৬টা থেকে দুপুর ১২টা ══
+    if (now.hour >= 6 && now.hour < 12) {
+      alerts.add({'icon': '💝', 'text': isBn
+          ? 'আজকের দানের অনুপ্রেরণা:\n◆ আল্লাহ বলেন: যে আল্লাহর পথে ব্যয় করে — প্রতিটি বীজ থেকে ৭০০ গুণ সওয়াব (বাকারা: ২৬১)\n◆ রাসূল ﷺ: সদকা করলে সম্পদ কমে না — বরং আল্লাহ বরকত দেন (সহীহ মুসলিম)\n◆ প্রতিদিন ফেরেশতা দোয়া করেন: "হে আল্লাহ! দানকারীকে আরও দান করুন" (বুখারী ও মুসলিম)\n◆ অর্ধেক খেজুর দান করেও জাহান্নাম থেকে বাঁচার চেষ্টা করুন (বুখারী)'
+          : 'Today\'s Sadaqah Inspiration:\n◆ Allah says: Spend in His path — each seed grows 700 fold (Baqarah: 261)\n◆ Prophet ﷺ: Sadaqah does not decrease wealth (Sahih Muslim)\n◆ Angels make dua: "O Allah! Give more to the one who gives" (Bukhari & Muslim)\n◆ Save yourself from Hellfire even with half a date (Bukhari)', 'color': const Color(0xFFFF8F00)});
+    }
+
+    // ══ মুহররম মাসের বিশেষ আমল ══
+    if (hijriMonth == 1) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'মুহররম — আল্লাহর মাস:\n◆ ইসলামের ৪টি সম্মানিত মাসের একটি\n◆ রাসূল ﷺ এ মাসকে "আল্লাহর মাস" বলেছেন\n◆ রমজানের পর সর্বোত্তম নফল রোজা মুহররমের (সহীহ মুসলিম)\n◆ এ মাসে গুনাহ থেকে বিশেষভাবে বিরত থাকুন\n◆ বেশি বেশি তাওবা, ইস্তিগফার ও নফল ইবাদত করুন'
+          : 'Muharram — Month of Allah:\n◆ One of the 4 sacred months in Islam\n◆ Prophet ﷺ called it "Month of Allah"\n◆ Best nafl fast after Ramadan (Sahih Muslim)\n◆ Especially avoid sins this month', 'color': AppTheme.gold});
+
+      if (h >= 1 && h <= 11) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'আশুরার রোজার ফজিলত (১০ মুহররম):\n◆ আশুরার রোজা পূর্ববর্তী ১ বছরের গুনাহ মাফ (সহীহ মুসলিম)\n◆ উত্তম: ৯ ও ১০ অথবা ১০ ও ১১ মুহররম একসাথে রোজা রাখা\n◆ মুসনাদে আহমাদ: ২৪১ | তিরমিযী: ৭৪১'
+            : 'Ashura Fast (10 Muharram):\n◆ Expiates 1 year of sins (Sahih Muslim)\n◆ Best: Fast 9 & 10 OR 10 & 11 together\n◆ Musnad Ahmad: 241 | Tirmidhi: 741', 'color': AppTheme.gold});
+      }
+
+      if (h == 8 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? 'আগামীকাল ৯ মুহররম — আশুরার আগের রোজা!\n◆ ৯ ও ১০ মুহররম একসাথে রোজা রাখা উত্তম\n◆ আজ রাতেই সেহরির নিয়ত করুন\n◆ ফজিলত: ১ বছরের গুনাহ মাফ (সহীহ মুসলিম)'
+            : 'Tomorrow 9 Muharram — Fast before Ashura!\n◆ Best to fast 9 & 10 together\n◆ Make Sehri intention tonight\n◆ Reward: 1 year of sins forgiven', 'color': AppTheme.gold});
+      }
+
+      if (h == 9 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'আগামীকাল ১০ মুহররম — পবিত্র আশুরার দিন!\n◆ আশুরার রোজা রাখুন — ১ বছরের গুনাহ মাফ\n◆ আজ রাতেই সেহরির প্রস্তুতি নিন\n◆ ৯ ও ১০ একসাথে রোজা রাখা সর্বোত্তম (সহীহ মুসলিম: ১১৬২)'
+            : 'Tomorrow 10 Muharram — Sacred Ashura!\n◆ Fast on Ashura — 1 year of sins forgiven\n◆ Prepare for Sehri tonight\n◆ Fasting 9 & 10 together is best (Muslim: 1162)', 'color': const Color(0xFFFFD700)});
+      }
+
+      if (h == 10 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? 'আগামীকাল ১১ মুহররম — আশুরার পরের রোজা!\n◆ ১০ ও ১১ মুহররম একসাথে রোজা রাখা উত্তম\n◆ আজ রাতেই সেহরির নিয়ত করুন\n◆ বেশি বেশি দোয়া, জিকির ও ইস্তিগফার করুন'
+            : 'Tomorrow 11 Muharram — Fast after Ashura!\n◆ Best to fast 10 & 11 together\n◆ Make Sehri intention tonight\n◆ Increase dua, dhikr & istighfar', 'color': AppTheme.gold});
+      }
+    }
+
     return alerts;
   }
 

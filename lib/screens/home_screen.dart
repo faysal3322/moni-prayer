@@ -762,7 +762,7 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার আগাম reminder
-      if (hDay == 8 && now.isAfter(pt.maghrib)) {
+      if (h == 8 && now.isAfter(pt.maghrib)) {
         alerts.add({'icon': '🕋', 'text': isBn ? 'আগামীকাল ৯ জিলহজ — আরাফার রোজা! এই রোজায় আগের ও পরের ১ বছরের গুনাহ মাফ। এখনই সেহরির প্রস্তুতি নিন!' : 'Tomorrow 9 Dhul Hijjah — Arafah fast! 2 years of sins forgiven. Prepare for Sehri!', 'color': AppTheme.gold});
       }
 
@@ -1172,7 +1172,7 @@ class _HomeTabState extends State<_HomeTab> {
 
     // ══ মুহররম মাসের বিশেষ আমল ══
     if (hijriMonth == 1) {
-      final hDay = h.day;
+      final hDay = h;
       // সারা মাস দেখাবে — মুহররমের ফজিলত
       alerts.add({'icon': '🌙', 'text': isBn
           ? 'মুহররম — আল্লাহর মাস:\n◆ এটি ইসলামের ৪টি সম্মানিত (হারাম) মাসের একটি\n◆ রাসূল ﷺ এ মাসকে "আল্লাহর মাস" বলেছেন\n◆ রমজানের পর সর্বোত্তম নফল রোজা মুহররমের (সহীহ মুসলিম)\n◆ এ মাসে গুনাহ ও অন্যায় থেকে বিশেষভাবে বিরত থাকুন\n◆ বেশি বেশি তাওবা, ইস্তিগফার ও নফল ইবাদত করুন'

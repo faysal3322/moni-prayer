@@ -865,8 +865,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ দৈনিক আমল — ফজরের সময় ══
     if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
       alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়ের আমল:\n◆ আযান শুনে আযানের জবাব দিন — মুয়াজ্জিন যা বলে পুনরাবৃত্তি করুন\n◆ আযানের পর হাদিসে বর্ণিত দোয়া পড়ুন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন — প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন\n◆ মসজিদে ডান পা দিয়ে দরুদ পড়ে প্রবেশ করুন\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন\n◆ ৩৩ বার সুবহানাল্লাহ + ৩৩ বার আলহামদুলিল্লাহ + ৩৩ বার আল্লাহু আকবার পড়ুন'
-          : 'Fajr time deeds:\n◆ Answer the adhan when you hear it\n◆ Recite the dua after adhan\n◆ Pray Fajr in congregation — try the first row\n◆ Enter mosque with right foot, reciting salawat\n◆ Recite Ayatul Kursi after fard\n◆ Say 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar', 'color': const Color(0xFFFF8F00)});
+          ? 'ফজরের সময়ের আমল:\n◆ আযান শুনে আযানের জবাব দিন — মুয়াজ্জিন যা বলে পুনরাবৃত্তি করুন\n◆ আযানের পর হাদিসে বর্ণিত দোয়া পড়ুন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন — প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন\n◆ মসজিদে ডান পা দিয়ে দরুদ পড়ে প্রবেশ করুন\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ ৩৩ বার সুবহানাল্লাহ + ৩৩ বার আলহামদুলিল্লাহ + ৩৩ বার আল্লাহু আকবার পড়ুন'
+          : 'Fajr time deeds:\n◆ Answer the adhan when you hear it\n◆ Recite the dua after adhan\n◆ Pray Fajr in congregation — try the first row\n◆ Enter mosque with right foot, reciting salawat\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Nasai: 972)\n◆ Say 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ দৈনিক আমল — সকালের জিকির (সূর্যোদয়ের পর) ══
@@ -893,8 +893,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ দৈনিক আমল — মাগরিবের সময় ══
     if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 10))) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ তিন আয়াত ও তিন কুল পড়ে দম করুন\n◆ সন্ধ্যার জিকির-আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন'
-          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses of Surah Hashr & 3 Quls after Maghrib\n◆ Recite evening adhkar\n◆ Send 10x Salawat\n◆ Say 100x "SubhanAllahi wa bihamdih"', 'color': const Color(0xFFFF8F00)});
+          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ তিন আয়াত ও তিন কুল পড়ে দম করুন\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যার জিকির-আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন'
+          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses of Surah Hashr & 3 Quls after Maghrib\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Recite evening adhkar\n◆ Send 10x Salawat\n◆ Say 100x "SubhanAllahi wa bihamdih"', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ দৈনিক আমল — এশার সময় ══
@@ -927,8 +927,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ ফজরের সময় ══
     if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
       alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়ের আমল:\n◆ আযানের জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ মসজিদে জামাআতে ফজর পড়ুন — প্রথম সারিতে চেষ্টা করুন (আমল ৩৯)\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ করুন (আমল ২০)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ — জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন (আমল ২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)'
-          : 'Fajr time deeds:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr in congregation, try first row (Amal 39)\n◆ Enter mosque with right foot, reciting salawat (Amal 20)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard (Amal 2)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)', 'color': const Color(0xFFFF8F00)});
+          ? 'ফজরের সময়ের আমল:\n◆ আযানের জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ মসজিদে জামাআতে ফজর পড়ুন — প্রথম সারিতে চেষ্টা করুন (আমল ৩৯)\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ করুন (আমল ২০)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ — জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)'
+          : 'Fajr time deeds:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr in congregation, try first row (Amal 39)\n◆ Enter mosque with right foot, reciting salawat (Amal 20)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Amal 2, Nasai: 972)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ সকাল — সূর্যোদয় থেকে যোহরের আগে ══
@@ -955,8 +955,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ সন্ধ্যা — মাগরিবের সময় ══
     if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ সন্ধ্যায় ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন (আমল ৭)\n◆ সন্ধ্যার জিকির-আযকার পড়ুন'
-          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Send 10x Salawat in evening (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Recite evening adhkar', 'color': const Color(0xFFFF8F00)});
+          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যায় ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন (আমল ৭)\n◆ সন্ধ্যার জিকির-আযকার পড়ুন'
+          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Send 10x Salawat in evening (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Recite evening adhkar', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ রাত — এশার সময় ══
@@ -1004,8 +1004,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ ফজরের সময় ══
     if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
       alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন (আমল ২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)\n◆ ফজরের পর ডান কাতে কিছুক্ষণ বিশ্রাম নিন (ঘুমিয়ে পড়বেন না)'
-          : 'Fajr time:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try to stand in first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard (Amal 2)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)\n◆ Rest briefly on right side after Fajr (do not sleep)', 'color': const Color(0xFFFF8F00)});
+          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)\n◆ ফজরের পর ডান কাতে কিছুক্ষণ বিশ্রাম নিন (ঘুমিয়ে পড়বেন না)'
+          : 'Fajr time:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try to stand in first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Amal 2, Nasai: 972)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)\n◆ Rest briefly on right side after Fajr (do not sleep)', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ সকাল — সূর্যোদয় থেকে যোহরের আগে ══
@@ -1032,8 +1032,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ সন্ধ্যা — মাগরিবের সময় ══
     if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়:\n◆ সময় থাকলে মাগরিবের আগে ২ রাকাত নফল পড়ুন\n◆ মসজিদে জামাআতে মাগরিব পড়ুন\n◆ মাগরিবের পরও সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ সন্ধ্যার আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি (আমল ৭)\n◆ সুন্নাত-নফল নামাজ ঘরে পড়ার চেষ্টা করুন'
-          : 'Maghrib time:\n◆ Optionally pray 2 nafl before Maghrib if time allows\n◆ Pray Maghrib in congregation\n◆ After Maghrib: last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite evening adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Try to pray sunnah/nafl at home', 'color': const Color(0xFFFF8F00)});
+          ? 'মাগরিবের সময়:\n◆ সময় থাকলে মাগরিবের আগে ২ রাকাত নফল পড়ুন\n◆ মসজিদে জামাআতে মাগরিব পড়ুন\n◆ মাগরিবের পরও সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যার আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি (আমল ৭)\n◆ সুন্নাত-নফল নামাজ ঘরে পড়ার চেষ্টা করুন'
+          : 'Maghrib time:\n◆ Optionally pray 2 nafl before Maghrib if time allows\n◆ Pray Maghrib in congregation\n◆ After Maghrib: last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Recite evening adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Try to pray sunnah/nafl at home', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ রাত — এশার সময় ══
@@ -1086,7 +1086,7 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ ফজরের সময় ══
     if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
       alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ আযানের পর ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন (আমল ২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)'
+          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ আযানের পর ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)'
           : 'Fajr time:\n◆ Answer adhan & recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah after adhan\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Ayatul Kursi after fard (Amal 2)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)', 'color': const Color(0xFFFF8F00)});
     }
 
@@ -1114,8 +1114,8 @@ class _HomeTabState extends State<_HomeTab> {
     // ══ সন্ধ্যা — মাগরিবের সময় ══
     if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha)) {
       alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়:\n◆ ইচ্ছা ও সময় থাকলে মাগরিবের আগে ২ রাকাত নফল পড়ুন\n◆ মসজিদে জামাআতে মাগরিব পড়ুন\n◆ মাগরিবের পরও সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ সন্ধ্যার আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি পড়ুন (আমল ৭)\n◆ সুন্নাত-নফল নামাজ ঘরে পড়ার চেষ্টা করুন'
-          : 'Maghrib time:\n◆ Optionally pray 2 nafl before Maghrib if time allows\n◆ Pray Maghrib in congregation\n◆ Last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite evening adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Try to pray sunnah/nafl at home', 'color': const Color(0xFFFF8F00)});
+          ? 'মাগরিবের সময়:\n◆ ইচ্ছা ও সময় থাকলে মাগরিবের আগে ২ রাকাত নফল পড়ুন\n◆ মসজিদে জামাআতে মাগরিব পড়ুন\n◆ মাগরিবের পরও সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যার আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি পড়ুন (আমল ৭)\n◆ সুন্নাত-নফল নামাজ ঘরে পড়ার চেষ্টা করুন'
+          : 'Maghrib time:\n◆ Optionally pray 2 nafl before Maghrib if time allows\n◆ Pray Maghrib in congregation\n◆ Last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Recite evening adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Try to pray sunnah/nafl at home', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ রাত — এশার সময় ══

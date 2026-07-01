@@ -33,6 +33,7 @@ class _DuaScreenState extends State<DuaScreen> {
               _tabBtn(1, '⏰', isBn ? 'দোয়ার সময়' : 'Times', isBn),
               _tabBtn(2, '📍', isBn ? 'দোয়ার স্থান' : 'Places', isBn),
               _tabBtn(3, '🌅', isBn ? 'সকাল-সন্ধ্যা' : 'Morning', isBn),
+              _tabBtn(4, '⚠️', isBn ? 'কবিরা গুনাহ' : 'Major Sins', isBn),
             ]),
           ),
           Expanded(
@@ -42,7 +43,9 @@ class _DuaScreenState extends State<DuaScreen> {
                     ? _DuaTimeTab(isBn: isBn)
                 : _tabIndex == 2
                     ? _DuaPlaceTab(isBn: isBn)
-                : const SokalSondhaScreen(),
+                : _tabIndex == 3
+                    ? const SokalSondhaScreen()
+                : _KabiraGunahTab(isBn: isBn),
           ),
         ],
       ),
@@ -1230,6 +1233,110 @@ class AyatScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// ১০০ কবিরা গুনাহ — home_screen.dart থেকে স্থানান্তরিত
+// ═══════════════════════════════════════════
+class _KabiraGunahTab extends StatelessWidget {
+  final bool isBn;
+  const _KabiraGunahTab({required this.isBn});
+
+  static final List<Map<String, dynamic>> _items = [
+    {'icon': '⚠️', 'text_bn':
+        'কবিরা গুনাহ ১-৯ (আকিদা):\n১. শির্ক — অতি মহাপাপ\n২. দুনিয়ার জন্য ইলম শেখা\n৩. শরয়ী ইলম গোপন করা\n৪. বিশ্বাসঘাতকতা করা\n৫. গণকের কথা বিশ্বাস করা\n৬. গায়রুল্লাহর নামে যবেহ করা\n৭. গায়রুল্লাহর নামে নযর মানা\n৮. গায়রুল্লাহর নামে কসম করা\n৯. যাদু করা',
+        'text_en':
+        'Major sins 1-9 (Aqeedah):\n1. Shirk — greatest sin\n2. Seeking knowledge for worldly gain\n3. Concealing religious knowledge\n4. Betrayal/treachery\n5. Believing fortune tellers\n6. Sacrificing in other than Allahs name\n7. Making vows to other than Allah\n8. Swearing by other than Allah\n9. Practicing magic',
+        'color': Color(0xFFE53935)},
+    {'icon': '⚠️', 'text_bn':
+        'কবিরা গুনাহ ১০-১৮ (আকিদা):\n১০. আল্লাহর প্রতি কুধারণা রাখা\n১১. মুসলিমের প্রতি কুধারণা রাখা\n১২. মুসলিমকে বিনা দলিলে কাফের বলা\n১৩. কাফেরকে কাফের না জানা\n১৪. আল্লাহ ও রাসূলের প্রতি মিথ্যা আরোপ করা\n১৫. আল্লাহর আযাব থেকে নিজেকে নিরাপদ ভাবা\n১৬. আল্লাহর রহমত থেকে নিরাশ হওয়া\n১৭. তকদীর অস্বীকার করা\n১৮. তাবিজ বাঁধা',
+        'text_en':
+        'Major sins 10-18 (Aqeedah):\n10. Having bad thoughts about Allah\n11. Having bad thoughts about Muslims\n12. Calling a Muslim kafir without proof\n13. Not recognizing a kafir as kafir\n14. Attributing falsehood to Allah or Prophet\n15. Feeling safe from Allahs punishment\n16. Despairing of Allahs mercy\n17. Denying divine decree\n18. Wearing amulets/talismans',
+        'color': Color(0xFFE53935)},
+    {'icon': '🚫', 'text_bn':
+        'কবিরা গুনাহ ১৯-২৮ (জীবন ও সম্মান):\n১৯. প্রাণ হত্যা করা\n২০. আত্মহত্যা করা\n২১. জুলুম করা\n২২. অপমান ও অপদস্থ করা\n২৩. মিথ্যা বলা\n২৪. পরচর্চা বা গীবত করা\n২৫. চোগলখুরি করা\n২৬. গালি দেওয়া\n২৭. মাদকদ্রব্য সেবন করা\n২৮. মৃত বা হারাম পশুর মাংস খাওয়া',
+        'text_en':
+        'Major sins 19-28 (life & honor):\n19. Murder\n20. Suicide\n21. Oppression/injustice\n22. Humiliating others\n23. Lying\n24. Backbiting/gossip\n25. Tale-bearing/slander\n26. Cursing/insulting\n27. Consuming intoxicants\n28. Eating dead animals or haram meat',
+        'color': Color(0xFFE53935)},
+    {'icon': '🚫', 'text_bn':
+        'কবিরা গুনাহ ২৯-৩৭ (চরিত্র):\n২৯. বাজে তর্ক করা\n৩০. সত্য প্রত্যাখ্যান করা\n৩১. ঠাট্টা বা ব্যঙ্গ-বিদ্রুপ করা\n৩২. গালি দেওয়া\n৩৩. অহংকার করা\n৩৪. নিজের প্রশংসা নিজেই করা\n৩৫. অপরের দোষ খোঁজা\n৩৬. মূর্তি বা ছবি তৈরি করা\n৩৭. এতিমের মাল ভক্ষণ করা',
+        'text_en':
+        'Major sins 29-37:\n29. Useless argumentation\n30. Rejecting the truth\n31. Mockery and ridicule\n32. Cursing\n33. Arrogance/pride\n34. Self-praise\n35. Seeking others faults\n36. Making idols or pictures\n37. Consuming orphans wealth',
+        'color': Color(0xFFE53935)},
+    {'icon': '💰', 'text_bn':
+        'কবিরা গুনাহ ৩৮-৪৭ (আর্থিক):\n৩৮. জুয়া (ফ্লাশ) খেলা\n৩৯. লটারি খেলা\n৪০. চুরি করা\n৪১. আমানতে খেয়ানত করা\n৪২. পরের সম্পদ আত্মসাৎ করা\n৪৩. জমি-জায়গা দাবিয়ে নেওয়া\n৪৪. ঘুষ খাওয়া\n৪৫. সুদ খাওয়া\n৪৬. ওজনে কম দেওয়া\n৪৭. মিথ্যা কসম খাওয়া',
+        'text_en':
+        'Major sins 38-47 (financial):\n38. Gambling\n39. Lottery\n40. Stealing\n41. Betraying a trust\n42. Misappropriating others property\n43. Seizing land by force\n44. Taking bribes\n45. Dealing in usury/interest\n46. Giving short measure/weight\n47. False oath',
+        'color': Color(0xFFE53935)},
+    {'icon': '💰', 'text_bn':
+        'কবিরা গুনাহ ৪৮-৫৭ (লেনদেন):\n৪৮. ধোঁকা দেওয়া\n৪৯. কসম করে মাল বিক্রি করা\n৫০. প্রতিশ্রুতি পালন না করা\n৫১. চুক্তি ভঙ্গ করা\n৫২. মিথ্যা সাক্ষ্য দেওয়া\n৫৩. সাক্ষ্য গোপন করা\n৫৪. মালে ভেজাল দেওয়া\n৫৫. প্রয়োজনের সময় মাল গুদামজাত করা\n৫৬. অসিয়ত পালন না করা\n৫৭. আল্লাহর ভাগ করা ভাগ্যে সন্তুষ্ট না হওয়া',
+        'text_en':
+        'Major sins 48-57 (transactions):\n48. Deception/cheating\n49. Selling with false oath\n50. Breaking promises\n51. Breaking contracts\n52. False testimony\n53. Concealing testimony\n54. Adulterating goods\n55. Hoarding goods in time of need\n56. Not fulfilling a will/wasiyyah\n57. Discontentment with Allahs decree',
+        'color': Color(0xFFE53935)},
+    {'icon': '🎵', 'text_bn':
+        'কবিরা গুনাহ ৫৮-৬১ (পোশাক ও বিনোদন):\n৫৮. পুরুষের সোনা ও রেশম ব্যবহার\n৫৯. পুরুষের গোড়ালির নিচে কাপড় ঝুলিয়ে পরা\n৬০. দান করে গেয়ে বেড়ানো (মান্নান)\n৬১. গান-বাজনা শোনা',
+        'text_en':
+        'Major sins 58-61 (dress & entertainment):\n58. Men wearing gold or silk\n59. Men letting garment hang below ankles\n60. Reminding others of charity given (mannan)\n61. Listening to music/singing',
+        'color': Color(0xFFE53935)},
+    {'icon': '🙅', 'text_bn':
+        'কবিরা গুনাহ ৬২-৭৪ (ইবাদত):\n৬২. ফরজ নামাজ ত্যাগ করা\n৬৩. সময় পার করে নামাজ পড়া\n৬৪. লোক দেখিয়ে ইবাদত করা\n৬৫. জাকাত না দেওয়া\n৬৬. রোজা না রাখা\n৬৭. হজ্জ না করা (সামর্থ্য থাকলে)\n৬৮. জিহাদ না করা (সামর্থ্য থাকলে)\n৬৯. জিহাদের ময়দানে পৃষ্ঠপ্রদর্শন করা\n৭০. জুমা ত্যাগ করা\n৭১. জামাআত ত্যাগ করা\n৭২. সৎকাজে আদেশ ও মন্দ কাজে বাধা না দেওয়া\n৭৩. পেশাবের ছিটা থেকে না বাঁচা\n৭৪. ইলম অনুযায়ী আমল না করা',
+        'text_en':
+        'Major sins 62-74 (worship):\n62. Abandoning obligatory prayers\n63. Praying after time has passed\n64. Showing off in worship (riya)\n65. Not paying Zakat\n66. Not fasting in Ramadan\n67. Not performing Hajj (if able)\n68. Abandoning Jihad (if able)\n69. Fleeing the battlefield\n70. Abandoning Jumuah\n71. Abandoning congregation\n72. Not enjoining good & forbidding evil (when able)\n73. Not protecting from urine splashes\n74. Not acting on knowledge',
+        'color': Color(0xFFE53935)},
+    {'icon': '👁️', 'text_bn':
+        'কবিরা গুনাহ ৭৫-৮৪ (পর্দা ও যৌন):\n৭৫. ব্যভিচার করা\n৭৬. মাসিক অবস্থায় সহবাস করা\n৭৭. পায়খানাদ্বারে সঙ্গম করা\n৭৮. অবৈধ প্রেম করা\n৭৯. সমকাম করা\n৮০. হস্তমৈথুন করা\n৮১. মিথ্যা অপবাদ দেওয়া\n৮২. মহিলার বেপর্দা হওয়া\n৮৩. পুরুষের নারীর মতো বেশ ধারণ করা\n৮৪. দাড়ি চাঁছা',
+        'text_en':
+        'Major sins 75-84 (modesty & sexual):\n75. Zina/adultery\n76. Intercourse during menses\n77. Anal intercourse\n78. Illicit/forbidden love relationships\n79. Homosexuality\n80. Masturbation\n81. False accusation of adultery\n82. Women not observing hijab\n83. Men dressing like women or vice versa\n84. Shaving the beard',
+        'color': Color(0xFFE53935)},
+    {'icon': '👨‍👩‍👧', 'text_bn':
+        'কবিরা গুনাহ ৮৫-৯৪ (পরিবার ও সমাজ):\n৮৫. মা-বাপের অবাধ্য হওয়া\n৮৬. আত্মীয়তার বন্ধন ছেদন করা\n৮৭. স্বামীর কথা না মানা\n৮৮. পর্যাপ্ত কারণ ছাড়া তালাক দেওয়া\n৮৯. পর্যাপ্ত কারণ ছাড়া তালাক নেওয়া\n৯০. হালালা বিবাহ দেওয়া ও করা\n৯১. মহরম ছাড়া মহিলার একা সফর করা\n৯২. অন্যের বাপকে নিজের বাপ দাবি করা\n৯৩. বাড়ির মহিলার ব্যাপারে বেপরোয়া হওয়া\n৯৪. প্রতিবেশীকে কষ্ট দেওয়া',
+        'text_en':
+        'Major sins 85-94 (family & society):\n85. Disobeying parents\n86. Severing family ties\n87. Wife disobeying husband\n88. Divorcing without sufficient reason\n89. Seeking divorce without sufficient reason\n90. Halala marriage (to remarry divorced spouse)\n91. Woman travelling alone without mahram\n92. Claiming another mans father as own\n93. Being indifferent about womens honor at home\n94. Harming neighbors',
+        'color': Color(0xFFE53935)},
+    {'icon': '🔚', 'text_bn':
+        'কবিরা গুনাহ ৯৫-১০০ (বিবিধ):\n৯৫. মহিলার ভ্রু ও মুখের লোম চাঁছা\n৯৬. মহিলার পরচুলা ব্যবহার\n৯৭. দেহে দাগ কেটে নকশা করা (ট্যাটু)\n৯৮. দাঁত ঘষে ফাঁক ফাঁক করা\n৯৯. উঁকি দিয়ে অন্যের গোপন কথা শোনা\n১০০. শোকে মাতম করা\n\n✅ এই ১০০টি কবিরা গুনাহ থেকে আল্লাহ আমাদের রক্ষা করুন — আমীন',
+        'text_en':
+        'Major sins 95-100 (misc):\n95. Women plucking eyebrows/facial hair\n96. Women wearing wigs\n97. Tattoos/body scarification\n98. Filing teeth to create gaps\n99. Eavesdropping on others secrets\n100. Wailing/lamenting excessively in grief\n\n✅ May Allah protect us from all 100 major sins — Ameen',
+        'color': Color(0xFFE53935)},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _items.length,
+      itemBuilder: (context, i) {
+        final item = _items[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: (item['color'] as Color).withOpacity(0.4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item['icon'] as String, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isBn ? item['text_bn'] as String : item['text_en'] as String,
+                  style: TextStyle(
+                    color: item['color'] as Color,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -558,6 +558,47 @@ class _HomeTabState extends State<_HomeTab> {
     final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
     final zawalEnd = pt.dhuhr;
     final sunsetForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
+
+    // ══ ফজর ও মাগরিবের ওয়াক্তে বিশেষ দোয়া ও সূরা — খুবই গুরুত্বপূর্ণ ══
+    final isFajrWaqt = now.isAfter(pt.fajr) && now.isBefore(pt.sunrise);
+    final isMaghribWaqt = now.isAfter(pt.maghrib) && now.isBefore(pt.isha);
+    if (isFajrWaqt || isMaghribWaqt) {
+      final waqtName = isBn
+          ? (isFajrWaqt ? 'ফজরের ওয়াক্ত' : 'মাগরিবের ওয়াক্ত')
+          : (isFajrWaqt ? 'Fajr time' : 'Maghrib time');
+      alerts.add({'icon': '⭐', 'text': isBn
+          ? '($waqtName) এখনই পড়ুন — ওয়াক্ত শেষে চলে যাবে!\n\n'
+            '৩ বার পড়ুন:\nআউযু বিল্লাহিস সামীঈল আলীমি মিনাশ শাইত্বোয়ানির রাজীম\n\n'
+            '━ সূরা হাশর (শেষ ৩ আয়াত) ━\n'
+            'হুওয়াল্লা হুল্লাযী লা- ইলাহা ইল্লা হুওয়া আলিমুল গাইবি ওয়াশ শাহাদাহ। হুওয়ার রহমানুর রহীম।\n\n'
+            'হুওয়াল্লা হুল্লাযী লা- ইলাহা ইল্লা হুওয়াল মালিকুল কুদ্দুসুস সালামুল মুমিনুল মুহাইমিনুল আযীযুল জাব্বারুল মুতাকাব্বির। সুবহানাল্লাহি আম্মা ইউশরিকুন।\n\n'
+            'হুওয়াল্লাহুল খলিকুল বারিউল মুসাওবিরু লাহুল আসমাউল হুসনা। ইউসাব্বিহু লাহু মা ফিস সামাওয়াতি ওয়াল আরদি, ওয়া হুওয়াল আযীযুল হাকীম।\n\n'
+            '━ আয়তুল কুরসি ━\n'
+            'আল্লাহু লা-ইলাহা ইল্লা হু-ওয়াল হাই-য়্যুল ক্বাই-য়্যুম। লা তা-খুযুহু সিনাতুঁ ওয়ালা না-উম। লাহূ মা ফিস-সামা-ওয়াতি ওয়ামা ফিল আর-দ্ব। মান যাল্লা-যী ইয়াশ-ফাউ ই-ন্দাহূ ইল্লা বিইজ-নিহ। ইয়া-লামু মা-বাইনা আইদি-হিম ওয়ামা খালফাহুম। ওয়ালা ইউহি-তূনা বিশাইয়্যিম্ মিন ইলমিহি ইল্লা বিমা শাআ\'। ওয়াসি-আ\' কুরসিইয়্যুহুস সামা-ওয়াতি ওয়াল আরদ্ব। ওয়ালা ইয়াউ-দুহূ হিফযুহুমা ওয়া হুওয়াল আলিই-য়্যুল আ-জিম।\n\n'
+            '━ সূরা কাফিরুন ━\n'
+            'কুল ইয়া আইয়ুহাল কাফিরুন। লা আবুদু মা তাবুদুন। ওয়ালা আনতুম আবিদুনা মা আবুদ। ওয়ালা আনা আবিদুম মা আবাত্তুম। ওয়ালা আনতুম আবিদুনা মা আবুদ। লাকুম দীনুকুম ওয়ালিয়া দীন।\n\n'
+            '━ সূরা ইখলাস ━\n'
+            'কুল হুওয়াল্লাহু আহাদ। আল্লাহুস সামাদ। লাম ইয়ালিদ ওয়ালাম ইউলাদ। ওয়ালাম ইয়াকুল্লাহু কুফুওয়ান আহাদ।\n\n'
+            '━ সূরা ফালাক ━\n'
+            'কুল আউযু বিরব্বিল ফালাক। মিন শাররি মা খালাক। ওয়া মিন শাররি গাসিকিন ইযা ওয়াকাব। ওয়া মিন শাররিন নাফ্ফাসাতি ফিল উকাদ। ওয়া মিন শাররি হাসিদিন ইযা হাসাদ।\n\n'
+            '━ সূরা নাস ━\n'
+            'কুল আউযু বিরব্বিন নাস। মালিকিন নাস। ইলাহিন নাস। মিন শাররিল ওয়াসওয়াসিল খান্নাস। আল্লাযী ইউওয়াসবিসু ফী সুদুরিন নাস। মিনাল জিন্নাতি ওয়ান নাস।'
+          : '($waqtName) Read now — disappears after waqt!\n\n'
+            'Read 3 times:\nAuzubillahis Sami\'il Alimi minash Shaitanir Rajim\n\n'
+            '━ Surah Hashr (last 3 verses) ━\n'
+            'Huwallahullazi la ilaha illa Huwa Alimul ghaibi wash shahadah. Huwar Rahmanur Rahim.\n'
+            'Huwallahullazi la ilaha illa Huwal Malikul Quddusus Salamul Muminul Muhaiminul Azizul Jabbarul Mutakabbir. Subhanallahi amma yushrikun.\n'
+            'Huwallahul Khaliqul Bari\'ul Musawwiru lahul asmaul husna. Yusabbihu lahu ma fis samawati wal ardi wa Huwal Azizul Hakim.\n\n'
+            '━ Surah Kafirun ━\n'
+            'Qul ya ayyuhal kafirun. La abudu ma tabudun. Wa la antum abiduna ma abud. Wa la ana abidum ma abattum. Wa la antum abiduna ma abud. Lakum dinukum wa liya din.\n\n'
+            '━ Surah Ikhlas ━\n'
+            'Qul Huwallahu Ahad. Allahus Samad. Lam yalid wa lam yulad. Wa lam yakul lahu kufuwan ahad.\n\n'
+            '━ Surah Falaq ━\n'
+            'Qul auzu bi rabbil falaq. Min sharri ma khalaq. Wa min sharri ghasiqin iza waqab. Wa min sharrin naffathati fil uqad. Wa min sharri hasidin iza hasad.\n\n'
+            '━ Surah Nas ━\n'
+            'Qul auzu bi rabbin nas. Malikin nas. Ilahin nas. Min sharril waswasil khannas. Allazi yuwaswisu fi sudurin nas. Minal jinnati wan nas.',
+          'color': const Color(0xFFFFC107)});
+    }
     final ishaaEnd = manualLastThird;
 
     // ══ ফরজ নামাজের ওয়াক্ত countdown ══

@@ -1198,8 +1198,292 @@ class _HomeTabState extends State<_HomeTab> {
         ? 'বার্ষিক আমল:\n◆ মুহাররম: বেশি রোজা, বিশেষত ৯ ও ১০ তারিখে — ১ বছরের গুনাহ মাফ\n◆ শাবান মাসে বেশি রোজা রাখুন\n◆ রমজান: রোজা+তারাবি+শেষ দশকে লাইলাতুল কদরের ইবাদত\n◆ শাওয়ালে ৬টি রোজা — সারা বছর রোজার সমান (আমল ৪৩)\n◆ জিলহজের প্রথম ৯ দিন নেক আমল — আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮)\n◆ ৯ জিলহজে আরাফার রোজা — দুই বছরের গুনাহ মাফ\n◆ ১০ জিলহজে কুরবানি ও ঈদের নামাজ পড়ুন\n◆ রমজানে ওমরাহ = হজ্জের সওয়াব (আমল ৩৭)\n◆ সামর্থ্য থাকলে জিহাদে অংশ নিন — ৬০ বছরের ইবাদতের চেয়ে উত্তম (আমল ৪৬)\n◆ দ্বীনি ইলম শেখা/শেখানোর জন্য মসজিদে যান = পূর্ণ হজ্জের সমান (আমল ৩৬)'
         : 'Yearly deeds:\n◆ Muharram: fast more, especially 9 & 10 — 1 year sins forgiven\n◆ Fast more in Shaban\n◆ Ramadan: fast+tarawih+worship in last 10 nights for Laylatul Qadr\n◆ 6 fasts in Shawwal = full year fasting (Amal 43)\n◆ First 9 days Dhul Hijjah: good deeds — Allahs most beloved (Amal 48)\n◆ Fast on 9 Dhul Hijjah — 2 years of sins forgiven\n◆ Qurbani & Eid prayer on 10 Dhul Hijjah\n◆ Umrah in Ramadan = Hajj reward (Amal 37)\n◆ Jihad if able — better than 60 years of worship (Amal 46)\n◆ Go to mosque for deen knowledge = full Hajj reward (Amal 36)', 'color': const Color(0xFF26A69A)});
 
+    // ══════════════════════════════════════════════════
+    // সাপ্তাহিক আমল — শুধু প্রাসঙ্গিক সময়ে দেখাবে
+    // ══════════════════════════════════════════════════
+
+    // ══ সোম/বৃহস্পতি নফল রোজা ══
+    final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
+    final prevDayIsSunday = now.weekday == DateTime.sunday;
+    final prevDayIsWed = now.weekday == DateTime.wednesday;
+    if (isFastDay && now.isBefore(pt.fajr)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+    if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Monday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+    if (prevDayIsWed && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Thursday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ জুমার দিন ══
+    if (now.weekday == DateTime.friday) {
+      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
+        alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.', 'color': AppTheme.accent});
+      } else if (now.isBefore(pt.maghrib)) {
+        final cd = _countdown(pt.maghrib);
+        alerts.add({'icon': '🕌', 'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)', 'color': AppTheme.accent});
+      }
+      if (now.hour < 20) {
+        alerts.add({'icon': '📖', 'text': isBn ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।' : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
+      }
+    }
+    // ══ বৃহস্পতিবার সন্ধ্যায়: জুমার রাতের reminder ══
+    if (now.weekday == DateTime.thursday && now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      alerts.add({'icon': '✨', 'text': isBn
+          ? 'আজ বৃহস্পতিবার সন্ধ্যা — জুমার রাত শুরু!\n◆ বেশি বেশি দরুদ পড়ুন (আবু দাউদ: ১০৪৭)\n◆ জুমার দিন পর্যন্ত দরুদ পড়তে থাকুন\n◆ আগামীকাল জুমার ১১টি আমল করার নিয়ত করুন'
+          : 'Thursday evening — Jumu\'ah night begins!\n◆ Send lots of Salawat (Abu Dawud: 1047)\n◆ Continue till Friday\n◆ Intend to do Friday\'s deeds tomorrow', 'color': AppTheme.accent});
+    }
+
+    // ══════════════════════════════════════════════════
+    // মাসিক আমল — শুধু প্রাসঙ্গিক তারিখে দেখাবে
+    // ══════════════════════════════════════════════════
+
+    // ══ আইয়ামে বিজ (হিজরি ১৩-১৫ তারিখ) ══
+    if (h >= 13 && h <= 15) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.', 'color': AppTheme.gold});
+    } else if (h == 12 && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।' : 'Ayyam al-Beed starts tomorrow (13th-15th)!', 'color': AppTheme.gold});
+    }
+
+    // ══════════════════════════════════════════════════
+    // বাৎসরিক / হিজরি মাস-ভিত্তিক আমল — শুধু প্রাসঙ্গিক মাসে দেখাবে
+    // ══════════════════════════════════════════════════
+
+    // ══ মুহররম মাস ══
+    if (hijriMonth == 1) {
+      alerts.add({'icon': '📅', 'text': isBn
+          ? 'মুহররম মাসের বিশেষ আমল:\n◆ রমজানের পর সবচেয়ে উত্তম রোজা মুহররমের (মুসলিম: ১১৬৩)\n◆ ১০ মুহররম (আশুরার রোজা) রাখুন — আগের ১ বছরের গুনাহ মাফ\n◆ পুরো মাস নফল রোজার চেষ্টা করুন\n◆ সম্মানিত মাসে পাপ থেকে বিরত থাকুন'
+          : 'Muharram special deeds:\n◆ Best nafl fast after Ramadan is Muharram (Muslim: 1163)\n◆ 10 Muharram (Ashura fast) — 1 year of sins forgiven\n◆ Try to fast throughout the month\n◆ Avoid sins in this sacred month', 'color': AppTheme.gold});
+    }
+
+    // ══ রজব মাস ══
+    if (hijriMonth == 7) {
+      alerts.add({'icon': '📅', 'text': isBn
+          ? 'রজব মাসের আমল (সম্মানিত মাস):\n◆ নফল রোজা রাখুন\n◆ নেক আমল বাড়িয়ে দিন\n◆ পাপ থেকে বিরত থাকুন — এ মাসে পাপের শাস্তি বেশি\n◆ রমজানের প্রস্তুতি শুরু করুন'
+          : 'Rajab deeds (sacred month):\n◆ Keep nafl fasts\n◆ Increase good deeds\n◆ Avoid sins — punishment is heavier this month\n◆ Start preparing for Ramadan', 'color': AppTheme.gold});
+    }
+
+    // ══ শবে বরাত (১৪ শাবান রাত) ══
+    if (hijriMonth == 8 && h == 14 && now.isAfter(pt.maghrib)) {
+      alerts.add({'icon': '✨', 'text': isBn
+          ? 'আজ রাত — শবে বরাত (১৫ শাবানের রাত):\n◆ এ রাতে ইবাদত করুন — বিশেষ ফজিলত রয়েছে\n◆ নফল নামাজ, কুরআন তিলাওয়াত, জিকির করুন\n◆ দোয়া কবুলের রাত\n◆ কবরস্থানে গিয়ে মৃতদের জন্য দোয়া করুন'
+          : 'Tonight — Shab-e-Barat (15th Shaban night):\n◆ Worship tonight — special virtue\n◆ Nafl prayers, Quran, dhikr\n◆ Night of acceptance of dua\n◆ Pray for the deceased', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ রমজান আসছে reminder (শাবান মাসে ২৫-২৯ তারিখ) ══
+    if (hijriMonth == 8 && h >= 25) {
+      alerts.add({'icon': '🌙', 'text': isBn ? 'রমজান আসছে — এখনই নিয়ত ও প্রস্তুতি নিন। রমজানে উমরাহর সওয়াব হজের সমান!' : 'Ramadan is coming — Prepare now. Umrah in Ramadan equals Hajj in reward!', 'color': const Color(0xFF7C4DFF)});
+    }
+
+    // ══ ৫টি বিশেষ রাতের ইবাদত ══
+    final isSpecialNight = (hijriMonth == 12 && (h == 8 || h == 9 || h == 10) && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 10 && h == 1 && now.isAfter(pt.maghrib)) ||
+        (hijriMonth == 8 && h == 15 && now.isAfter(pt.maghrib));
+    if (isSpecialNight) {
+      alerts.add({'icon': '🌟', 'text': isBn
+          ? 'আজ রাত বিশেষ ইবাদতের রাত!\n◆ এই ৫টি রাতে ইবাদত করলে জান্নাত ওয়াজিব (আত-তারগিব)\n◆ রাতে ইবাদত করুন: নফল নামাজ, কুরআন, জিকির, দোয়া\n◆ এ রাতের দোয়া ফিরিয়ে দেওয়া হয় না'
+          : 'Tonight is a special worship night!\n◆ Worship on these 5 nights — Jannah becomes guaranteed (At-Targhib)\n◆ Worship tonight: nafl prayers, Quran, dhikr, dua\n◆ No dua is rejected this night', 'color': AppTheme.gold});
+    }
+
+    // ══ লাইলাতুল কদর (রমজানের শেষ ১০ রাত) ══
+    if (hijriMonth == 9 && h >= 20 && now.isAfter(pt.maghrib)) {
+      final isOddNight = (h == 21 || h == 23 || h == 25 || h == 27 || h == 29);
+      if (isOddNight) {
+        alerts.add({'icon': '⭐', 'text': isBn
+            ? 'আজ রাত — লাইলাতুল কদর হতে পারে!\n◆ এই রাত হাজার মাসের চেয়ে উত্তম (সূরা কদর)\n◆ দোয়া: "আল্লাহুম্মা ইন্নাকা আফুউউন তুহিব্বুল আফওয়া ফাফু আন্নী"\n◆ নফল নামাজ, কুরআন, তওবা, ইস্তিগফার করুন\n◆ সকাল পর্যন্ত জেগে ইবাদত করুন'
+            : 'Tonight could be Laylatul Qadr!\n◆ Better than 1000 months (Surah Qadr)\n◆ Dua: "Allahumma innaka Afuwwun tuhibbul afwa fa\'fu anni"\n◆ Nafl prayers, Quran, tawbah, istighfar\n◆ Stay awake till Fajr', 'color': AppTheme.gold});
+      } else {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? 'রমজানের শেষ দশক — লাইলাতুল কদর খুঁজুন!\n◆ বিজোড় রাতে (২১, ২৩, ২৫, ২৭, ২৯) বেশি ইবাদত করুন\n◆ ইতেকাফ করলে সবচেয়ে ভালো\n◆ দোয়া: "আল্লাহুম্মা ইন্নাকা আফুউউন তুহিব্বুল আফওয়া ফাফু আন্নী"'
+            : 'Last 10 nights of Ramadan — seek Laylatul Qadr!\n◆ More worship on odd nights (21,23,25,27,29)\n◆ I\'tikaf is best\n◆ Dua: "Allahumma innaka Afuwwun..."', 'color': const Color(0xFF7C4DFF)});
+      }
+    }
+
+    // ══ শাওয়াল মাস — ৬টি নফল রোজা ══
+    if (hijriMonth == 10) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'শাওয়াল মাস — ৬টি নফল রোজা রাখুন!\n◆ সারা বছর রোজার সওয়াব পাবেন (মুসলিম)\n◆ রমজানের পর এই ৬ রোজা = পূর্ণ বছর রোজার সমান'
+          : 'Shawwal — Keep 6 nafl fasts!\n◆ Whole year reward (Muslim)\n◆ Ramadan + 6 Shawwal = Full year of fasting', 'color': const Color(0xFF64B5F6)});
+    }
+
+    // ══ জিলকদ শেষ হচ্ছে (২৫-২৯ জিলকদ) ══
+    if (hijriMonth == 11 && h >= 25) {
+      alerts.add({'icon': '🕋', 'text': isBn ? 'জিলকদ শেষ হচ্ছে — জিলহজ শুরু হলে কোরবানিদাতারা নখ, চুল ও গোঁফ কাটবেন না!' : 'Dhul Qa\'dah ending — When Dhul Hijjah starts, don\'t cut nails or hair if sacrificing!', 'color': AppTheme.gold});
+    }
+
+    // ══ জিলহজ মাসের বিশেষ আমল — দিনভিত্তিক ══
+    if (hijriMonth == 12) {
+      // ১-৯ জিলহজ: ফজিলত ও আমলের reminder
+      if (h >= 1 && h <= 9) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ $h জিলহজ — বছরের শ্রেষ্ঠ দিন!\n◆ এই দিনের আমল জিহাদের চেয়েও উত্তম (বুখারি)\n◆ সূরা ফাজরে আল্লাহ এই ১০ রাতের শপথ করেছেন\n◆ প্রতিটি মুহূর্ত ইবাদতে কাজে লাগান'
+            : 'Today $h Dhul Hijjah — Best days of the year!\n◆ Worship better than Jihad (Bukhari)\n◆ Allah swore by these 10 nights in Surah Fajr', 'color': AppTheme.gold});
+        alerts.add({'icon': '📿', 'text': isBn
+            ? 'জিলহজের জিকির বেশি বেশি পড়ুন:\n◆ তাহলিল: লা ইলাহা ইল্লাল্লাহ\n◆ তাকবির: আল্লাহু আকবার\n◆ তাহমিদ: আলহামদুলিল্লাহ\n◆ তাসবিহ: সুবহানাল্লাহ\n(মুসনাদে আহমাদ: ৫৪৪৬)'
+            : 'Dhul Hijjah Dhikr:\n◆ Tahlil: La ilaha illallah\n◆ Takbeer: Allahu Akbar\n◆ Tahmeed: Alhamdulillah\n◆ Tasbeeh: Subhanallah (Ahmad: 5446)', 'color': const Color(0xFF7C4DFF)});
+        alerts.add({'icon': '🤲', 'text': isBn
+            ? 'জিলহজের বিশেষ আমলসমূহ:\n◆ তওবা ও ইস্তিগফার করুন\n◆ দান-সদকা বাড়িয়ে দিন (সওয়াব বহুগুণ)\n◆ আত্মীয়তার সম্পর্ক জোরদার করুন\n◆ পাপাচার থেকে সম্পূর্ণ বিরত থাকুন'
+            : 'Dhul Hijjah special deeds:\n◆ Make Tawbah & Istighfar\n◆ Give Sadaqah (multiplied reward)\n◆ Strengthen family ties\n◆ Avoid all sins', 'color': const Color(0xFF26A69A)});
+      }
+      // ১-৮ জিলহজ সেহরির আগে: রোজার reminder
+      if (h >= 1 && h <= 8 && now.isBefore(pt.fajr)) {
+        alerts.add({'icon': '🌙', 'text': isBn
+            ? '$h জিলহজ — আজ রোজা রাখুন!\n◆ রাসূল ﷺ প্রথম ৯ দিন রোজা রাখতেন\n◆ হাফসা (রা.) বর্ণিত: এই আমল তিনি কখনো ছাড়তেন না\n◆ (সুনানে আবু দাউদ: ২১০৬)'
+            : '$h Dhul Hijjah — Keep fast!\n◆ Prophet ﷺ fasted first 9 days\n◆ Never missed this (Abu Dawud: 2106)', 'color': const Color(0xFF81C784)});
+      }
+      // ১-১০ জিলহজ: চুল-নখ না কাটার reminder
+      if (h >= 1 && h <= 10) {
+        alerts.add({'icon': '✂️', 'text': isBn
+            ? 'জিলহজের সুন্নত (কুরবানিদাতার জন্য):\n◆ কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না\n◆ এতে কুরবানির পূর্ণ সওয়াব পাবেন\n◆ (সহিহ মুসলিম, ইবনে হিব্বান)'
+            : 'Dhul Hijjah Sunnah (for those sacrificing):\n◆ Don\'t cut hair, nails or mustache until Qurbani\n◆ Gain full Qurbani reward (Muslim, Ibn Hibban)', 'color': const Color(0xFF26A69A)});
+      }
+      // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার আগাম reminder
+      if (h == 8 && now.isAfter(pt.maghrib)) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আগামীকাল ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখলে আগের ও পরের ১ বছরের গুনাহ মাফ (মুসলিম)\n◆ এখনই সেহরির প্রস্তুতি নিন\n◆ বেশি বেশি দোয়া ও জিকির করুন'
+            : 'Tomorrow 9 Dhul Hijjah — Day of Arafah!\n◆ Fasting forgives 2 years of sins (Muslim)\n◆ Prepare for Sehri now', 'color': AppTheme.gold});
+      }
+      // ৯ জিলহজ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
+      if (h == 9 && now.isBefore(pt.fajr)) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখুন — আগের ও পরের ১ বছরের গুনাহ মাফ ইনশাআল্লাহ (মুসলিম)\n◆ আরাফার রাত মুজদালিফায় অবস্থান — শবে কদরের মতো গুরুত্বপূর্ণ\n◆ বেশি বেশি দোয়া ও ইস্তিগফার করুন'
+            : 'Today 9 Dhul Hijjah — Day of Arafah!\n◆ Fast — 2 years sins forgiven insha\'Allah (Muslim)\n◆ Night at Muzdalifah — like Laylatul Qadr in importance\n◆ Make lots of dua & Istighfar', 'color': AppTheme.gold});
+        if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
+          final cd = _countdown(pt.maghrib);
+          alerts.add({'icon': '🤲', 'text': isBn ? 'আরাফার রোজার ইফতার হতে বাকি $cd — রোজাদার অবস্থায় এখন দোয়া করুন! এই মুহূর্তের দোয়া কবুল হয়।' : 'Arafah Iftar in $cd — Make dua now as a fasting person!', 'color': AppTheme.gold});
+        }
+      }
+      // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
+      if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
+        alerts.add({'icon': '📢', 'text': isBn
+            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জিলহজ ফজর থেকে ১৩ জিলহজ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবর, আল্লাহু আকবর, লা ইলাহা ইল্লাল্লাহু, ওয়াল্লাহু আকবর, আল্লাহু আকবর, ওয়ালিল্লাহিল হামদ।'
+            : 'Takbeer al-Tashriq (Wajib):\n◆ After every Fard prayer\n◆ From 9 Dhul Hijjah Fajr to 13 Dhul Hijjah Asr (23 prayers)\n◆ Men: aloud | Women: softly\n◆ Allahu Akbar, Allahu Akbar, La ilaha illallahu wallahu Akbar, Allahu Akbar wa lillahil hamd', 'color': const Color(0xFFFF8F00)});
+      }
+      // ১০ জিলহজ: ঈদুল আযহা
+      if (h == 10) {
+        alerts.add({'icon': '🎉', 'text': isBn
+            ? 'আজ ১০ জিলহজ — ঈদুল আযহা মোবারক!\n◆ ঈদের নামাজ জামাতে আদায় করুন (ওয়াজিব)\n◆ সামর্থ্য থাকলে কুরবানি করুন\n◆ কুরবানির গোশত আত্মীয়দের মাঝে বণ্টন করুন\n◆ ঈদের দিন কোনো নফল রোজা রাখবেন না'
+            : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak!\n◆ Pray Eid Salah in congregation\n◆ Perform Qurbani if able\n◆ Distribute meat to relatives\n◆ No nafl fasting today', 'color': AppTheme.gold});
+        alerts.add({'icon': '🐄', 'text': isBn
+            ? 'কুরবানির ফজিলত:\n◆ কুরবানির রক্ত জমিনে পড়ার আগেই আল্লাহর কাছে কবুল হয়\n◆ কিয়ামতে শিং, পশম ও ক্ষুরসহ উপস্থিত করা হবে\n◆ সন্তুষ্টচিত্তে কুরবানি করুন\n◆ (জামে তিরমিজি: ১৪৯৩)'
+            : 'Qurbani reward:\n◆ Accepted before blood touches ground\n◆ Presented with horns, hair & hooves on Qiyamah\n◆ Sacrifice with a content heart (Tirmidhi: 1493)', 'color': const Color(0xFFFF8F00)});
+      }
+      // ১১-১৩ জিলহজ: আইয়ামে তাশরিক
+      if (h >= 11 && h <= 13) {
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'আজ আইয়ামে তাশরিকের দিন ($h জিলহজ):\n◆ প্রতি ফরজ নামাজের পর তাকবিরে তাশরিক পড়ুন\n◆ এই তিন দিনে নফল রোজা রাখা নিষেধ\n◆ বেশি বেশি জিকির ও দোয়া করুন'
+            : 'Today is Ayyam al-Tashriq ($h Dhul Hijjah):\n◆ Continue Takbeer al-Tashriq after every Fard\n◆ Nafl fasting forbidden these 3 days\n◆ Increase dhikr & dua', 'color': const Color(0xFFFF8F00)});
+      }
+      // সার্বক্ষণিক হজের reminder (১-১৩ জিলহজ)
+      if (h >= 1 && h <= 13) {
+        alerts.add({'icon': '🕌', 'text': isBn
+            ? 'হজের ফজিলত:\n◆ মাবরুর হজের একমাত্র পুরস্কার জান্নাত (বুখারি: ১৭৭৩)\n◆ সামর্থ্যবান হলে জীবনে একবার হজ ফরজ\n◆ হজের মাধ্যমে সব পাপ মাফ হয়\n◆ সক্ষম হলে এখনই প্রস্তুতি নিন'
+            : 'Hajj reward:\n◆ Only reward for Mabrur Hajj is Jannah (Bukhari: 1773)\n◆ Obligatory once for those able\n◆ All sins forgiven\n◆ Start preparing if able', 'color': const Color(0xFF7C4DFF)});
+      }
+    }
+
+    // ══ রোজার বিস্তারিত reminder — সময়ভিত্তিক ══
+    // ইফতার তাড়াতাড়ি করুন — ইফতারের ৩০ মিনিট আগে থেকে
+    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
+      alerts.add({'icon': '🍽️', 'text': isBn
+          ? 'ইফতার তাড়াতাড়ি করুন — নবুওয়তের আদর্শ!\n◆ মাগরিবের আযান হওয়ার সাথে সাথে ইফতার করুন\n◆ দেরি করা মাকরুহ'
+          : 'Break fast quickly — Prophetic sunnah!\n◆ Break fast as soon as Maghrib Adhan\n◆ Delaying is makruh', 'color': const Color(0xFF64B5F6)});
+    }
+    // সেহরি দেরিতে করুন — ফজরের ৯০ মিনিট আগে থেকে
+    if (now.isBefore(pt.fajr) && pt.fajr.difference(now).inMinutes <= 90) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'সেহরি দেরিতে করুন — সুন্নত!\n◆ ফজরের কাছাকাছি সময়ে সেহরি খান\n◆ সেহরিতে বরকত আছে — ছেড়ে দেবেন না'
+          : 'Delay Sehri — it\'s Sunnah!\n◆ Eat close to Fajr time\n◆ Sehri has barakah — don\'t skip it', 'color': const Color(0xFF81C784)});
+    }
+    // রোজাদারকে ইফতার করান — রমজান মাসে
+    if (hijriMonth == 9) {
+      alerts.add({'icon': '🤲', 'text': isBn
+          ? 'রোজাদারকে ইফতার করান!\n◆ তার সমান সওয়াব পাবেন — রোজার কিছু কমবে না\n◆ (তিরমিজি: ৮০৭)'
+          : 'Feed a fasting person!\n◆ Same reward as the faster — their reward doesn\'t decrease\n◆ (Tirmidhi: 807)', 'color': const Color(0xFF26A69A)});
+    }
+
     return alerts;
   }
+
+  // ══ স্থায়ী রেফারেন্স আমল — সবসময় প্রাসঙ্গিক, সময়-নির্ভর নয় ══
+  List<Map<String, dynamic>> _getPermanentNaflDeeds(AppLanguage lang) {
+    final isBn = lang.isBn;
+    final alerts = <Map<String, dynamic>>[];
+
+    // ══ ওযুর পরের আমল ══
+    alerts.add({'icon': '💧', 'text': isBn
+        ? 'ওযুর পরের আমল:\n◆ কালেমা শাহাদত পড়ুন — জান্নাতের ৮টি দরজার যেকোনোটি দিয়ে প্রবেশ করতে পারবেন (মুসলিম: ২৩৪)\n◆ ওযুর আগে মিসওয়াক করুন — মুখের পবিত্রতা ও আল্লাহর সন্তুষ্টি\n◆ তাহিয়্যাতুল অযু ২ রাকাত পড়ুন — জান্নাতে যাওয়ার পথ খোলা (মুসলিম: ৪৪১)'
+        : 'After Wudu:\n◆ Say Kalimah Shahadah — enter Jannah from any of 8 gates (Muslim: 234)\n◆ Use Miswak before wudu — mouth purity & Allah\'s pleasure\n◆ Pray 2 rakats Tahiyyatul Wudu — path to Jannah (Muslim: 441)', 'color': const Color(0xFF64B5F6)});
+
+    // ══ খাবারের আমল ══
+    alerts.add({'icon': '🍽️', 'text': isBn
+        ? 'খাবারের সুন্নত:\n◆ বিসমিল্লাহ বলে ডান হাতে খান\n◆ সামনে থেকে খান\n◆ তিন চুমুকে পানি পান করুন — পাত্রে শ্বাস ফেলবেন না\n◆ খাওয়া শেষে আলহামদুলিল্লাহ বলুন\n◆ পড়ে যাওয়া খাবার তুলে পরিষ্কার করে খান — বরকত নষ্ট হয়ে যায়\n◆ আঙুল চেটে খান — কোথায় বরকত আছে জানা নেই'
+        : 'Eating Sunnah:\n◆ Say Bismillah, eat with right hand\n◆ Eat from in front of you\n◆ Sip water 3 times — don\'t breathe in vessel\n◆ Say Alhamdulillah after eating\n◆ Pick up fallen food — barakah may be in it\n◆ Lick fingers — barakah unknown', 'color': const Color(0xFFFF8F00)});
+
+    // ══ মসজিদের আমল ══
+    alerts.add({'icon': '🕌', 'text': isBn
+        ? 'মসজিদের আমল:\n◆ ডান পা দিয়ে দরুদ পড়ে প্রবেশ করুন\n◆ বাম পা দিয়ে দরুদ পড়ে বের হন\n◆ তাহিয়্যাতুল মসজিদ পড়ুন\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন — রাসূল ﷺ প্রথম সারির জন্য ৩ বার দোয়া করতেন\n◆ অন্ধকারে মসজিদে যাওয়া — কিয়ামতে পূর্ণ নূর!'
+        : 'Mosque deeds:\n◆ Enter right foot, recite Salawat & dua\n◆ Exit left foot, recite Salawat & dua\n◆ Pray Tahiyyatul Masjid\n◆ Try first row — Prophet ﷺ made dua for it 3x\n◆ Walking to mosque in dark — full Noor on Qiyamah!', 'color': const Color(0xFF26A69A)});
+
+    // ══ বাজারে যাওয়ার আমল ══
+    alerts.add({'icon': '🛒', 'text': isBn
+        ? 'বাজারে প্রবেশের দোয়া পড়ুন:\n◆ "লা ইলাহা ইল্লাল্লাহু ওয়াহদাহু লা শারিকালাহু, লাহুল মুলকু ওয়ালা হুল হামদু, ইয়ুহয়ি ওয়া ইয়ুমিতু, ওয়া হুয়া হাইয়ুন লা ইয়ামুতু, বিয়াদিহিল খাইর, ওয়া হুয়া আলা কুল্লি শাইয়িন কাদির।" পড়ুন\n◆ ১০ লক্ষ পুণ্য + ১০ লক্ষ পাপ মোচন + জান্নাতে ঘর নির্মাণ\n◆ (তিরমিজি: ৩৪২৮)\n◆ ব্যবসায় সততা রাখুন — মিথ্যা কসম করবেন না'
+        : 'Market entry dua:\n◆ "La ilaha illallahu wahdahu la sharika lahu..."\n◆ 1 million good deeds + 1 million sins erased + house in Jannah\n◆ (Tirmidhi: 3428)\n◆ Be honest in trade — never false oath', 'color': const Color(0xFFFDD835)});
+
+    // ══ বিশেষ নফল নামাজের reminder ══
+    alerts.add({'icon': '🙏', 'text': isBn
+        ? 'বিশেষ নফল নামাজ:\n◆ সালাতুত তওবা — গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান (ইবনে মাজাহ: ১৩৯৫)\n◆ সিজদাতুস শুকুর — সুসংবাদ পেলে শুকরানার সিজদা দিন\n◆ সালাতুল হাজত — যেকোনো প্রয়োজনে ২ রাকাত পড়ুন\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
+        : 'Special Nafl prayers:\n◆ Salat al-Tawbah — 2 rakats after sin, seek forgiveness (Ibn Majah: 1395)\n◆ Sajda al-Shukr — prostrate in gratitude for good news\n◆ Salat al-Hajat — 2 rakats for any need\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
+
+    // ══ দান-সদকার reminder ══
+    alerts.add({'icon': '💰', 'text': isBn
+        ? 'দান সদকার ফজিলত:\n◆ প্রতিদিন ছোট হলেও কিছু সদকা করুন\n◆ সদকা গুনাহ মুছে দেয় — যেমন পানি আগুন নেভায় (আহমাদ: ২২০১৬)\n◆ মাসিক আয়ের অংশ এতিম, মসজিদ বা গরিবদের দিন — জিহাদের সওয়াব (বুখারি: ৬০০৭)\n◆ রোগীকে দেখতে যান — ৭০ হাজার ফেরেশতা সন্ধ্যা পর্যন্ত দোয়া করবে (আহমাদ: ৯৫৫)'
+        : 'Sadaqah reward:\n◆ Give Sadaqah daily, even small\n◆ Sadaqah erases sins like water extinguishes fire (Ahmad: 22016)\n◆ Monthly donation to orphans/mosque — equals Jihad reward (Bukhari: 6007)\n◆ Visit the sick — 70,000 angels make dua till evening (Ahmad: 955)', 'color': const Color(0xFFFF8F00)});
+
+    // ══ সাদাকায়ে জারিয়াহ ══
+    alerts.add({'icon': '🌱', 'text': isBn
+        ? 'সাদাকায়ে জারিয়াহ:\n◆ মৃত্যুর পরও তিনটি আমল বন্ধ হয় না:\n  ১. সাদাকায়ে জারিয়াহ\n  ২. উপকারী ইলম\n  ৩. সুসন্তান যে দোয়া করে\n◆ (তিরমিজি: ১৩৭৬)\n◆ এখনই অসিয়ত লিখুন — মুসলিমের উচিত অসিয়ত লিখে রাখা (বুখারি: ২৫৮৭)'
+        : 'Sadaqah Jariyah:\n◆ 3 deeds continue after death:\n  1. Ongoing charity\n  2. Beneficial knowledge\n  3. Righteous child making dua\n◆ (Tirmidhi: 1376)\n◆ Write your wasiyyah now (Bukhari: 2587)', 'color': const Color(0xFF26A69A)});
+
+    // ══ আত্মীয়তা ও মানুষের সাথে ব্যবহার ══
+    alerts.add({'icon': '🤝', 'text': isBn
+        ? 'মানুষের সাথে ব্যবহার:\n◆ আত্মীয়তার সম্পর্ক রক্ষা করুন — রিজিক ও আয়ু বৃদ্ধি পায়\n◆ মুসলিম ভাইয়ের প্রয়োজনে সাহায্য করুন — ১ মাস ইতেকাফের চেয়ে বেশি সওয়াব (আল-মু\'জাম: ১৩৬৪৬)\n◆ সৎ কাজ ছোট মনে করবেন না — হাসিমুখে দেখা করাও সদকা (মুসলিম)\n◆ মানুষকে ভালোবাসলে জানান — "আমি আপনাকে আল্লাহর জন্য ভালোবাসি"'
+        : 'Relations & character:\n◆ Maintain family ties — increases rizq & lifespan\n◆ Help a brother — better than 1 month i\'tikaf (Al-Mu\'jam: 13646)\n◆ No good deed is small — even smiling is Sadaqah (Muslim)\n◆ Tell those you love: "I love you for Allah\'s sake"', 'color': const Color(0xFF64B5F6)});
+
+    // ══ নারীদের বিশেষ আমল ══
+    alerts.add({'icon': '👩', 'text': isBn
+        ? 'মহিলাদের জন্য জান্নাতের চাবিকাঠি:\n◆ ৫ ওয়াক্ত সালাত আদায় করুন\n◆ রমজানের সিয়াম পালন করুন\n◆ লজ্জাস্থানের হেফাজত করুন\n◆ স্বামীর আনুগত্য করুন — জান্নাতের যেকোনো দরজা দিয়ে প্রবেশ করবেন\n◆ (সহিহ ইবনে হিব্বান: ৪১৬৩)'
+        : 'For women — keys to Jannah:\n◆ Pray 5 daily prayers\n◆ Keep Ramadan fasts\n◆ Guard chastity\n◆ Obey husband — enter Jannah from any gate\n◆ (Ibn Hibban: 4163)', 'color': const Color(0xFFE91E63)});
+
+    // ══ টয়লেট/বাথরুমের সুন্নত ══
+    alerts.add({'icon': '🚿', 'text': isBn
+        ? 'টয়লেট/বাথরুমের সুন্নত:\n◆ প্রবেশের আগে দোয়া: "আল্লাহুম্মা ইন্নি আউযুবিকা মিনাল খুবুসি ওয়াল খাবায়িস"\n◆ বাম পা দিয়ে প্রবেশ করুন\n◆ বের হওয়ার সময় ডান পা দিয়ে বের হয়ে পড়ুন: "গুফরানাক"\n◆ কিবলামুখী হয়ে বা পিঠ দিয়ে বসবেন না'
+        : 'Toilet/Bathroom Sunnah:\n◆ Dua before entering: "Allahumma inni auzubika minal khubuthi wal khaba\'ith"\n◆ Enter with left foot\n◆ Exit right foot & say: "Ghufranaka"\n◆ Don\'t face or turn back to Qiblah', 'color': const Color(0xFF78909C)});
+
+    // ══ যাকাত ══
+    alerts.add({'icon': '💵', 'text': isBn
+        ? 'যাকাতের কথা মনে রাখুন:\n◆ নিসাব পরিমাণ সম্পদে যাকাত ফরজ\n◆ যাকাত না দিলে সম্পদ পবিত্র হয় না\n◆ যাকাত দিলে সম্পদে বরকত আসে\n◆ এতিম, বিধবা, গরিব, ঋণগ্রস্তদের দিন\n◆ প্রতি বছর হিসাব করুন ও সময়মতো আদায় করুন'
+        : 'Zakat reminder:\n◆ Obligatory when wealth reaches Nisab\n◆ Wealth not purified without Zakat\n◆ Zakat brings barakah\n◆ Give to orphans, widows, poor, indebted\n◆ Calculate yearly & pay on time', 'color': const Color(0xFF26A69A)});
+
+    // ══ জিহাদ ══
+    alerts.add({'icon': '🛡️', 'text': isBn
+        ? 'জিহাদের মর্যাদা:\n◆ আল্লাহর পথে জিহাদের সারিতে এক মুহূর্ত — ৬০ বছর ইবাদতের চেয়ে উত্তম\n◆ আজকের যুগে কলম, জ্ঞান ও দাওয়াতের মাধ্যমে জিহাদ করুন\n◆ পরিবারকে ইসলামে প্রতিষ্ঠিত রাখাও জিহাদ\n◆ নফসের বিরুদ্ধে জিহাদ — সবচেয়ে বড় জিহাদ\n◆ রিবাত: ১ দিন-রাত সীমান্ত পাহারা = ১ মাস রোজা ও রাতের ইবাদতের চেয়ে বেশি'
+        : 'Jihad (striving):\n◆ Moment in Allah\'s path — better than 60 years worship\n◆ Today: Jihad through pen, knowledge & dawah\n◆ Keeping family on Islam is also Jihad\n◆ Jihad against nafs — the greatest Jihad\n◆ Ribat 1 day-night = more than 1 month fasting & worship', 'color': const Color(0xFF546E7A)});
+
+    // ══ কাজের শুরুতে ══
+    alerts.add({'icon': '✍️', 'text': isBn
+        ? 'কাজের শুরুতে:\n◆ প্রতিটি ভালো কাজ ডান দিক দিয়ে বিসমিল্লাহ বলে শুরু করুন\n◆ যেকোনো কাজ পরামর্শ করে করুন (শুরা: ৩৮)\n◆ হালাল উপায়ে উপার্জন করুন\n◆ কাজে মনোযোগ দিন — আল্লাহ উৎকর্ষতা পছন্দ করেন'
+        : 'Before starting work:\n◆ Start every good deed right side with Bismillah\n◆ Consult in all matters (Shura: 38)\n◆ Earn through halal means\n◆ Be focused — Allah loves excellence', 'color': const Color(0xFF8D6E63)});
+
+    // ══ যিকর ও তিলাওয়াত ══
+    alerts.add({'icon': '📖', 'text': isBn
+        ? 'যিকর ও তিলাওয়াত:\n◆ "সুবহানাল্লাহি ওয়া বিহামদিহি সুবহানাল্লাহিল আজিম" — বলায় সহজ, পাল্লায় ভারী (বুখারি: ৬৪০৬)\n◆ সূরা ইখলাস = কুরআনের ১/৩ ভাগ\n◆ সূরা কাফিরুন = কুরআনের ১/৪ ভাগ\n◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে বললে আরশ পর্যন্ত পৌঁছায়\n◆ প্রতিদিন নিয়মিত কুরআন তিলাওয়াত করুন'
+        : 'Dhikr & Tilawah:\n◆ "Subhanallahi wa bihamdih..." — easy, heavy in scale (Bukhari: 6406)\n◆ Surah Ikhlas = 1/3 Quran\n◆ Surah Kafirun = 1/4 Quran\n◆ La ilaha illallah with sincerity reaches the Arsh\n◆ Recite Quran daily', 'color': const Color(0xFF7C4DFF)});
+
+    return alerts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = widget.lang;
@@ -1286,6 +1570,81 @@ class _HomeTabState extends State<_HomeTab> {
               onSetPrayer: _setPrayer, onSetRoza: _setRoza,
             ),
             const SizedBox(height: 16),
+
+            // ══ নফল আমল ও বিশেষ দিনের স্থায়ী রেফারেন্স ══
+            Builder(builder: (context) {
+              final naflAlerts = _getPermanentNaflDeeds(lang);
+              if (naflAlerts.isEmpty) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.3),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Row(children: [
+                        const Text('📿', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 8),
+                        Text(
+                          lang.isBn ? 'নফল আমল ও বিশেষ দিনের তথ্য' : 'Nafl Deeds & Special Days',
+                          style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ]),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: naflAlerts.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final a = entry.value;
+                          return Column(
+                            children: [
+                              if (i > 0) const Divider(color: Colors.white10, height: 16),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(a['icon'] as String, style: const TextStyle(fontSize: 18)),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text(
+                                      a['text'] as String,
+                                      style: TextStyle(
+                                        color: a['color'] as Color,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.5,
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
           ],
         ),

@@ -1199,63 +1199,8 @@ class _HomeTabState extends State<_HomeTab> {
         : 'Yearly deeds:\n◆ Muharram: fast more, especially 9 & 10 — 1 year sins forgiven\n◆ Fast more in Shaban\n◆ Ramadan: fast+tarawih+worship in last 10 nights for Laylatul Qadr\n◆ 6 fasts in Shawwal = full year fasting (Amal 43)\n◆ First 9 days Dhul Hijjah: good deeds — Allahs most beloved (Amal 48)\n◆ Fast on 9 Dhul Hijjah — 2 years of sins forgiven\n◆ Qurbani & Eid prayer on 10 Dhul Hijjah\n◆ Umrah in Ramadan = Hajj reward (Amal 37)\n◆ Jihad if able — better than 60 years of worship (Amal 46)\n◆ Go to mosque for deen knowledge = full Hajj reward (Amal 36)', 'color': const Color(0xFF26A69A)});
 
     // ══════════════════════════════════════════════════
-    // সাপ্তাহিক আমল — শুধু প্রাসঙ্গিক সময়ে দেখাবে
-    // ══════════════════════════════════════════════════
-
-    // ══ সোম/বৃহস্পতি নফল রোজা ══
-    final isFastDay = now.weekday == DateTime.monday || now.weekday == DateTime.thursday;
-    final prevDayIsSunday = now.weekday == DateTime.sunday;
-    final prevDayIsWed = now.weekday == DateTime.wednesday;
-    if (isFastDay && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
-    }
-    if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Monday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
-    }
-    if (prevDayIsWed && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Thursday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ জুমার দিন ══
-    if (now.weekday == DateTime.friday) {
-      if (now.isBefore(pt.dhuhr.add(const Duration(hours: 1, minutes: 30)))) {
-        alerts.add({'icon': '🕌', 'text': isBn ? 'আজ জুমার দিন — জুমার নামাজ আদায় করুন। দরূদ ও দোয়া করুন।' : 'Today is Friday — Pray Jumu\'ah.', 'color': AppTheme.accent});
-      } else if (now.isBefore(pt.maghrib)) {
-        final cd = _countdown(pt.maghrib);
-        alerts.add({'icon': '🕌', 'text': isBn ? 'জুমার দিন — দরূদ ও দোয়া করুন (শেষ হতে বাকি $cd)' : 'Friday — Send Salawat & dua (ends in $cd)', 'color': AppTheme.accent});
-      }
-      if (now.hour < 20) {
-        alerts.add({'icon': '📖', 'text': isBn ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।' : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
-      }
-    }
-    // ══ বৃহস্পতিবার সন্ধ্যায়: জুমার রাতের reminder ══
-    if (now.weekday == DateTime.thursday && now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      alerts.add({'icon': '✨', 'text': isBn
-          ? 'আজ বৃহস্পতিবার সন্ধ্যা — জুমার রাত শুরু!\n◆ বেশি বেশি দরুদ পড়ুন (আবু দাউদ: ১০৪৭)\n◆ জুমার দিন পর্যন্ত দরুদ পড়তে থাকুন\n◆ আগামীকাল জুমার ১১টি আমল করার নিয়ত করুন'
-          : 'Thursday evening — Jumu\'ah night begins!\n◆ Send lots of Salawat (Abu Dawud: 1047)\n◆ Continue till Friday\n◆ Intend to do Friday\'s deeds tomorrow', 'color': AppTheme.accent});
-    }
-
-    // ══════════════════════════════════════════════════
-    // মাসিক আমল — শুধু প্রাসঙ্গিক তারিখে দেখাবে
-    // ══════════════════════════════════════════════════
-
-    // ══ আইয়ামে বিজ (হিজরি ১৩-১৫ তারিখ) ══
-    if (h >= 13 && h <= 15) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.', 'color': AppTheme.gold});
-    } else if (h == 12 && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।' : 'Ayyam al-Beed starts tomorrow (13th-15th)!', 'color': AppTheme.gold});
-    }
-
-    // ══════════════════════════════════════════════════
     // বাৎসরিক / হিজরি মাস-ভিত্তিক আমল — শুধু প্রাসঙ্গিক মাসে দেখাবে
     // ══════════════════════════════════════════════════
-
-    // ══ মুহররম মাস ══
-    if (hijriMonth == 1) {
-      alerts.add({'icon': '📅', 'text': isBn
-          ? 'মুহররম মাসের বিশেষ আমল:\n◆ রমজানের পর সবচেয়ে উত্তম রোজা মুহররমের (মুসলিম: ১১৬৩)\n◆ ১০ মুহররম (আশুরার রোজা) রাখুন — আগের ১ বছরের গুনাহ মাফ\n◆ পুরো মাস নফল রোজার চেষ্টা করুন\n◆ সম্মানিত মাসে পাপ থেকে বিরত থাকুন'
-          : 'Muharram special deeds:\n◆ Best nafl fast after Ramadan is Muharram (Muslim: 1163)\n◆ 10 Muharram (Ashura fast) — 1 year of sins forgiven\n◆ Try to fast throughout the month\n◆ Avoid sins in this sacred month', 'color': AppTheme.gold});
-    }
 
     // ══ রজব মাস ══
     if (hijriMonth == 7) {

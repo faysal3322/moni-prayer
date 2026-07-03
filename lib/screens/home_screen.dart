@@ -718,11 +718,11 @@ class _HomeTabState extends State<_HomeTab> {
           : 'Sunnah of returning home: Enter with right foot, say Bismillah, give Salam.', 'color': const Color(0xFF26A69A)});
     }
 
-    // ══ আইয়ামে বিজ ══
+    // ══ আইয়ামে বিজ (১৩, ১৪, ১৫ হিজরি রোজা) ══
     if (h >= 13 && h <= 15) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন।' : 'Today is Ayyam al-Beed (Hijri day $h)! Please fast.', 'color': AppTheme.gold});
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আজ আইয়ামে বিজের রোজার দিন (হিজরি $h তারিখ)! রোজা রাখুন — ১৩,১৪,১৫ হিজরিতে রোজা সারা বছর রোজার সমান (আমল ৪২, ৪৩)।' : 'Today is Ayyam al-Beed (Hijri day $h)! Fasting 13,14,15 Hijri = full year fasting (Amal 42, 43).', 'color': AppTheme.gold});
     } else if (h == 12 && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন।' : 'Ayyam al-Beed starts tomorrow (13th-15th)!', 'color': AppTheme.gold});
+      alerts.add({'icon': '🌙', 'text': isBn ? 'আগামীকাল থেকে আইয়ামে বিজের রোজা (১৩-১৫ তারিখ)! সেহরির প্রস্তুতি নিন। এই রোজা সারা বছর রোজার সমান (আমল ৪২, ৪৩)।' : 'Ayyam al-Beed starts tomorrow (13th-15th)! Prepare for Sehri — equals full year fasting (Amal 42, 43).', 'color': AppTheme.gold});
     }
 
     // ══ সোম/বৃহস্পতি রোজা ══
@@ -734,10 +734,10 @@ class _HomeTabState extends State<_HomeTab> {
       alerts.add({'icon': '🌿', 'text': isBn ? 'আজ ${now.weekday == DateTime.monday ? "সোমবার" : "বৃহস্পতিবার"} — নফল রোজার দিন! সেহরি খেতে ভুলবেন না।' : 'Today is ${now.weekday == DateTime.monday ? "Monday" : "Thursday"} — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
     }
     if (prevDayIsSunday && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Monday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল সোমবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন। প্রতি সোম ও বৃহস্পতিবার নফল রোজা রাখা সুন্নত।' : 'Tomorrow is Monday — Nafl fast day! Prepare for Sehri.', 'color': const Color(0xFF7C4DFF)});
     }
     if (prevDayIsWed && now.isAfter(pt.maghrib)) {
-      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন।' : 'Tomorrow is Thursday — Nafl fast day!', 'color': const Color(0xFF7C4DFF)});
+      alerts.add({'icon': '🌿', 'text': isBn ? 'আগামীকাল বৃহস্পতিবার — নফল রোজার দিন! সেহরির প্রস্তুতি নিন। প্রতি সোম ও বৃহস্পতিবার নফল রোজা রাখা সুন্নত।' : 'Tomorrow is Thursday — Nafl fast day! Prepare for Sehri.', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ জুমার দিন ══
@@ -775,7 +775,18 @@ class _HomeTabState extends State<_HomeTab> {
         alerts.add({'icon': '📖', 'text': isBn
             ? 'আজ জুমার দিন — সূরা কাহাফ তেলাওয়াত করুন! কিয়ামতে নূরের আলো হবে।'
             : 'Friday — Recite Surah Kahaf! Light on Judgment Day.', 'color': const Color(0xFF7C4DFF)});
+
+        alerts.add({'icon': '🕋', 'text': isBn
+            ? 'সুযোগ হলে মক্কা-মদিনায় নামাজের ফজিলত মনে রাখুন:\n◆ মক্কায় ১ নামাজ = ১ লক্ষ গুণ নামাজের সমান (আমল ৩০)\n◆ মদিনায় ১ নামাজ = ১ হাজার গুণ নামাজের সমান (আমল ৩০)\n◆ মদিনায় মসজিদুল কুবায় নামাজ = ১ ওমরাহর সওয়াবের সমান (আমল ৪০)'
+            : 'Remember prayer virtues in the two Harams:\n◆ Makkah = 100,000x reward (Amal 30)\n◆ Madinah = 1,000x reward (Amal 30)\n◆ Masjid Quba in Madinah = 1 Umrah reward (Amal 40)', 'color': const Color(0xFF26A69A)});
       }
+    }
+
+    // ══ শাওয়াল মাস — ৬টি নফল রোজা (২ শাওয়াল থেকে মাস শেষ পর্যন্ত) ══
+    if (hijriMonth == 10 && h >= 2) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'শাওয়াল মাস চলছে — এই মাসে ৬টি নফল রোজা রাখুন! রমজানের পর এই ৬ রোজা রাখলে সারা বছর রোজার সওয়াব পাবেন (মুসলিম, আমল ৪৩)।'
+          : 'It is Shawwal — keep 6 nafl fasts this month! Equals fasting the whole year (Muslim, Amal 43).', 'color': const Color(0xFF81C784)});
     }
 
     // ══ জিলকদ শেষ হচ্ছে (২৫-২৯ জিলকদ) ══
@@ -790,6 +801,8 @@ class _HomeTabState extends State<_HomeTab> {
         alerts.add({'icon': '🕋', 'text': isBn ? 'আজ $h জিলহজ — বছরের শ্রেষ্ঠ দিন! বেশি বেশি ইবাদত করুন। এই দিনের আমল জিহাদের চেয়েও উত্তম!' : 'Today $h Dhul Hijjah — Best days of the year! Worship is better than Jihad!', 'color': AppTheme.gold});
         // জিকিরের reminder
         alerts.add({'icon': '📿', 'text': isBn ? 'জিলহজের আমল: বেশি বেশি পড়ুন — সুবহানাল্লাহ, আলহামদুলিল্লাহ, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহ!' : 'Dhul Hijjah Dhikr: Subhanallah, Alhamdulillah, Allahu Akbar, La ilaha illallah!', 'color': const Color(0xFF7C4DFF)});
+        // জিলহজের প্রথম ৯ দিন সবচেয়ে প্রিয় আমল
+        alerts.add({'icon': '💎', 'text': isBn ? 'জিলহজের প্রথম ৯ দিনের নেক আমল আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮) — বেশি বেশি ইবাদত করুন।' : 'Good deeds in first 9 days of Dhul Hijjah are most beloved to Allah (Amal 48).', 'color': AppTheme.gold});
       }
 
       // ১-৮ জিলহজ সেহরির আগে: রোজার reminder
@@ -894,6 +907,13 @@ class _HomeTabState extends State<_HomeTab> {
             ? 'আগামীকাল ১১ মুহররম — আশুরার পরের রোজা!\n◆ ১০ ও ১১ মুহররম একসাথে রোজা রাখা উত্তম\n◆ আজ রাতেই সেহরির নিয়ত করুন\n◆ বেশি বেশি দোয়া, জিকির ও ইস্তিগফার করুন'
             : 'Tomorrow 11 Muharram — Fast after Ashura!\n◆ Best to fast 10 & 11 together\n◆ Make Sehri intention tonight\n◆ Increase dua, dhikr & istighfar', 'color': AppTheme.gold});
       }
+    }
+
+    // ══ শাবান মাসের বিশেষ আমল — বেশি বেশি রোজা ══
+    if (hijriMonth == 8 && h < 25) {
+      alerts.add({'icon': '🌙', 'text': isBn
+          ? 'শাবান মাস চলছে — রাসূল ﷺ শাবান মাসে সবচেয়ে বেশি নফল রোজা রাখতেন। এই মাসে বেশি বেশি রোজা রাখার চেষ্টা করুন।'
+          : 'It is the month of Shaban — the Prophet ﷺ fasted most in this month. Try to fast more this month.', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ দৈনিক আমল — রাতের শেষ তৃতীয়াংশ (তাহাজ্জুদের সময়) ══
@@ -1106,16 +1126,6 @@ class _HomeTabState extends State<_HomeTab> {
         ? 'ইলম ও দাওয়াহ:\n◆ প্রতিদিন কিছু কুরআন-হাদিসের জ্ঞান অর্জন করুন\n◆ সহিহ দলিলভিত্তিক আকিদা, ফারায়েজ ও হালাল-হারাম শিখুন\n◆ বিদআত থেকে দূরে থাকুন\n◆ ইসলামি বই পড়ুন, আলোচনা ও বক্তব্য শুনুন\n◆ দ্বীনি ইলম শেখা/শেখাতে মসজিদে যান — পূর্ণ হজ্জের সমান (আমল ৩৬)\n◆ কৌশল ও হিকমতের সাথে মানুষকে আল্লাহর দিকে আহ্বান করুন\n◆ কাজের ফাঁকে ফাঁকে আল্লাহকে স্মরণ করুন, হৃদয় মসজিদের সাথে সংযুক্ত রাখুন\n◆ সর্বদা আল্লাহর উপর ভরসা রাখুন, বিপদে ধৈর্য ধরুন'
         : 'Knowledge & dawah:\n◆ Learn some Quran & hadith knowledge daily\n◆ Learn sound aqeedah, obligations & halal-haram\n◆ Keep away from bidah\n◆ Read Islamic books, listen to Islamic talks\n◆ Go to mosque to learn/teach deen = full Hajj reward (Amal 36)\n◆ Call people to Allah with wisdom\n◆ Remember Allah during work; keep heart connected to mosque\n◆ Always trust in Allah; be patient in hardship', 'color': const Color(0xFF26A69A)});
 
-    // ══ সাপ্তাহিক ও মাসিক আমল ══
-    alerts.add({'icon': '📅', 'text': isBn
-        ? 'সাপ্তাহিক ও মাসিক আমল:\n◆ প্রতি সোমবার ও বৃহস্পতিবার নফল রোজা রাখুন\n◆ জুমার দিন: বেশি দরুদ পড়ুন, সূরা কাহাফ পড়ুন, গোসল করে আগে মসজিদে যান (আমল ৩৪)\n◆ জুমার আগমনের সওয়াব: ১ম ঘণ্টায় উট, ২য়তে গরু, ৩য়তে দুম্বা, ৪র্থতে মুরগি, ৫মতে ডিম কুরবানির সমান (আমল ৬৭)\n◆ ১৩, ১৪ ও ১৫ হিজরিতে রোজা — সারা বছর রোজার সমান (আমল ৪২, ৪৩)\n◆ দুই পবিত্র হারামে নামাজ — মক্কায় ১ লক্ষ গুণ, মদিনায় ১ হাজার গুণ (আমল ৩০)\n◆ মদিনায় মসজিদুল কুবায় নামাজ = ওমরাহর সওয়াব (আমল ৪০)'
-        : 'Weekly & monthly deeds:\n◆ Fast on Mondays & Thursdays\n◆ Friday: Salawat, Surah Kahaf, bath & go early to mosque (Amal 34)\n◆ Friday arrival: 1hr=camel, 2hr=cow, 3hr=sheep, 4hr=chicken, 5hr=egg sacrifice (Amal 67)\n◆ Fast 13, 14, 15 Hijri = full year fasting (Amal 42, 43)\n◆ Prayers in Harams: Makkah = 100,000x, Madinah = 1,000x (Amal 30)\n◆ Masjid Quba in Madinah = Umrah reward (Amal 40)', 'color': const Color(0xFF26A69A)});
-
-    // ══ বার্ষিক আমল ══
-    alerts.add({'icon': '🗓️', 'text': isBn
-        ? 'বার্ষিক আমল:\n◆ মুহাররম: বেশি রোজা, বিশেষত ৯ ও ১০ তারিখে — ১ বছরের গুনাহ মাফ\n◆ শাবান মাসে বেশি রোজা রাখুন\n◆ রমজান: রোজা+তারাবি+শেষ দশকে লাইলাতুল কদরের ইবাদত\n◆ শাওয়ালে ৬টি রোজা — সারা বছর রোজার সমান (আমল ৪৩)\n◆ জিলহজের প্রথম ৯ দিন নেক আমল — আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮)\n◆ ৯ জিলহজে আরাফার রোজা — দুই বছরের গুনাহ মাফ\n◆ ১০ জিলহজে কুরবানি ও ঈদের নামাজ পড়ুন\n◆ রমজানে ওমরাহ = হজ্জের সওয়াব (আমল ৩৭)\n◆ সামর্থ্য থাকলে জিহাদে অংশ নিন — ৬০ বছরের ইবাদতের চেয়ে উত্তম (আমল ৪৬)\n◆ দ্বীনি ইলম শেখা/শেখানোর জন্য মসজিদে যান = পূর্ণ হজ্জের সমান (আমল ৩৬)'
-        : 'Yearly deeds:\n◆ Muharram: fast more, especially 9 & 10 — 1 year sins forgiven\n◆ Fast more in Shaban\n◆ Ramadan: fast+tarawih+worship in last 10 nights for Laylatul Qadr\n◆ 6 fasts in Shawwal = full year fasting (Amal 43)\n◆ First 9 days Dhul Hijjah: good deeds — Allahs most beloved (Amal 48)\n◆ Fast on 9 Dhul Hijjah (Arafah) — 2 years of sins forgiven\n◆ Qurbani & Eid prayer on 10 Dhul Hijjah\n◆ Umrah in Ramadan = Hajj reward (Amal 37)\n◆ Jihad if able — better than 60 years of worship (Amal 46)\n◆ Go to mosque for deen knowledge = full Hajj reward (Amal 36)', 'color': const Color(0xFF26A69A)});
-
 
     // ══ তাহাজ্জুদের সময় ══
     if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
@@ -1187,16 +1197,6 @@ class _HomeTabState extends State<_HomeTab> {
     alerts.add({'icon': '🏆', 'text': isBn
         ? 'মহৎ ফজিলতপূর্ণ আমল:\n◆ সুবহানাল্লাহি ওয়া বিহামদিহি, সুবহানাল্লাহিল আজিম — বলা সহজ, মিজানে ভারী (আমল ৫৬)\n◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে পড়ুন — আসমানের দরজা খোলে (আমল ৬৯)\n◆ সূরা ইখলাস — কুরআনের এক-তৃতীয়াংশের সমান (আমল ৪৯, ৫৮)\n◆ জামাআতে নামাজ — একাকীর চেয়ে ২৭ গুণ বেশি (আমল ৩১)\n◆ নফল নামাজ ঘরে পড়ুন — বেশি সওয়াব (আমল ৩৩)\n◆ সর্বশ্রেষ্ঠ দ্বীন হলো পরহেজগারী ও যা সহজে পালন করা যায়\n◆ আমলে বাড়াবাড়ি বা অবহেলা — দুটোই এড়িয়ে মধ্যপন্থা মেনে চলুন\n◆ নিয়ত ঠিক না হলে আমল মূল্যহীন (আমল ৬৩)\n◆ যৌন-পীড়ায় আক্রান্ত হলে রোজা রাখার মাধ্যমে উপশম খুঁজুন\n◆ খুব বেশি শক্তি-সামর্থ্য থাকলে দাউদী রোজা রাখুন (একদিন পর একদিন)'
         : 'Most virtuous deeds:\n◆ SubhanAllahi wa bihamdih, SubhanAllahil Azim — easy, heavy in scales (Amal 56)\n◆ Say La ilaha illallah sincerely — heavens open (Amal 69)\n◆ Surah Ikhlas = 1/3 of Quran (Amal 49, 58)\n◆ Pray in congregation — 27x more than alone (Amal 31)\n◆ Pray nafl at home — more reward (Amal 33)\n◆ Best religion is piety & what is easy to maintain\n◆ Avoid extremes in worship — follow the middle path\n◆ Without sincere intention deeds are worthless (Amal 63)\n◆ Struggling with desire: seek relief through fasting\n◆ Dawudi fasting (alternate days) — try if strong enough', 'color': const Color(0xFF26A69A)});
-
-    // ══ সাপ্তাহিক ও মাসিক আমল ══
-    alerts.add({'icon': '📅', 'text': isBn
-        ? 'সাপ্তাহিক ও মাসিক আমল:\n◆ প্রতি সোমবার ও বৃহস্পতিবার নফল রোজা রাখুন\n◆ জুমার দিন: বেশি দরুদ পড়ুন, সূরা কাহাফ পড়ুন, গোসল করে আগে মসজিদে যান (আমল ৩৪)\n◆ জুমার আগমনের সওয়াব: ১ম ঘণ্টায় উট, ২য়তে গরু, ৩য়তে দুম্বা, ৪র্থতে মুরগি, ৫মতে ডিম কুরবানির সমান (আমল ৬৭)\n◆ ১৩, ১৪ ও ১৫ হিজরিতে রোজা — সারা বছর রোজার সমান (আমল ৪২, ৪৩)\n◆ মক্কায় ১ নামাজ = ১ লক্ষ গুণ, মদিনায় = ১ হাজার গুণ (আমল ৩০)\n◆ মদিনায় মসজিদুল কুবায় নামাজ = ওমরাহর সওয়াব (আমল ৪০)'
-        : 'Weekly & monthly deeds:\n◆ Fast on Mondays & Thursdays\n◆ Friday: Salawat, Surah Kahaf, bath & go early to mosque (Amal 34)\n◆ Friday arrival: 1hr=camel, 2hr=cow, 3hr=sheep, 4hr=chicken, 5hr=egg (Amal 67)\n◆ Fast 13, 14, 15 Hijri = full year fasting (Amal 42, 43)\n◆ Makkah prayer = 100,000x, Madinah = 1,000x (Amal 30)\n◆ Masjid Quba Madinah = Umrah reward (Amal 40)', 'color': const Color(0xFF26A69A)});
-
-    // ══ বার্ষিক আমল ══
-    alerts.add({'icon': '🗓️', 'text': isBn
-        ? 'বার্ষিক আমল:\n◆ মুহাররম: বেশি রোজা, বিশেষত ৯ ও ১০ তারিখে — ১ বছরের গুনাহ মাফ\n◆ শাবান মাসে বেশি রোজা রাখুন\n◆ রমজান: রোজা+তারাবি+শেষ দশকে লাইলাতুল কদরের ইবাদত\n◆ শাওয়ালে ৬টি রোজা — সারা বছর রোজার সমান (আমল ৪৩)\n◆ জিলহজের প্রথম ৯ দিন নেক আমল — আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮)\n◆ ৯ জিলহজে আরাফার রোজা — দুই বছরের গুনাহ মাফ\n◆ ১০ জিলহজে কুরবানি ও ঈদের নামাজ পড়ুন\n◆ রমজানে ওমরাহ = হজ্জের সওয়াব (আমল ৩৭)\n◆ সামর্থ্য থাকলে জিহাদে অংশ নিন — ৬০ বছরের ইবাদতের চেয়ে উত্তম (আমল ৪৬)\n◆ দ্বীনি ইলম শেখা/শেখানোর জন্য মসজিদে যান = পূর্ণ হজ্জের সমান (আমল ৩৬)'
-        : 'Yearly deeds:\n◆ Muharram: fast more, especially 9 & 10 — 1 year sins forgiven\n◆ Fast more in Shaban\n◆ Ramadan: fast+tarawih+worship in last 10 nights for Laylatul Qadr\n◆ 6 fasts in Shawwal = full year fasting (Amal 43)\n◆ First 9 days Dhul Hijjah: good deeds — Allahs most beloved (Amal 48)\n◆ Fast on 9 Dhul Hijjah — 2 years of sins forgiven\n◆ Qurbani & Eid prayer on 10 Dhul Hijjah\n◆ Umrah in Ramadan = Hajj reward (Amal 37)\n◆ Jihad if able — better than 60 years of worship (Amal 46)\n◆ Go to mosque for deen knowledge = full Hajj reward (Amal 36)', 'color': const Color(0xFF26A69A)});
 
     // ══════════════════════════════════════════════════
     // বাৎসরিক / হিজরি মাস-ভিত্তিক আমল — শুধু প্রাসঙ্গিক মাসে দেখাবে

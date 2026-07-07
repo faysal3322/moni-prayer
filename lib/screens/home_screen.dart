@@ -215,6 +215,7 @@ class _HomeTabState extends State<_HomeTab> {
   SunnahTimes? _sunnahTimes;
   String _hijriDate = '';
   Timer? _autoQazaTimer;
+  Timer? _weatherTimer;
 
   // ══ লোকেশন ও আবহাওয়া ══
   String _locationName = '';
@@ -234,7 +235,7 @@ class _HomeTabState extends State<_HomeTab> {
       if (mounted) _updateHomeWidget();
     });
     // আবহাওয়া প্রতি ১৫ মিনিটে আপডেট
-    Timer.periodic(const Duration(minutes: 15), (_) {
+    _weatherTimer = Timer.periodic(const Duration(minutes: 15), (_) {
       if (mounted) _fetchLocationAndWeather();
     });
     Future.delayed(const Duration(seconds: 3), () {
@@ -406,6 +407,7 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   void dispose() {
     _autoQazaTimer?.cancel();
+    _weatherTimer?.cancel();
     super.dispose();
   }
 

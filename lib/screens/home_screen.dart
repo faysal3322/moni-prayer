@@ -1435,7 +1435,7 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final lang = widget.lang;
     final now = widget.now;
-    final alerts = _getLiveAlerts(lang);
+    final alerts = [..._getLiveAlerts(lang), ..._getPermanentNaflDeeds(lang)];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -1450,39 +1450,6 @@ class _HomeTabState extends State<_HomeTab> {
             Text(lang.prayerCount(widget.userName),
                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             const SizedBox(height: 12),
-
-            if (alerts.isNotEmpty) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: alerts.map((a) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(a['icon'] as String, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(
-                          a['text'] as String,
-                          style: TextStyle(
-                              color: a['color'] as Color,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600),
-                        )),
-                      ],
-                    ),
-                  )).toList(),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
 
             _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon),
             const SizedBox(height: 12),
@@ -1518,80 +1485,38 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             const SizedBox(height: 16),
 
-            // ══ নফল আমল ও বিশেষ দিনের স্থায়ী রেফারেন্স ══
-            Builder(builder: (context) {
-              final naflAlerts = _getPermanentNaflDeeds(lang);
-              if (naflAlerts.isEmpty) return const SizedBox.shrink();
-              return Container(
+            if (alerts.isNotEmpty) ...[
+              Container(
                 width: double.infinity,
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.3),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                      ),
-                      child: Row(children: [
-                        const Text('📿', style: TextStyle(fontSize: 18)),
+                  children: alerts.map((a) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(a['icon'] as String, style: const TextStyle(fontSize: 16)),
                         const SizedBox(width: 8),
-                        Text(
-                          lang.isBn ? 'নফল আমল ও বিশেষ দিনের তথ্য' : 'Nafl Deeds & Special Days',
-                          style: const TextStyle(
-                            color: AppTheme.gold,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ]),
+                        Expanded(child: Text(
+                          a['text'] as String,
+                          style: TextStyle(
+                              color: a['color'] as Color,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        )),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: naflAlerts.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          final a = entry.value;
-                          return Column(
-                            children: [
-                              if (i > 0) const Divider(color: Colors.white10, height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(a['icon'] as String, style: const TextStyle(fontSize: 18)),
-                                    const SizedBox(width: 10),
-                                    Expanded(child: Text(
-                                      a['text'] as String,
-                                      style: TextStyle(
-                                        color: a['color'] as Color,
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.5,
-                                      ),
-                                    )),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
+                  )).toList(),
                 ),
-              );
-            }),
+              ),
+              const SizedBox(height: 16),
+            ],
             const SizedBox(height: 20),
           ],
         ),

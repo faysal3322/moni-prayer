@@ -817,21 +817,6 @@ class _HomeTabState extends State<_HomeTab> {
         alerts.add({'icon': '✂️', 'text': isBn ? 'জিলহজের সুন্নত: কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না। এতে কুরবানির সওয়াব পাবেন।' : 'Dhul Hijjah Sunnah: Don\'t cut hair/nails until Qurbani.', 'color': const Color(0xFF26A69A)});
       }
 
-      // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার আগাম reminder
-      if (h == 8 && now.isAfter(pt.maghrib)) {
-        alerts.add({'icon': '🕋', 'text': isBn ? 'আগামীকাল ৯ জিলহজ — আরাফার রোজা! এই রোজায় আগের ও পরের ১ বছরের গুনাহ মাফ। এখনই সেহরির প্রস্তুতি নিন!' : 'Tomorrow 9 Dhul Hijjah — Arafah fast! 2 years of sins forgiven. Prepare for Sehri!', 'color': AppTheme.gold});
-      }
-
-      // ৯ জিলহজ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
-      if (h == 9 && now.isBefore(pt.fajr)) {
-        alerts.add({'icon': '🕋', 'text': isBn ? 'আজ ৯ জিলহজ — আরাফার দিন! রোজা রাখুন, বেশি দোয়া করুন। আগের ও পরের ১ বছরের গুনাহ মাফ হবে ইনশাআল্লাহ।' : 'Today 9 Dhul Hijjah — Day of Arafah! Fast & make lots of dua. 2 years sins forgiven.', 'color': AppTheme.gold});
-        // আরাফার ইফতারের আগে ৩০ মিনিট
-        if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
-          final cd = _countdown(pt.maghrib);
-          alerts.add({'icon': '🤲', 'text': isBn ? 'আরাফার রোজার ইফতার হতে বাকি $cd — রোজাদার অবস্থায় এখন দোয়া করুন! এই মুহূর্তের দোয়া কবুল হয়।' : 'Arafah Iftar in $cd — Make dua now as a fasting person!', 'color': AppTheme.gold});
-        }
-      }
-
       // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
       if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
         alerts.add({'icon': '📢', 'text': isBn ? 'তাকবিরে তাশরিক: প্রতি ফরজ নামাজের পর পড়ুন —\nআল্লাহু আকবর, আল্লাহু আকবর, লা ইলাহা ইল্লাল্লাহু, ওয়াল্লাহু আকবর, আল্লাহু আকবর, ওয়ালিল্লাহিল হামদ।' : 'Takbeer al-Tashriq after every Fard: Allahu Akbar, Allahu Akbar...', 'color': const Color(0xFFFF8F00)});
@@ -918,229 +903,18 @@ class _HomeTabState extends State<_HomeTab> {
           : 'It is the month of Shaban — the Prophet ﷺ fasted most in this month. Try to fast more this month.', 'color': const Color(0xFF7C4DFF)});
     }
 
-    // ══ দৈনিক আমল — রাতের শেষ তৃতীয়াংশ (তাহাজ্জুদের সময়) ══
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'তাহাজ্জুদের সময়ের আমল:\n◆ ঘুম থেকে জাগরণের দোয়া পড়ুন\n◆ মিসওয়াক/দাঁতন করুন\n◆ অজু করে তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী রাকাত)\n◆ রাতে উঠার নিয়ত করে ঘুমালেও সওয়াব মেলে — ঘুম হলে তা সদকাস্বরূপ'
-          : 'Tahajjud time deeds:\n◆ Recite waking up dua\n◆ Use miswak\n◆ Perform wudhu & pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as many rakats as able)\n◆ Intending to wake up for prayer earns reward even if you sleep', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ দৈনিক আমল — ফজরের সময় ══
-    if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
-      alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়ের আমল:\n◆ আযান শুনে আযানের জবাব দিন — মুয়াজ্জিন যা বলে পুনরাবৃত্তি করুন\n◆ আযানের পর হাদিসে বর্ণিত দোয়া পড়ুন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন — প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন\n◆ মসজিদে ডান পা দিয়ে দরুদ পড়ে প্রবেশ করুন\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ ৩৩ বার সুবহানাল্লাহ + ৩৩ বার আলহামদুলিল্লাহ + ৩৩ বার আল্লাহু আকবার পড়ুন'
-          : 'Fajr time deeds:\n◆ Answer the adhan when you hear it\n◆ Recite the dua after adhan\n◆ Pray Fajr in congregation — try the first row\n◆ Enter mosque with right foot, reciting salawat\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Nasai: 972)\n◆ Say 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দৈনিক আমল — সকালের জিকির (সূর্যোদয়ের পর) ══
-    if (now.isAfter(pt.sunrise) && now.hour < 10) {
-      alerts.add({'icon': '☀️', 'text': isBn
-          ? 'সকালের জিকির ও আমল:\n◆ সকালের আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন\n◆ ১০০ বার "সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি" পড়ুন — জান্নাতে খেজুরগাছ রোপণ\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন — কিয়ামতে সর্বোচ্চ সওয়াব\n◆ বাজারে যাওয়ার দোয়া পড়ুন — ১০ লক্ষ সওয়াব, ১০ লক্ষ গুনাহ মাফ'
-          : 'Morning dhikr & deeds:\n◆ Recite morning adhkar\n◆ Send 10x Salawat\n◆ Say 100x "SubhanAllahil Azim wa bihamdih" — tree in Jannah\n◆ Say 100x "SubhanAllahi wa bihamdih" — greatest reward on Judgment Day\n◆ Recite market dua — 1 million rewards, 1 million sins forgiven', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দৈনিক আমল — যোহরের সময় ══
-    if (now.isAfter(pt.dhuhr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.asr)) {
-      alerts.add({'icon': '🕌', 'text': isBn
-          ? 'যোহরের সময়ের আমল:\n◆ যাওয়ালের আগে ও পরে নফল নামাজ পড়ুন (পরে ৪ রাকাত)\n◆ মসজিদে গিয়ে যোহরের নামাজ জামাআতে পড়ুন\n◆ খাবারের আদব মেনে চলুন — বিসমিল্লাহ বলে শুরু, আলহামদুলিল্লাহ বলে শেষ\n◆ পানি পান করার ৬টি সুন্নত মেনে চলুন\n◆ দুপুরে একটু কাইলুলা (ভাতঘুম) নিন — তাহাজ্জুদ সহজ হবে'
-          : 'Dhuhr time deeds:\n◆ Pray nafl before & after Dhuhr (4 rakats after)\n◆ Pray Dhuhr in congregation\n◆ Follow eating etiquette — start with Bismillah, end with Alhamdulillah\n◆ Follow 6 sunnahs of drinking water\n◆ Take a short nap (qaylula) — helps for Tahajjud', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দৈনিক আমল — আসরের সময় ══
-    if (now.isAfter(pt.asr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.maghrib)) {
-      alerts.add({'icon': '🌤️', 'text': isBn
-          ? 'আসরের সময়ের আমল:\n◆ আসরের আগে ৪ রাকাত সুন্নত নামাজ পড়ুন\n◆ মসজিদে গিয়ে আসরের নামাজ জামাআতে পড়ুন\n◆ আসরের পর তিলাওয়াত ও জিকির করুন, ইলমি মজলিসে বসুন\n◆ বিকালে ১০০ বার "সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি" পড়ুন\n◆ আসরের পর কোনো নফল নামাজ পড়বেন না (নিষিদ্ধ সময়)'
-          : 'Asr time deeds:\n◆ Pray 4 rakats sunnah before Asr\n◆ Pray Asr in congregation\n◆ Recite Quran & dhikr after Asr, attend Islamic gatherings\n◆ Say 100x "SubhanAllahil Azim wa bihamdih"\n◆ No nafl prayers after Asr (forbidden time)', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দৈনিক আমল — মাগরিবের সময় ══
-    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 10))) && now.isBefore(pt.isha)) {
-      alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ তিন আয়াত ও তিন কুল পড়ে দম করুন\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যার জিকির-আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন'
-          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses of Surah Hashr & 3 Quls after Maghrib\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Recite evening adhkar\n◆ Send 10x Salawat\n◆ Say 100x "SubhanAllahi wa bihamdih"', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দৈনিক আমল — এশার সময় ══
-    if (now.isAfter(pt.isha.subtract(const Duration(minutes: 10))) && now.isBefore(pt.isha.add(const Duration(hours: 2)))) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'এশার সময়ের আমল:\n◆ এশার নামাজ জামাআতে পড়ুন — অর্ধেক রাত ইবাদতের সওয়াব\n◆ ফজর ও এশা দুটোই জামাআতে পড়লে পুরো রাত ইবাদতের সওয়াব\n◆ সুন্নত পড়ে দ্রুত ঘুমিয়ে পড়ুন — রাতের শেষে উঠতে সহজ হবে\n◆ প্রয়োজনে এশার পরই বিতর পড়ে নিন\n◆ কোনো পাপ হলে সালাতুত তাওবা পড়ে ক্ষমা চান'
-          : 'Isha time deeds:\n◆ Pray Isha in congregation — reward of half the night in worship\n◆ Praying both Isha & Fajr in congregation = entire night in worship\n◆ Sleep early after sunnah — easier to wake for Tahajjud\n◆ Pray Witr after Isha if needed\n◆ If you sinned, pray Salat al-Tawbah & seek forgiveness', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ দৈনিক আমল — ঘুমানোর আগে ══
-    if (now.hour >= 21 || now.hour < 2) {
-      alerts.add({'icon': '📖', 'text': isBn
-          ? 'ঘুমানোর আগের আমল:\n◆ সূরা মুলক তিলাওয়াত করুন — কবরের শাস্তি থেকে মুক্তি\n◆ তিন কুল (ইখলাস, ফালাক, নাস) পড়ে শরীরে ৩ বার দম করুন\n◆ আয়াতুল কুরসি পড়ুন\n◆ সূরা কাফিরুন পড়ে ডান কাতে শুয়ে পড়ুন\n◆ ঘুমের দোয়া পড়ুন'
-          : 'Before sleep deeds:\n◆ Recite Surah Mulk — protection from grave punishment\n◆ Recite 3 Quls & blow on body 3x\n◆ Recite Ayatul Kursi\n◆ Recite Surah Kafirun & sleep on right side\n◆ Recite sleeping dua', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ সাধারণ আমল (সারাদিন) ══
-    alerts.add({'icon': '✨', 'text': isBn
-        ? 'সারাদিনের সাধারণ আমল:\n◆ প্রতি অজুর পর কালেমা শাহাদাত পড়ুন — জান্নাতের ৮ দরজার যেকোনোটি খোলে\n◆ ঘর থেকে বের হওয়ার দোয়া পড়ে ডান পা দিয়ে বের হন\n◆ সবাইকে সালাম দিন — ছোট-বড় সবাইকে\n◆ হাসিমুখে মানুষের সাথে দেখা করুন — এটাও সদকা\n◆ অসুস্থ মুসলিমকে দেখতে যান — ৭০ হাজার ফেরেশতা দোয়া করবে\n◆ ইখলাসের সাথে "লা ইলাহা ইল্লাল্লাহ" পড়ুন — আসমানের দরজা খুলে যায়'
-        : 'General daily deeds:\n◆ Recite Shahada after each wudhu — opens all 8 Jannah gates\n◆ Recite going-out dua & step out with right foot\n◆ Give salam to everyone — young & old\n◆ Meet people with a smile — it is sadaqah\n◆ Visit the sick — 70,000 angels make dua\n◆ Say "La ilaha illallah" sincerely — heavens open up', 'color': const Color(0xFF26A69A)});
-
-
-    // ══ তাহাজ্জুদের সময় — রাতের শেষ তৃতীয়াংশ ══
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'তাহাজ্জুদের সময়ের আমল:\n◆ ঘুম থেকে জাগরণের দোয়া পড়ুন\n◆ মিসওয়াক করুন, অজু করুন\n◆ তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী)\n◆ দুঃস্বপ্ন দেখলে বাম দিকে ৩ বার থুতু ফেলে আউযুবিল্লাহ পড়ুন (আমল ২৮)\n◆ রাতে উঠার নিয়তে ঘুমালেও সওয়াব — ঘুম হলে সদকাস্বরূপ (আমল ৬১)'
-          : 'Tahajjud time deeds:\n◆ Recite waking up dua\n◆ Use miswak, make wudhu\n◆ Pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as able)\n◆ Bad dream: spit left 3x & say Audhu billah (Amal 28)\n◆ Intending to wake earns reward — sleep counts as sadaqah (Amal 61)', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ ফজরের সময় ══
-    if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
-      alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়ের আমল:\n◆ আযানের জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ মসজিদে জামাআতে ফজর পড়ুন — প্রথম সারিতে চেষ্টা করুন (আমল ৩৯)\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ করুন (আমল ২০)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ — জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)'
-          : 'Fajr time deeds:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr in congregation, try first row (Amal 39)\n◆ Enter mosque with right foot, reciting salawat (Amal 20)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Amal 2, Nasai: 972)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ সকাল — সূর্যোদয় থেকে যোহরের আগে ══
-    if (now.isAfter(pt.sunrise) && now.isBefore(pt.dhuhr)) {
-      alerts.add({'icon': '☀️', 'text': isBn
-          ? 'সকালের আমল:\n◆ সূর্যোদয় পর্যন্ত মুসাল্লায় তিলাওয়াত ও জিকির করুন — পূর্ণ হজ-উমরার সওয়াব\n◆ সকালের জিকির-আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার "সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি" — জান্নাতে খেজুরগাছ (আমল ৬)\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" — কিয়ামতে সর্বোচ্চ সওয়াব (আমল ৭)\n◆ বাজারে নির্দিষ্ট দোয়া পড়ুন — ১০ লক্ষ সওয়াব, ১০ লক্ষ গুনাহ মাফ (আমল ৯)\n◆ ইশরাকের নামাজ পড়ুন (সূর্যোদয়ের ১৫-৪৫ মিনিট পর)'
-          : 'Morning deeds:\n◆ Stay in musalla till sunrise doing dhikr — full Hajj & Umrah reward\n◆ Recite morning adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahil Azim wa bihamdih — tree in Jannah (Amal 6)\n◆ 100x SubhanAllahi wa bihamdih — greatest reward (Amal 7)\n◆ Market dua — 1 million rewards, 1 million sins forgiven (Amal 9)\n◆ Pray Ishraq (15-45 min after sunrise)', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দুপুর — যোহরের সময় ══
-    if (now.isAfter(pt.dhuhr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.asr)) {
-      alerts.add({'icon': '🕌', 'text': isBn
-          ? 'যোহরের সময়ের আমল:\n◆ যাওয়ালের আগে ও পরে নফল নামাজ পড়ুন (পরে ৪ রাকাত)\n◆ মসজিদে গিয়ে যোহরের নামাজ জামাআতে পড়ুন\n◆ দস্তরখানায় বিসমিল্লাহ বলে শুরু, আলহামদুলিল্লাহ বলে শেষ করুন (আমল ২৬)\n◆ পানি পান করার ৬টি সুন্নত মেনে চলুন (আমল ২৫)\n◆ দুপুরে একটু কাইলুলা নিন — তাহাজ্জুদ সহজ হবে'
-          : 'Dhuhr time deeds:\n◆ Pray nafl before & after Dhuhr (4 rakats after)\n◆ Pray Dhuhr in congregation\n◆ Bismillah to start eating, Alhamdulillah to end (Amal 26)\n◆ Follow 6 sunnahs of drinking water (Amal 25)\n◆ Take a short qaylula — easier Tahajjud', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ বিকেল — আসরের সময় ══
-    if (now.isAfter(pt.asr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.maghrib)) {
-      alerts.add({'icon': '🌤️', 'text': isBn
-          ? 'আসরের সময়ের আমল:\n◆ আসরের আগে ৪ রাকাত সুন্নাত নামাজ পড়ুন\n◆ মসজিদে গিয়ে আসরের নামাজ জামাআতে পড়ুন\n◆ বিকালে ১০০ বার "সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি" পড়ুন (আমল ৬)\n◆ ১০০ বার সুবহানাল্লাহ + আলহামদুলিল্লাহ + আল্লাহু আকবার + কালিমা পড়ুন (আমল ৮)\n◆ আসরের পর কোনো নফল নামাজ নেই (নিষিদ্ধ সময়)\n◆ আসরের পর বসে তিলাওয়াত ও জিকির করুন'
-          : 'Asr time deeds:\n◆ Pray 4 sunnah rakats before Asr\n◆ Pray Asr in congregation\n◆ 100x SubhanAllahil Azim wa bihamdih (Amal 6)\n◆ 100x SubhanAllah + Alhamdulillah + AllahuAkbar + Kalimah (Amal 8)\n◆ No nafl prayers after Asr (forbidden time)\n◆ Sit with Quran & dhikr after Asr', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ সন্ধ্যা — মাগরিবের সময় ══
-    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha)) {
-      alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়ের আমল:\n◆ মসজিদে গিয়ে মাগরিবের নামাজ জামাআতে পড়ুন\n◆ মাগরিবের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যায় ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার "সুবহানাল্লাহি ওয়া বিহামদিহি" পড়ুন (আমল ৭)\n◆ সন্ধ্যার জিকির-আযকার পড়ুন'
-          : 'Maghrib time deeds:\n◆ Pray Maghrib in congregation\n◆ Recite last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Send 10x Salawat in evening (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Recite evening adhkar', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ রাত — এশার সময় ══
-    if (now.isAfter(pt.isha.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha.add(const Duration(hours: 2)))) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'এশার সময়ের আমল:\n◆ এশার নামাজ জামাআতে পড়ুন — অর্ধেক রাত ইবাদতের সওয়াব (আমল ৩২)\n◆ ফজর ও এশা দুটোই জামাআতে = পুরো রাত ইবাদতের সওয়াব\n◆ এশার আগে ঘুমানো ও পরে অনর্থক কথা নিষেধ\n◆ সুন্নাত পড়ে দ্রুত ঘুমান — রাতে উঠতে সহজ হবে\n◆ উঠতে না পারার আশঙ্কায় এশার পরই বিতর পড়ুন\n◆ দ্বিধায় সালাতুল ইস্তিখারা, বিপদে সালাতুল হাজত, পাপে সালাতুত তাওবা পড়ুন'
-          : 'Isha time deeds:\n◆ Pray Isha in congregation — half night worship reward (Amal 32)\n◆ Both Fajr & Isha in congregation = full night worship\n◆ Avoid sleeping before Isha & idle talk after\n◆ Sleep early after sunnah — easier Tahajjud\n◆ Pray Witr after Isha if worried about missing it\n◆ Istikhara for doubt, Hajat for need, Tawbah for sin', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ ঘুমানোর আগে — রাত ৯টার পর ══
-    if (now.hour >= 21 || now.hour < 3) {
-      alerts.add({'icon': '📖', 'text': isBn
-          ? 'ঘুমানোর আগের আমল:\n◆ সূরা মুলক তিলাওয়াত করুন — কবরের শাস্তি থেকে মুক্তি (আমল ৪)\n◆ তিন কুল পড়ে শরীরে ৩ বার দম করুন\n◆ আয়াতুল কুরসি পড়ুন\n◆ সূরা কাফিরুন পড়ে ডান কাতে শুয়ে পড়ুন\n◆ ঘুমের দোয়া পড়ুন (আমল ১৬)\n◆ কাল ভালো কাজের নিয়ত করে ঘুমান'
-          : 'Before sleep deeds:\n◆ Recite Surah Mulk — protection from grave (Amal 4)\n◆ Recite 3 Quls & blow on body 3x\n◆ Recite Ayatul Kursi\n◆ Recite Surah Kafirun & sleep on right side\n◆ Recite sleeping dua (Amal 16)\n◆ Sleep with intention to do good tomorrow', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ বিশেষ মুহূর্তের আমল (সারাদিন) ══
-    alerts.add({'icon': '💫', 'text': isBn
-        ? 'বিশেষ মুহূর্তের আমল:\n◆ প্রতি অজুর পর কালেমা শাহাদাত — জান্নাতের ৮ দরজার যেকোনোটি খোলে (আমল ১)\n◆ অজুর আগে মিসওয়াক, অজুর শুরু-শেষে দোয়া পড়ুন (আমল ১৮)\n◆ বাথরুমে বাম পা দিয়ে ঢুকুন, ডান পা দিয়ে বের হন (আমল ১৭)\n◆ বাড়িতে সালাম দিয়ে প্রবেশ করুন — কেউ না থাকলেও ফেরেশতাদের জন্য (আমল ১০)\n◆ জামা-জুতা পরায় ডান দিক আগে, খোলায় বাম দিক আগে (আমল ২৪)\n◆ মন্দ কাজের পর ভালো কাজ করুন — মন্দ মুছে যায় (আমল ৭০)'
-        : 'Special moments deeds:\n◆ Shahada after each wudhu — opens all 8 Jannah gates (Amal 1)\n◆ Miswak before wudhu, dua at start & end (Amal 18)\n◆ Left foot in bathroom, right foot out (Amal 17)\n◆ Give salam entering home — for angels if empty (Amal 10)\n◆ Right side first when dressing, left when undressing (Amal 24)\n◆ Follow bad with good — it erases the bad (Amal 70)', 'color': const Color(0xFF26A69A)});
-
-    // ══ চরিত্র ও জীবনাচরণ (সারাদিন) ══
-    alerts.add({'icon': '🌿', 'text': isBn
-        ? 'উত্তম চরিত্র ও জীবনাচরণ:\n◆ নিজের জন্য যা পছন্দ, অপরের জন্যও তা পছন্দ করুন\n◆ অন্যের দোষ গোপন রাখুন, ক্ষমা প্রদর্শন করুন\n◆ বড়দের সম্মান করুন, আলেমদের শ্রদ্ধা করুন\n◆ সৎকাজে আদেশ, মন্দ কাজে বাধা দিন\n◆ বিবদমান পক্ষের মধ্যে মিল করিয়ে দিন\n◆ মা-বাপের অবাধ্য হবেন না\n◆ আত্মীয়তার সম্পর্ক রক্ষা করুন — রিজিক বৃদ্ধি ও আয়ু দীর্ঘ হয় (আমল ২৯)\n◆ প্রতিবেশীকে কষ্ট দেবেন না'
-        : 'Good character & conduct:\n◆ Love for others what you love for yourself\n◆ Conceal others faults, show forgiveness\n◆ Respect elders, honor scholars\n◆ Command good, forbid evil\n◆ Reconcile between disputing parties\n◆ Never disobey parents\n◆ Maintain family ties — increases rizq & lifespan (Amal 29)\n◆ Never harm your neighbor', 'color': const Color(0xFF26A69A)});
-
-    // ══ মহৎ ফজিলতপূর্ণ আমল (সারাদিন) ══
-    alerts.add({'icon': '🏆', 'text': isBn
-        ? 'মহৎ ফজিলতপূর্ণ আমল:\n◆ "সুবহানাল্লাহি ওয়া বিহামদিহি, সুবহানাল্লাহিল আজিম" — বলা সহজ, মিজানে ভারী (আমল ৫৬)\n◆ জামাআতে নামাজ পড়ুন — একাকীর চেয়ে ২৭ গুণ বেশি মর্যাদা (আমল ৩১)\n◆ নফল নামাজ ঘরে পড়ুন — বেশি সওয়াব (আমল ৩৩)\n◆ সূরা ইখলাস পড়ুন — কুরআনের এক-তৃতীয়াংশের সমান (আমল ৪৯)\n◆ মুসলিম ভাইয়ের প্রয়োজন পূরণ করুন — আল্লাহ আপনার প্রয়োজন পূরণ করবেন (আমল ৬০)\n◆ ইখলাসের সাথে প্রতিটি কাজের নিয়ত ঠিক রাখুন (আমল ৬৩)'
-        : 'Most virtuous deeds:\n◆ SubhanAllahi wa bihamdih, SubhanAllahil Azim — easy, heavy in scales (Amal 56)\n◆ Pray in congregation — 27x more than alone (Amal 31)\n◆ Pray nafl at home — more reward (Amal 33)\n◆ Recite Surah Ikhlas — equals 1/3 of Quran (Amal 49)\n◆ Fulfill a brothers need — Allah will fulfill yours (Amal 60)\n◆ Keep sincere intention in every deed (Amal 63)', 'color': const Color(0xFF26A69A)});
-
-    // ══ উপদেশমূলক সমাপনী ══
-    alerts.add({'icon': '📌', 'text': isBn
-        ? 'মূল শিক্ষা:\n◆ আল্লাহর কাছে সবচেয়ে প্রিয় — নিয়মিত আমল, পরিমাণে কম হলেও\n◆ নিয়ত ঠিক না হলে আমল মূল্যহীন — ইখলাসের সাথে করুন\n◆ নিজের আমলের ভরসায় না থেকে আল্লাহর রহমত কামনা করুন\n◆ বাড়াবাড়ি বা অবহেলা — দুটোই এড়িয়ে মধ্যপন্থা মেনে চলুন\n◆ সদকায়ে জারিয়াহ, উপকারী ইলম ও সুসন্তান রেখে যাওয়ার চেষ্টা করুন (আমল ৫৭)'
-        : 'Key lessons:\n◆ Allah loves consistent deeds most — even if small\n◆ Without sincere intention, deeds are worthless\n◆ Do not rely on deeds — always seek Allahs mercy\n◆ Avoid extremes — follow the middle path\n◆ Leave Sadaqah Jariyah, beneficial knowledge & righteous children (Amal 57)', 'color': const Color(0xFF26A69A)});
-
-
-    // ══ তাহাজ্জুদের সময় — রাতের শেষ তৃতীয়াংশ ══
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'তাহাজ্জুদের সময়:\n◆ ঘুম থেকে জেগে জাগরণের দোয়া পড়ুন\n◆ প্রয়োজনে ওয়াশরুম ব্যবহার করুন\n◆ মিসওয়াক/দাঁতন করুন\n◆ প্রয়োজনে গোসল, নইলে অজু করুন\n◆ তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী)\n◆ দুঃস্বপ্ন দেখলে বাম দিকে ৩ বার থুথু ফেলে আউযুবিল্লাহ পড়ুন (আমল ২৮)\n◆ রাতে উঠার নিয়তে ঘুমালেও সওয়াব — ঘুম হলে সদকাস্বরূপ (আমল ৬১)\n◆ রমজানের শেষ দশকের বেজোড় রাতে লাইলাতুল কদরের ইবাদতে জাগুন (আমল ৪৫)\n◆ (প্রাসঙ্গিক) রাত জেগে সীমান্ত পাহারা — এক মাসের ইবাদতের চেয়ে উত্তম (আমল ৪৭)'
-          : 'Tahajjud time:\n◆ Wake up and recite the waking dua\n◆ Use washroom if needed\n◆ Use miswak/siwak\n◆ Ghusl if needed, otherwise wudhu\n◆ Pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as many rakats as able)\n◆ Bad dream: spit left 3x & say Audhu billah (Amal 28)\n◆ Intending to wake earns reward — sleep is sadaqah (Amal 61)\n◆ Last 10 Ramadan odd nights: worship seeking Laylatul Qadr (Amal 45)\n◆ (If applicable) Night guard duty = better than 1 month worship (Amal 47)', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ ফজরের সময় ══
-    if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
-      alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন নামাজ = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)\n◆ ফজরের পর ডান কাতে কিছুক্ষণ বিশ্রাম নিন (ঘুমিয়ে পড়বেন না)'
-          : 'Fajr time:\n◆ Answer adhan, recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try to stand in first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Recite Ayatul Kursi after fard — path to Jannah stays open until death (Amal 2, Nasai: 972)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Recite last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)\n◆ Rest briefly on right side after Fajr (do not sleep)', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ সকাল — সূর্যোদয় থেকে যোহরের আগে ══
-    if (now.isAfter(pt.sunrise) && now.isBefore(pt.dhuhr)) {
-      alerts.add({'icon': '☀️', 'text': isBn
-          ? 'সকালের আমল:\n◆ সূর্যোদয় পর্যন্ত মুসাল্লায় তিলাওয়াত ও জিকির — পূর্ণ হজ-উমরার সওয়াব\n◆ সকালের আযকার পড়ুন\n◆ ইশরাকের নামাজ (সূর্যোদয়ের ১৫-৪৫ মিনিট পর, ২ রাকাত) — পূর্ণ হজ-উমরার সওয়াব\n◆ সকালে ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি — জান্নাতে খেজুরগাছ (আমল ৬)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি — কিয়ামতে সর্বোচ্চ সওয়াব (আমল ৭)\n◆ ১০০ বার সুবহানাল্লাহ+আলহামদুলিল্লাহ+আল্লাহু আকবার+কালিমা (আমল ৮)\n◆ নাশতার আদব মেনে খাওয়া ও পানি পানের ৬ সুন্নত (আমল ২৫)\n◆ পোশাক পরিধানের আদব — ডান দিক আগে, দোয়া পড়ুন\n◆ ঘর থেকে বের হওয়ার দোয়া পড়ুন, ডান পা দিয়ে বের হন (আমল ১৯)\n◆ ভালো কাজ ডান দিক দিয়ে বিসমিল্লাহ বলে শুরু করুন (আমল ১৫)\n◆ সবাইকে সালাম দিন (আমল ২৩), রাস্তার ডান পাশ দিয়ে চলুন (আমল ২১)\n◆ বাজারে নির্দিষ্ট দোয়া পড়ুন — ১০ লক্ষ সওয়াব, ১০ লক্ষ গুনাহ মাফ (আমল ৯)\n◆ সফর, সাক্ষাৎ ও দাওয়াতের আদব মেনে চলুন\n◆ ঘরে থাকলে চাশতের নামাজ পড়ুন'
-          : 'Morning deeds:\n◆ Stay in musalla till sunrise doing dhikr — full Hajj & Umrah reward\n◆ Recite morning adhkar\n◆ Pray Ishraq (15-45 min after sunrise, 2 rakats) — full Hajj & Umrah reward\n◆ Send 10x Salawat in morning (Amal 5)\n◆ 100x SubhanAllahil Azim wa bihamdih — tree in Jannah (Amal 6)\n◆ 100x SubhanAllahi wa bihamdih — greatest reward on Judgment Day (Amal 7)\n◆ 100x SubhanAllah+Alhamdulillah+AllahuAkbar+Kalimah (Amal 8)\n◆ Follow breakfast etiquette & 6 sunnahs of drinking (Amal 25)\n◆ Dressing etiquette — right side first, recite dua\n◆ Recite going-out dua, step out with right foot (Amal 19)\n◆ Start good deeds right side with Bismillah (Amal 15)\n◆ Give salam to all (Amal 23), walk right side of road (Amal 21)\n◆ Recite market dua — 1 million rewards, 1 million sins forgiven (Amal 9)\n◆ Follow travel, meeting & invitation etiquette\n◆ Pray Chasht/Duha if at home', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ দুপুর — যোহরের সময় ══
-    if (now.isAfter(pt.dhuhr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.asr)) {
-      alerts.add({'icon': '🕌', 'text': isBn
-          ? 'যোহরের সময়:\n◆ যাওয়ালের আগে ও পরে নফল নামাজ পড়ুন (পরে ৪ রাকাত)\n◆ মসজিদে জামাআতে যোহর পড়ুন\n◆ দুপুরের খাবারের আদব — দস্তরখানা বিছিয়ে, বিসমিল্লাহ বলে শুরু, পড়ে গেলে তুলে খান, আলহামদুলিল্লাহ বলে শেষ করুন (আমল ২৬)\n◆ পানি পানের ৬টি সুন্নত মেনে চলুন (আমল ২৫)\n◆ খাওয়ার পর কাইলুলা নিন — তাহাজ্জুদ সহজ হবে'
-          : 'Dhuhr time:\n◆ Pray nafl before & 4 rakats after Dhuhr\n◆ Pray Dhuhr in congregation\n◆ Lunch etiquette — tablecloth, Bismillah to start, pick up fallen food, Alhamdulillah to end (Amal 26)\n◆ Follow 6 sunnahs of drinking water (Amal 25)\n◆ Take qaylula after eating — easier Tahajjud', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ বিকেল — আসরের সময় ══
-    if (now.isAfter(pt.asr.subtract(const Duration(minutes: 20))) && now.isBefore(pt.maghrib)) {
-      alerts.add({'icon': '🌤️', 'text': isBn
-          ? 'আসরের সময়:\n◆ আসরের আগে ৪ রাকাত সুন্নাত পড়ুন\n◆ মসজিদে জামাআতে আসর পড়ুন\n◆ আসরের পর প্রয়োজন-ঘটিত নামাজ ছাড়া কোনো নফল নামাজ নেই (নিয়ম)\n◆ আসরের পর প্রয়োজনে বিশ্রাম নেওয়া যায় (এ সময় ঘুম নিষেধের হাদিস দুর্বল)\n◆ বিকালে ১০০ বার সুবহানাল্লাহিল আজিম ওয়া বিহামদিহি (আমল ৬)\n◆ ১০০ বার সুবহানাল্লাহ+আলহামদুলিল্লাহ+আল্লাহু আকবার+কালিমা (আমল ৮)\n◆ আসরের পর তিলাওয়াত, জিকির ও ইলমি মজলিসে বসুন'
-          : 'Asr time:\n◆ Pray 4 sunnah rakats before Asr\n◆ Pray Asr in congregation\n◆ No nafl (except for specific need) after Asr (ruling)\n◆ Rest after Asr if needed (hadith forbidding sleep after Asr is weak)\n◆ 100x SubhanAllahil Azim wa bihamdih (Amal 6)\n◆ 100x SubhanAllah+Alhamdulillah+AllahuAkbar+Kalimah (Amal 8)\n◆ Recite Quran, dhikr & attend Islamic gatherings', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ সন্ধ্যা — মাগরিবের সময় ══
-    if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha)) {
-      alerts.add({'icon': '🌇', 'text': isBn
-          ? 'মাগরিবের সময়:\n◆ সময় থাকলে মাগরিবের আগে ২ রাকাত নফল পড়ুন\n◆ মসজিদে জামাআতে মাগরিব পড়ুন\n◆ মাগরিবের পরও সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (নাসাই: ৯৭২)\n◆ সন্ধ্যার আযকার পড়ুন\n◆ ১০ বার দরুদ পড়ুন (আমল ৫)\n◆ ১০০ বার সুবহানাল্লাহি ওয়া বিহামদিহি (আমল ৭)\n◆ সুন্নাত-নফল নামাজ ঘরে পড়ার চেষ্টা করুন'
-          : 'Maghrib time:\n◆ Optionally pray 2 nafl before Maghrib if time allows\n◆ Pray Maghrib in congregation\n◆ After Maghrib: last 3 verses Surah Hashr & 3 Quls, blow on body (Amal 22)\n◆ Recite Ayatul Kursi — path to Jannah stays open until death (Nasai: 972)\n◆ Recite evening adhkar\n◆ Send 10x Salawat (Amal 5)\n◆ 100x SubhanAllahi wa bihamdih (Amal 7)\n◆ Try to pray sunnah/nafl at home', 'color': const Color(0xFFFF8F00)});
-    }
-
-    // ══ রাত — এশার সময় ══
-    if (now.isAfter(pt.isha.subtract(const Duration(minutes: 15))) && now.isBefore(pt.isha.add(const Duration(hours: 2)))) {
-      alerts.add({'icon': '🌙', 'text': isBn
-          ? 'এশার সময়:\n◆ জামাআতে এশা পড়ুন — অর্ধেক রাত ইবাদতের সওয়াব\n◆ এশা+ফজর জামাআতে = পুরো রাত ইবাদতের সওয়াব (আমল ৩২)\n◆ এশার আগে ঘুমানো ও পরে অনর্থক কথা থেকে বিরত থাকুন\n◆ সুন্নাত পড়ে রাতের খাবার খেয়ে দ্রুত ঘুমান\n◆ উঠতে না পারার আশঙ্কায় এশার পরই বিতর পড়ুন\n◆ বৈধ কারণে রাত হলে অজু করে ২/৪ রাকাত ও বিতর পড়ে শুন\n◆ দ্বিধায় সালাতুল ইস্তিখারা, বিপদে সালাতুল হাজত, পাপে সালাতুত তাওবা পড়ুন\n◆ নিজের ও সব মুমিনের জন্য ইস্তিগফার করুন (আমল ৫০)'
-          : 'Isha time:\n◆ Pray Isha in congregation — half night worship reward\n◆ Isha + Fajr in congregation = full night worship (Amal 32)\n◆ Avoid sleeping before Isha & idle talk after\n◆ Pray sunnah, eat dinner, sleep early\n◆ Pray Witr after Isha if worried about missing it\n◆ If delayed: wudhu, pray 2/4 rakats & Witr before sleeping\n◆ Istikhara for doubt, Hajat for need, Tawbah for sin\n◆ Make istighfar for yourself & all believers (Amal 50)', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ ঘুমানোর আগে ══
-    if (now.hour >= 21 || now.hour < 3) {
-      alerts.add({'icon': '📖', 'text': isBn
-          ? 'ঘুমানোর আগের আমল:\n◆ সূরা মুলক তিলাওয়াত করুন — কবরের শাস্তি থেকে মুক্তি (আমল ৪)\n◆ তিন কুল পড়ে শরীরে ৩ বার দম করুন\n◆ আয়াতুল কুরসি পড়ুন\n◆ সূরা কাফিরুন পড়ে ডান কাতে শুয়ে পড়ুন\n◆ ঘুমের দোয়া পড়ুন (আমল ১৬)\n◆ বেশি রাত না জেগে দ্রুত ঘুমান\n◆ কাল ভালো কাজের নিয়ত করে ঘুমান'
-          : 'Before sleep:\n◆ Recite Surah Mulk — protection from grave punishment (Amal 4)\n◆ Recite 3 Quls & blow on body 3x\n◆ Recite Ayatul Kursi\n◆ Recite Surah Kafirun & sleep on right side\n◆ Recite sleeping dua (Amal 16)\n◆ Do not stay up late\n◆ Sleep with good intentions for tomorrow', 'color': const Color(0xFF7C4DFF)});
-    }
-
-    // ══ বিশেষ মুহূর্তের আমল (সারাদিন) ══
-    alerts.add({'icon': '💫', 'text': isBn
-        ? 'বিশেষ মুহূর্তের আমল:\n◆ প্রতি অজুর পর কালেমা — জান্নাতের ৮ দরজার যেকোনোটি খোলে (আমল ১)\n◆ অজুর আগে মিসওয়াক, শুরু-শেষে দোয়া (আমল ১৮)\n◆ বাথরুমে বাম পা দিয়ে ঢুকুন, ডান পা দিয়ে বের হন (আমল ১৭)\n◆ বাড়িতে সালাম দিয়ে প্রবেশ করুন (আমল ১০)\n◆ জামা-জুতা পরায় ডান দিক আগে, খোলায় বাম দিক আগে (আমল ২৪)\n◆ চন্দ্র/সূর্যগ্রহণে কুসুফ/খুসুফের নামাজ পড়ুন\n◆ অনাবৃষ্টিতে সালাতুল ইস্তিসকা পড়ে বৃষ্টি প্রার্থনা করুন\n◆ মন্দ কাজের পর ভালো কাজ করুন (আমল ৭০)\n◆ লোকদেখানো ইবাদত পরিহার করুন (আমল ৫৯)'
-        : 'Special moment deeds:\n◆ Shahada after each wudhu — opens all 8 Jannah gates (Amal 1)\n◆ Miswak before wudhu, dua at start & end (Amal 18)\n◆ Left foot in bathroom, right foot out (Amal 17)\n◆ Salam entering home (Amal 10)\n◆ Right side first when dressing, left when undressing (Amal 24)\n◆ Pray kusoof/khusoof during eclipse\n◆ Pray Istiqa for rain during drought\n◆ Follow bad with good (Amal 70)\n◆ Avoid showing off in worship (Amal 59)', 'color': const Color(0xFF26A69A)});
-
-    // ══ চরিত্র ও সমাজ (সারাদিন) ══
-    alerts.add({'icon': '🌿', 'text': isBn
-        ? 'উত্তম চরিত্র ও সমাজিক আমল:\n◆ হাসিমুখে সবার সাথে দেখা করুন — এটাও সদকা (আমল ৬৫)\n◆ অসুস্থ মুসলিমকে দেখতে যান — ৭০ হাজার ফেরেশতা দোয়া করবে (আমল ৬২)\n◆ সামর্থ্য অনুযায়ী প্রতিদিন কিছু দান করুন (আমল ১২)\n◆ অভাবীকে খাওয়ান, এতিম-বিধবার খোঁজ রাখুন\n◆ জানাজায় অংশ নিন, সামাজিক কাজ করুন\n◆ সৎকাজে আদেশ, মন্দে বাধা দিন; জুলুম প্রতিরোধ করুন\n◆ নিজের জন্য যা পছন্দ, অপরের জন্যও তা পছন্দ করুন\n◆ অন্যের দোষ গোপন রাখুন, ক্ষমা করুন\n◆ বড়দের সম্মান করুন, আলেমদের পাশে বসুন\n◆ নিজের ও সব মুমিনের জন্য ইস্তিগফার করুন (আমল ৫০)\n◆ বিশ্বের মুসলিমদের জন্য দোয়া করুন\n◆ আত্মীয়তার সম্পর্ক রক্ষা করুন — রিজিক বৃদ্ধি ও আয়ু দীর্ঘ হয় (আমল ২৯)\n◆ পিতামাতা, স্ত্রী-সন্তান, আত্মীয়, প্রতিবেশীর হক আদায় করুন\n◆ সংসারের কাজে সহযোগিতা করুন\n◆ উত্তম চরিত্র বজায় রাখুন — যা মনে সংকোচ তৈরি করে তা এড়িয়ে চলুন (আমল ৬৬)'
-        : 'Good character & society:\n◆ Meet everyone with a smile — it is sadaqah (Amal 65)\n◆ Visit sick Muslim — 70,000 angels make dua (Amal 62)\n◆ Give charity daily as able (Amal 12)\n◆ Feed the needy, care for orphans & widows\n◆ Attend funerals, engage in community work\n◆ Enjoin good, forbid evil; resist oppression\n◆ Love for others what you love for yourself\n◆ Conceal others faults, be forgiving\n◆ Respect elders, sit with scholars\n◆ Make istighfar for yourself & all believers (Amal 50)\n◆ Make dua for Muslims worldwide\n◆ Maintain family ties — increases rizq & lifespan (Amal 29)\n◆ Fulfill rights of parents, spouse, children, relatives & neighbors\n◆ Help with household duties\n◆ Maintain good character — avoid what causes shame (Amal 66)', 'color': const Color(0xFF26A69A)});
-
-    // ══ ইলম ও দাওয়াহ (সারাদিন) ══
-    alerts.add({'icon': '📚', 'text': isBn
-        ? 'ইলম ও দাওয়াহ:\n◆ প্রতিদিন কিছু কুরআন-হাদিসের জ্ঞান অর্জন করুন\n◆ সহিহ দলিলভিত্তিক আকিদা, ফারায়েজ ও হালাল-হারাম শিখুন\n◆ বিদআত থেকে দূরে থাকুন\n◆ ইসলামি বই পড়ুন, আলোচনা ও বক্তব্য শুনুন\n◆ দ্বীনি ইলম শেখা/শেখাতে মসজিদে যান — পূর্ণ হজ্জের সমান (আমল ৩৬)\n◆ কৌশল ও হিকমতের সাথে মানুষকে আল্লাহর দিকে আহ্বান করুন\n◆ কাজের ফাঁকে ফাঁকে আল্লাহকে স্মরণ করুন, হৃদয় মসজিদের সাথে সংযুক্ত রাখুন\n◆ সর্বদা আল্লাহর উপর ভরসা রাখুন, বিপদে ধৈর্য ধরুন'
-        : 'Knowledge & dawah:\n◆ Learn some Quran & hadith knowledge daily\n◆ Learn sound aqeedah, obligations & halal-haram\n◆ Keep away from bidah\n◆ Read Islamic books, listen to Islamic talks\n◆ Go to mosque to learn/teach deen = full Hajj reward (Amal 36)\n◆ Call people to Allah with wisdom\n◆ Remember Allah during work; keep heart connected to mosque\n◆ Always trust in Allah; be patient in hardship', 'color': const Color(0xFF26A69A)});
-
-
     // ══ তাহাজ্জুদের সময় ══
     if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
       alerts.add({'icon': '🌙', 'text': isBn
-          ? 'তাহাজ্জুদের সময়:\n◆ ঘুম থেকে জেগে জাগরণের দোয়া পড়ুন\n◆ প্রয়োজনে ওয়াশরুম ব্যবহার করুন\n◆ মিসওয়াক/দাঁতন করুন\n◆ প্রয়োজনে গোসল, নইলে অজু করুন\n◆ তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী)\n◆ রাতে উঠার নিয়তে ঘুমালেও সওয়াব — ঘুম হলে সদকাস্বরূপ (আমল ৬১)\n◆ দুঃস্বপ্ন দেখলে বাম দিকে ৩ বার থুথু ফেলে আউযুবিল্লাহ পড়ুন (আমল ২৮)\n◆ (প্রাসঙ্গিক) রাত জেগে সীমান্ত পাহারা — এক মাসের ইবাদতের চেয়ে উত্তম (আমল ৪৭)'
-          : 'Tahajjud time:\n◆ Recite waking dua\n◆ Use washroom if needed\n◆ Use miswak\n◆ Ghusl if needed, otherwise wudhu\n◆ Pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as able)\n◆ Intending to wake earns reward — sleep is sadaqah (Amal 61)\n◆ Bad dream: spit left 3x & say Audhu billah (Amal 28)\n◆ Night guard duty = better than 1 month worship (Amal 47)', 'color': const Color(0xFF7C4DFF)});
+          ? 'তাহাজ্জুদের সময়:\n◆ ঘুম থেকে জেগে জাগরণের দোয়া পড়ুন\n◆ প্রয়োজনে ওয়াশরুম ব্যবহার করুন\n◆ মিসওয়াক/দাঁতন করুন\n◆ প্রয়োজনে গোসল, নইলে অজু করুন\n◆ তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী)\n◆ রাতে উঠার নিয়তে ঘুমালেও সওয়াব — ঘুম হলে সদকাস্বরূপ (আমল ৬১)\n◆ দুঃস্বপ্ন দেখলে বাম দিকে ৩ বার থুথু ফেলে আউযুবিল্লাহ পড়ুন (আমল ২৮)\n◆ রমজানের শেষ দশকের বেজোড় রাতে লাইলাতুল কদরের ইবাদতে জাগুন (আমল ৪৫)\n◆ (প্রাসঙ্গিক) রাত জেগে সীমান্ত পাহারা — এক মাসের ইবাদতের চেয়ে উত্তম (আমল ৪৭)'
+          : 'Tahajjud time:\n◆ Recite waking dua\n◆ Use washroom if needed\n◆ Use miswak\n◆ Ghusl if needed, otherwise wudhu\n◆ Pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as able)\n◆ Intending to wake earns reward — sleep is sadaqah (Amal 61)\n◆ Bad dream: spit left 3x & say Audhu billah (Amal 28)\n◆ Last 10 Ramadan odd nights: worship seeking Laylatul Qadr (Amal 45)\n◆ Night guard duty = better than 1 month worship (Amal 47)', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ ফজরের সময় ══
     if (now.isAfter(pt.fajr.subtract(const Duration(minutes: 30))) && now.isBefore(pt.sunrise)) {
       alerts.add({'icon': '🌅', 'text': isBn
-          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ আযানের পর ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)'
-          : 'Fajr time:\n◆ Answer adhan & recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah after adhan\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Ayatul Kursi after fard (Amal 2)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)', 'color': const Color(0xFFFF8F00)});
+          ? 'ফজরের সময়:\n◆ আযান শুনে জবাব দিন, আযানের পর দোয়া পড়ুন (আমল ৪১)\n◆ আযানের পর ফজরের সুন্নাত নামাজ পড়ুন\n◆ ইকামত হলে সুন্নাত ছেড়ে ফরজে শামিল হন\n◆ মসজিদে গিয়ে জামাআতে ফজর পড়ুন; মসজিদের আদব মেনে চলুন\n◆ ডান পা দিয়ে দরুদ পড়ে মসজিদে প্রবেশ, বাম পা দিয়ে বের (আমল ২০)\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন (আমল ৩৯)\n◆ ইমামের প্রথম তাকবিরে ৪০ দিন = জাহান্নাম থেকে মুক্তি (আমল ১১)\n◆ ফরজ শেষে আয়াতুল কুরসি পড়ুন — মৃত্যু পর্যন্ত জান্নাতে যাওয়ার পথ খোলা থাকবে (আমল ২, নাসাই: ৯৭২)\n◆ ৩৩ সুবহানাল্লাহ + ৩৩ আলহামদুলিল্লাহ + ৩৩ আল্লাহু আকবার + কালিমা (আমল ৩)\n◆ ফজরের পর সূরা হাশরের শেষ ৩ আয়াত ও তিন কুল পড়ে দম করুন (আমল ২২)\n◆ ফজরের পর সাধারণ নফল নামাজ নেই (নিষিদ্ধ সময়)\n◆ ফজরের পর ডান কাতে কিছুক্ষণ বিশ্রাম নিন (ঘুমিয়ে পড়বেন না)'
+          : 'Fajr time:\n◆ Answer adhan & recite post-adhan dua (Amal 41)\n◆ Pray Fajr sunnah after adhan\n◆ If iqamah called, join fard immediately\n◆ Pray Fajr in congregation; follow mosque etiquette\n◆ Enter mosque right foot with salawat, exit left (Amal 20)\n◆ Try first row (Amal 39)\n◆ 40 days with first takbeer = freed from Hell (Amal 11)\n◆ Ayatul Kursi after fard (Amal 2)\n◆ 33x SubhanAllah + 33x Alhamdulillah + 33x AllahuAkbar + Kalimah (Amal 3)\n◆ Last 3 verses Surah Hashr & 3 Quls after Fajr (Amal 22)\n◆ No general nafl prayers after Fajr (forbidden time)\n◆ Rest briefly on right side after Fajr (do not sleep)', 'color': const Color(0xFFFF8F00)});
     }
 
     // ══ সকাল — সূর্যোদয় থেকে যোহরের আগে ══
@@ -1218,10 +992,6 @@ class _HomeTabState extends State<_HomeTab> {
           : 'Tonight — Shab-e-Barat (15th Shaban night):\n◆ Worship tonight — special virtue\n◆ Nafl prayers, Quran, dhikr\n◆ Night of acceptance of dua\n◆ Pray for the deceased', 'color': const Color(0xFF7C4DFF)});
     }
 
-    // ══ রমজান আসছে reminder (শাবান মাসে ২৫-২৯ তারিখ) ══
-    if (hijriMonth == 8 && h >= 25) {
-      alerts.add({'icon': '🌙', 'text': isBn ? 'রমজান আসছে — এখনই নিয়ত ও প্রস্তুতি নিন। রমজানে উমরাহর সওয়াব হজের সমান!' : 'Ramadan is coming — Prepare now. Umrah in Ramadan equals Hajj in reward!', 'color': const Color(0xFF7C4DFF)});
-    }
 
     // ══ ৫টি বিশেষ রাতের ইবাদত ══
     final isSpecialNight = (hijriMonth == 12 && (h == 8 || h == 9 || h == 10) && now.isAfter(pt.maghrib)) ||
@@ -1254,10 +1024,6 @@ class _HomeTabState extends State<_HomeTab> {
           : 'Shawwal — Keep 6 nafl fasts!\n◆ Whole year reward (Muslim)\n◆ Ramadan + 6 Shawwal = Full year of fasting', 'color': const Color(0xFF64B5F6)});
     }
 
-    // ══ জিলকদ শেষ হচ্ছে (২৫-২৯ জিলকদ) ══
-    if (hijriMonth == 11 && h >= 25) {
-      alerts.add({'icon': '🕋', 'text': isBn ? 'জিলকদ শেষ হচ্ছে — জিলহজ শুরু হলে কোরবানিদাতারা নখ, চুল ও গোঁফ কাটবেন না!' : 'Dhul Qa\'dah ending — When Dhul Hijjah starts, don\'t cut nails or hair if sacrificing!', 'color': AppTheme.gold});
-    }
 
     // ══ জিলহজ মাসের বিশেষ আমল — দিনভিত্তিক ══
     if (hijriMonth == 12) {

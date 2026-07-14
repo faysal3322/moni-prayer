@@ -289,7 +289,7 @@ class _HomeTabState extends State<_HomeTab> {
       // পুরো alert text (headline + সব bullet) কে প্রতি ৫ লাইনে ভাগ করে
       // একাধিক "পাতা"-য় পরিণত করা, যাতে widget-এর ফাঁকা জায়গায় ধাপে ধাপে
       // (rotation-এ) পুরো content দেখানো যায়
-      const int linesPerPage = 5;
+      const int linesPerPage = 7;
       List<String> chunkIntoPages(String icon, String fullText) {
         final lines = fullText.split('\n');
         final pages = <String>[];

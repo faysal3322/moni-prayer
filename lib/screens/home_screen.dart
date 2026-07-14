@@ -216,6 +216,7 @@ class _HomeTabState extends State<_HomeTab> {
   String _hijriDate = '';
   Timer? _autoQazaTimer;
   Timer? _weatherTimer;
+  int _alertRotationIndex = 0;
 
   // ══ লোকেশন ও আবহাওয়া ══
   String _locationName = '';
@@ -233,6 +234,7 @@ class _HomeTabState extends State<_HomeTab> {
     _autoQazaTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) _checkAndAutoMarkQaza();
       if (mounted) _updateHomeWidget();
+      if (mounted) setState(() { _alertRotationIndex++; });
     });
     // আবহাওয়া প্রতি ১৫ মিনিটে আপডেট
     _weatherTimer = Timer.periodic(const Duration(minutes: 15), (_) {
@@ -903,8 +905,8 @@ class _HomeTabState extends State<_HomeTab> {
           : 'It is the month of Shaban — the Prophet ﷺ fasted most in this month. Try to fast more this month.', 'color': const Color(0xFF7C4DFF)});
     }
 
-    // ══ তাহাজ্জুদের সময় ══
-    if (lastThird != null && now.isAfter(lastThird) && now.isBefore(pt.fajr)) {
+    // ══ তাহাজ্জুদের সময় (এশা শেষ থেকে ফজরের আগ পর্যন্ত পুরো রাত) ══
+    if (now.isAfter(pt.isha) && now.isBefore(pt.fajr)) {
       alerts.add({'icon': '🌙', 'text': isBn
           ? 'তাহাজ্জুদের সময়:\n◆ ঘুম থেকে জেগে জাগরণের দোয়া পড়ুন\n◆ প্রয়োজনে ওয়াশরুম ব্যবহার করুন\n◆ মিসওয়াক/দাঁতন করুন\n◆ প্রয়োজনে গোসল, নইলে অজু করুন\n◆ তাহিয়্যাতুল অজুর নামাজ পড়ুন\n◆ তাহাজ্জুদ নামাজ পড়ুন (সামর্থ্য অনুযায়ী)\n◆ রাতে উঠার নিয়তে ঘুমালেও সওয়াব — ঘুম হলে সদকাস্বরূপ (আমল ৬১)\n◆ দুঃস্বপ্ন দেখলে বাম দিকে ৩ বার থুথু ফেলে আউযুবিল্লাহ পড়ুন (আমল ২৮)\n◆ রমজানের শেষ দশকের বেজোড় রাতে লাইলাতুল কদরের ইবাদতে জাগুন (আমল ৪৫)\n◆ (প্রাসঙ্গিক) রাত জেগে সীমান্ত পাহারা — এক মাসের ইবাদতের চেয়ে উত্তম (আমল ৪৭)'
           : 'Tahajjud time:\n◆ Recite waking dua\n◆ Use washroom if needed\n◆ Use miswak\n◆ Ghusl if needed, otherwise wudhu\n◆ Pray Tahiyyatul Wudhu\n◆ Pray Tahajjud (as able)\n◆ Intending to wake earns reward — sleep is sadaqah (Amal 61)\n◆ Bad dream: spit left 3x & say Audhu billah (Amal 28)\n◆ Last 10 Ramadan odd nights: worship seeking Laylatul Qadr (Amal 45)\n◆ Night guard duty = better than 1 month worship (Amal 47)', 'color': const Color(0xFF7C4DFF)});
@@ -1123,76 +1125,124 @@ class _HomeTabState extends State<_HomeTab> {
   List<Map<String, dynamic>> _getPermanentNaflDeeds(AppLanguage lang) {
     final isBn = lang.isBn;
     final alerts = <Map<String, dynamic>>[];
+    final now = DateTime.now();
+    final pt = _prayerTimes;
+    if (pt == null) return alerts;
+
+    // প্রতি নামাজের ওয়াক্ত শুরুর ১৫ মিনিটের মধ্যে কিনা (ওযুর আমলের জন্য)
+    final prayerStarts = [pt.fajr, pt.dhuhr, pt.asr, pt.maghrib, pt.isha];
+    final within15MinOfPrayerStart = prayerStarts.any((p) =>
+        now.isAfter(p) && now.isBefore(p.add(const Duration(minutes: 15))));
+    // ওযুর আমলের ঠিক পরের ১৫ মিনিট, অর্থাৎ ওয়াক্ত শুরুর ১৫-৩০ মিনিট (মসজিদের আমলের জন্য)
+    final within15to30MinOfPrayerStart = prayerStarts.any((p) =>
+        now.isAfter(p.add(const Duration(minutes: 15))) &&
+        now.isBefore(p.add(const Duration(minutes: 30))));
+    // ফজর/মাগরিবের পর ১ ঘণ্টার মধ্যে কিনা (যিকর ও তিলাওয়াতের জন্য)
+    final within1HourOfFajrOrMaghrib =
+        (now.isAfter(pt.fajr) && now.isBefore(pt.fajr.add(const Duration(hours: 1)))) ||
+        (now.isAfter(pt.maghrib) && now.isBefore(pt.maghrib.add(const Duration(hours: 1))));
 
     // ══ ওযুর পরের আমল ══
+    if (within15MinOfPrayerStart) {
     alerts.add({'icon': '💧', 'text': isBn
         ? 'ওযুর পরের আমল:\n◆ কালেমা শাহাদত পড়ুন — জান্নাতের ৮টি দরজার যেকোনোটি দিয়ে প্রবেশ করতে পারবেন (মুসলিম: ২৩৪)\n◆ ওযুর আগে মিসওয়াক করুন — মুখের পবিত্রতা ও আল্লাহর সন্তুষ্টি\n◆ তাহিয়্যাতুল অযু ২ রাকাত পড়ুন — জান্নাতে যাওয়ার পথ খোলা (মুসলিম: ৪৪১)'
         : 'After Wudu:\n◆ Say Kalimah Shahadah — enter Jannah from any of 8 gates (Muslim: 234)\n◆ Use Miswak before wudu — mouth purity & Allah\'s pleasure\n◆ Pray 2 rakats Tahiyyatul Wudu — path to Jannah (Muslim: 441)', 'color': const Color(0xFF64B5F6)});
+    }
 
     // ══ খাবারের আমল ══
+    final h = now.hour, mi = now.minute;
+    final inBreakfastWindow = (h == 7 && mi < 30);
+    final inLunchWindow = (h == 13 && mi >= 30) || (h == 14 && mi == 0);
+    final inDinnerWindow = (h == 19 && mi < 30);
+    if (inBreakfastWindow || inLunchWindow || inDinnerWindow) {
     alerts.add({'icon': '🍽️', 'text': isBn
         ? 'খাবারের সুন্নত:\n◆ বিসমিল্লাহ বলে ডান হাতে খান\n◆ সামনে থেকে খান\n◆ তিন চুমুকে পানি পান করুন — পাত্রে শ্বাস ফেলবেন না\n◆ খাওয়া শেষে আলহামদুলিল্লাহ বলুন\n◆ পড়ে যাওয়া খাবার তুলে পরিষ্কার করে খান — বরকত নষ্ট হয়ে যায়\n◆ আঙুল চেটে খান — কোথায় বরকত আছে জানা নেই'
         : 'Eating Sunnah:\n◆ Say Bismillah, eat with right hand\n◆ Eat from in front of you\n◆ Sip water 3 times — don\'t breathe in vessel\n◆ Say Alhamdulillah after eating\n◆ Pick up fallen food — barakah may be in it\n◆ Lick fingers — barakah unknown', 'color': const Color(0xFFFF8F00)});
+    }
 
     // ══ মসজিদের আমল ══
+    if (within15to30MinOfPrayerStart) {
     alerts.add({'icon': '🕌', 'text': isBn
         ? 'মসজিদের আমল:\n◆ ডান পা দিয়ে দরুদ পড়ে প্রবেশ করুন\n◆ বাম পা দিয়ে দরুদ পড়ে বের হন\n◆ তাহিয়্যাতুল মসজিদ পড়ুন\n◆ প্রথম সারিতে দাঁড়ানোর চেষ্টা করুন — রাসূল ﷺ প্রথম সারির জন্য ৩ বার দোয়া করতেন\n◆ অন্ধকারে মসজিদে যাওয়া — কিয়ামতে পূর্ণ নূর!'
         : 'Mosque deeds:\n◆ Enter right foot, recite Salawat & dua\n◆ Exit left foot, recite Salawat & dua\n◆ Pray Tahiyyatul Masjid\n◆ Try first row — Prophet ﷺ made dua for it 3x\n◆ Walking to mosque in dark — full Noor on Qiyamah!', 'color': const Color(0xFF26A69A)});
+    }
 
     // ══ বাজারে যাওয়ার আমল ══
+    if (h >= 9 && h < 12) {
     alerts.add({'icon': '🛒', 'text': isBn
         ? 'বাজারে প্রবেশের দোয়া পড়ুন:\n◆ "লা ইলাহা ইল্লাল্লাহু ওয়াহদাহু লা শারিকালাহু, লাহুল মুলকু ওয়ালা হুল হামদু, ইয়ুহয়ি ওয়া ইয়ুমিতু, ওয়া হুয়া হাইয়ুন লা ইয়ামুতু, বিয়াদিহিল খাইর, ওয়া হুয়া আলা কুল্লি শাইয়িন কাদির।" পড়ুন\n◆ ১০ লক্ষ পুণ্য + ১০ লক্ষ পাপ মোচন + জান্নাতে ঘর নির্মাণ\n◆ (তিরমিজি: ৩৪২৮)\n◆ ব্যবসায় সততা রাখুন — মিথ্যা কসম করবেন না'
         : 'Market entry dua:\n◆ "La ilaha illallahu wahdahu la sharika lahu..."\n◆ 1 million good deeds + 1 million sins erased + house in Jannah\n◆ (Tirmidhi: 3428)\n◆ Be honest in trade — never false oath', 'color': const Color(0xFFFDD835)});
+    }
 
     // ══ বিশেষ নফল নামাজের reminder ══
+    if (h == 10 || h == 11 || (h == 12 && mi == 0)) {
     alerts.add({'icon': '🙏', 'text': isBn
         ? 'বিশেষ নফল নামাজ:\n◆ সালাতুত তওবা — গুনাহের পর ২ রাকাত পড়ে ক্ষমা চান (ইবনে মাজাহ: ১৩৯৫)\n◆ সিজদাতুস শুকুর — সুসংবাদ পেলে শুকরানার সিজদা দিন\n◆ সালাতুল হাজত — যেকোনো প্রয়োজনে ২ রাকাত পড়ুন\n◆ নফল ঘরে পড়ুন — ঘরে পড়া ২৫ গুণ বেশি সওয়াব'
         : 'Special Nafl prayers:\n◆ Salat al-Tawbah — 2 rakats after sin, seek forgiveness (Ibn Majah: 1395)\n◆ Sajda al-Shukr — prostrate in gratitude for good news\n◆ Salat al-Hajat — 2 rakats for any need\n◆ Nafl at home — 25x more reward', 'color': const Color(0xFF7C4DFF)});
+    }
 
     // ══ দান-সদকার reminder ══
+    if (h >= 6 && h < 12) {
     alerts.add({'icon': '💰', 'text': isBn
         ? 'দান সদকার ফজিলত:\n◆ প্রতিদিন ছোট হলেও কিছু সদকা করুন\n◆ সদকা গুনাহ মুছে দেয় — যেমন পানি আগুন নেভায় (আহমাদ: ২২০১৬)\n◆ মাসিক আয়ের অংশ এতিম, মসজিদ বা গরিবদের দিন — জিহাদের সওয়াব (বুখারি: ৬০০৭)\n◆ রোগীকে দেখতে যান — ৭০ হাজার ফেরেশতা সন্ধ্যা পর্যন্ত দোয়া করবে (আহমাদ: ৯৫৫)'
         : 'Sadaqah reward:\n◆ Give Sadaqah daily, even small\n◆ Sadaqah erases sins like water extinguishes fire (Ahmad: 22016)\n◆ Monthly donation to orphans/mosque — equals Jihad reward (Bukhari: 6007)\n◆ Visit the sick — 70,000 angels make dua till evening (Ahmad: 955)', 'color': const Color(0xFFFF8F00)});
+    }
 
     // ══ সাদাকায়ে জারিয়াহ ══
+    if (h == 10 || h == 11 || (h == 12 && mi == 0)) {
     alerts.add({'icon': '🌱', 'text': isBn
         ? 'সাদাকায়ে জারিয়াহ:\n◆ মৃত্যুর পরও তিনটি আমল বন্ধ হয় না:\n  ১. সাদাকায়ে জারিয়াহ\n  ২. উপকারী ইলম\n  ৩. সুসন্তান যে দোয়া করে\n◆ (তিরমিজি: ১৩৭৬)\n◆ এখনই অসিয়ত লিখুন — মুসলিমের উচিত অসিয়ত লিখে রাখা (বুখারি: ২৫৮৭)'
         : 'Sadaqah Jariyah:\n◆ 3 deeds continue after death:\n  1. Ongoing charity\n  2. Beneficial knowledge\n  3. Righteous child making dua\n◆ (Tirmidhi: 1376)\n◆ Write your wasiyyah now (Bukhari: 2587)', 'color': const Color(0xFF26A69A)});
+    }
 
     // ══ আত্মীয়তা ও মানুষের সাথে ব্যবহার ══
+    if (h == 15) {
     alerts.add({'icon': '🤝', 'text': isBn
         ? 'মানুষের সাথে ব্যবহার:\n◆ আত্মীয়তার সম্পর্ক রক্ষা করুন — রিজিক ও আয়ু বৃদ্ধি পায়\n◆ মুসলিম ভাইয়ের প্রয়োজনে সাহায্য করুন — ১ মাস ইতেকাফের চেয়ে বেশি সওয়াব (আল-মু\'জাম: ১৩৬৪৬)\n◆ সৎ কাজ ছোট মনে করবেন না — হাসিমুখে দেখা করাও সদকা (মুসলিম)\n◆ মানুষকে ভালোবাসলে জানান — "আমি আপনাকে আল্লাহর জন্য ভালোবাসি"'
         : 'Relations & character:\n◆ Maintain family ties — increases rizq & lifespan\n◆ Help a brother — better than 1 month i\'tikaf (Al-Mu\'jam: 13646)\n◆ No good deed is small — even smiling is Sadaqah (Muslim)\n◆ Tell those you love: "I love you for Allah\'s sake"', 'color': const Color(0xFF64B5F6)});
+    }
 
     // ══ নারীদের বিশেষ আমল ══
+    if (h == 14 || h == 15) {
     alerts.add({'icon': '👩', 'text': isBn
         ? 'মহিলাদের জন্য জান্নাতের চাবিকাঠি:\n◆ ৫ ওয়াক্ত সালাত আদায় করুন\n◆ রমজানের সিয়াম পালন করুন\n◆ লজ্জাস্থানের হেফাজত করুন\n◆ স্বামীর আনুগত্য করুন — জান্নাতের যেকোনো দরজা দিয়ে প্রবেশ করবেন\n◆ (সহিহ ইবনে হিব্বান: ৪১৬৩)'
         : 'For women — keys to Jannah:\n◆ Pray 5 daily prayers\n◆ Keep Ramadan fasts\n◆ Guard chastity\n◆ Obey husband — enter Jannah from any gate\n◆ (Ibn Hibban: 4163)', 'color': const Color(0xFFE91E63)});
+    }
 
     // ══ টয়লেট/বাথরুমের সুন্নত ══
+    if (h == 10 || h == 11 || (h == 12 && mi == 0)) {
     alerts.add({'icon': '🚿', 'text': isBn
         ? 'টয়লেট/বাথরুমের সুন্নত:\n◆ প্রবেশের আগে দোয়া: "আল্লাহুম্মা ইন্নি আউযুবিকা মিনাল খুবুসি ওয়াল খাবায়িস"\n◆ বাম পা দিয়ে প্রবেশ করুন\n◆ বের হওয়ার সময় ডান পা দিয়ে বের হয়ে পড়ুন: "গুফরানাক"\n◆ কিবলামুখী হয়ে বা পিঠ দিয়ে বসবেন না'
         : 'Toilet/Bathroom Sunnah:\n◆ Dua before entering: "Allahumma inni auzubika minal khubuthi wal khaba\'ith"\n◆ Enter with left foot\n◆ Exit right foot & say: "Ghufranaka"\n◆ Don\'t face or turn back to Qiblah', 'color': const Color(0xFF78909C)});
+    }
 
     // ══ যাকাত ══
+    if (h == 10 || h == 11 || (h == 12 && mi == 0)) {
     alerts.add({'icon': '💵', 'text': isBn
         ? 'যাকাতের কথা মনে রাখুন:\n◆ নিসাব পরিমাণ সম্পদে যাকাত ফরজ\n◆ যাকাত না দিলে সম্পদ পবিত্র হয় না\n◆ যাকাত দিলে সম্পদে বরকত আসে\n◆ এতিম, বিধবা, গরিব, ঋণগ্রস্তদের দিন\n◆ প্রতি বছর হিসাব করুন ও সময়মতো আদায় করুন'
         : 'Zakat reminder:\n◆ Obligatory when wealth reaches Nisab\n◆ Wealth not purified without Zakat\n◆ Zakat brings barakah\n◆ Give to orphans, widows, poor, indebted\n◆ Calculate yearly & pay on time', 'color': const Color(0xFF26A69A)});
+    }
 
     // ══ জিহাদ ══
+    if (h == 14 || (h == 15 && mi == 0)) {
     alerts.add({'icon': '🛡️', 'text': isBn
         ? 'জিহাদের মর্যাদা:\n◆ আল্লাহর পথে জিহাদের সারিতে এক মুহূর্ত — ৬০ বছর ইবাদতের চেয়ে উত্তম\n◆ আজকের যুগে কলম, জ্ঞান ও দাওয়াতের মাধ্যমে জিহাদ করুন\n◆ পরিবারকে ইসলামে প্রতিষ্ঠিত রাখাও জিহাদ\n◆ নফসের বিরুদ্ধে জিহাদ — সবচেয়ে বড় জিহাদ\n◆ রিবাত: ১ দিন-রাত সীমান্ত পাহারা = ১ মাস রোজা ও রাতের ইবাদতের চেয়ে বেশি'
         : 'Jihad (striving):\n◆ Moment in Allah\'s path — better than 60 years worship\n◆ Today: Jihad through pen, knowledge & dawah\n◆ Keeping family on Islam is also Jihad\n◆ Jihad against nafs — the greatest Jihad\n◆ Ribat 1 day-night = more than 1 month fasting & worship', 'color': const Color(0xFF546E7A)});
+    }
 
     // ══ কাজের শুরুতে ══
+    if (h >= 8 && h < 11) {
     alerts.add({'icon': '✍️', 'text': isBn
         ? 'কাজের শুরুতে:\n◆ প্রতিটি ভালো কাজ ডান দিক দিয়ে বিসমিল্লাহ বলে শুরু করুন\n◆ যেকোনো কাজ পরামর্শ করে করুন (শুরা: ৩৮)\n◆ হালাল উপায়ে উপার্জন করুন\n◆ কাজে মনোযোগ দিন — আল্লাহ উৎকর্ষতা পছন্দ করেন'
         : 'Before starting work:\n◆ Start every good deed right side with Bismillah\n◆ Consult in all matters (Shura: 38)\n◆ Earn through halal means\n◆ Be focused — Allah loves excellence', 'color': const Color(0xFF8D6E63)});
+    }
 
     // ══ যিকর ও তিলাওয়াত ══
+    if (within1HourOfFajrOrMaghrib) {
     alerts.add({'icon': '📖', 'text': isBn
         ? 'যিকর ও তিলাওয়াত:\n◆ "সুবহানাল্লাহি ওয়া বিহামদিহি সুবহানাল্লাহিল আজিম" — বলায় সহজ, পাল্লায় ভারী (বুখারি: ৬৪০৬)\n◆ সূরা ইখলাস = কুরআনের ১/৩ ভাগ\n◆ সূরা কাফিরুন = কুরআনের ১/৪ ভাগ\n◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে বললে আরশ পর্যন্ত পৌঁছায়\n◆ প্রতিদিন নিয়মিত কুরআন তিলাওয়াত করুন'
         : 'Dhikr & Tilawah:\n◆ "Subhanallahi wa bihamdih..." — easy, heavy in scale (Bukhari: 6406)\n◆ Surah Ikhlas = 1/3 Quran\n◆ Surah Kafirun = 1/4 Quran\n◆ La ilaha illallah with sincerity reaches the Arsh\n◆ Recite Quran daily', 'color': const Color(0xFF7C4DFF)});
+    }
 
     return alerts;
   }
@@ -1252,35 +1302,40 @@ class _HomeTabState extends State<_HomeTab> {
             const SizedBox(height: 16),
 
             if (alerts.isNotEmpty) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: alerts.map((a) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(a['icon'] as String, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(
-                          a['text'] as String,
-                          style: TextStyle(
-                              color: a['color'] as Color,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600),
-                        )),
-                      ],
-                    ),
-                  )).toList(),
-                ),
-              ),
+              Builder(builder: (context) {
+                final currentAlert = alerts[_alertRotationIndex % alerts.length];
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(currentAlert['icon'] as String, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        currentAlert['text'] as String,
+                        style: TextStyle(
+                            color: currentAlert['color'] as Color,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      )),
+                      if (alerts.length > 1)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(
+                            '${(_alertRotationIndex % alerts.length) + 1}/${alerts.length}',
+                            style: const TextStyle(color: Colors.white38, fontSize: 11),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 20),

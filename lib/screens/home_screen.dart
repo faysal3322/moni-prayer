@@ -286,19 +286,40 @@ class _HomeTabState extends State<_HomeTab> {
                txt.contains('Noon forbidden');
       }).toList();
 
+      // পুরো alert text (headline + সব bullet) কে প্রতি ৫ লাইনে ভাগ করে
+      // একাধিক "পাতা"-য় পরিণত করা, যাতে widget-এর ফাঁকা জায়গায় ধাপে ধাপে
+      // (rotation-এ) পুরো content দেখানো যায়
+      const int linesPerPage = 5;
+      List<String> chunkIntoPages(String icon, String fullText) {
+        final lines = fullText.split('\n');
+        final pages = <String>[];
+        for (var i = 0; i < lines.length; i += linesPerPage) {
+          final end = (i + linesPerPage < lines.length) ? i + linesPerPage : lines.length;
+          final pageLines = lines.sublist(i, end);
+          // প্রথম পাতায় আইকন বসবে, পরের পাতাগুলোতেও ধারাবাহিকতার জন্য একই আইকন থাকবে
+          pages.add('$icon ${pageLines.join('\n')}');
+        }
+        return pages.isEmpty ? ['$icon $fullText'] : pages;
+      }
+
       final String alertText;
       if (strictForbidden.isNotEmpty) {
-        final txt = (strictForbidden.first['text'] as String).split('\n').first;
-        alertText = '${strictForbidden.first['icon']} $txt';
+        final icon = strictForbidden.first['icon'] as String;
+        final txt = strictForbidden.first['text'] as String;
+        alertText = chunkIntoPages(icon, txt).join('\u0001');
       } else {
         final normalAlerts = alertList.where((a) =>
             !(a['text'] as String).contains('নিষিদ্ধ') &&
             !(a['text'] as String).contains('Forbidden')).toList();
-        alertText = normalAlerts.isEmpty
-            ? ''
-            : normalAlerts.map((a) =>
-                '${a['icon']} ${(a['text'] as String).split('\n').first}'
-              ).join(' | ');
+        if (normalAlerts.isEmpty) {
+          alertText = '';
+        } else {
+          final allPages = <String>[];
+          for (final a in normalAlerts) {
+            allPages.addAll(chunkIntoPages(a['icon'] as String, a['text'] as String));
+          }
+          alertText = allPages.join('\u0001');
+        }
       }
       await HomeWidget.saveWidgetData('widget_alert', alertText);
 

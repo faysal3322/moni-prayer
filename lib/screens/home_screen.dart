@@ -1323,40 +1323,35 @@ class _HomeTabState extends State<_HomeTab> {
             const SizedBox(height: 16),
 
             if (alerts.isNotEmpty) ...[
-              Builder(builder: (context) {
-                final currentAlert = alerts[_alertRotationIndex % alerts.length];
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(currentAlert['icon'] as String, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(
-                        currentAlert['text'] as String,
-                        style: TextStyle(
-                            color: currentAlert['color'] as Color,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600),
-                      )),
-                      if (alerts.length > 1)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Text(
-                            '${(_alertRotationIndex % alerts.length) + 1}/${alerts.length}',
-                            style: const TextStyle(color: Colors.white38, fontSize: 11),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: alerts.map((a) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(a['icon'] as String, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(
+                          a['text'] as String,
+                          style: TextStyle(
+                              color: a['color'] as Color,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        )),
+                      ],
+                    ),
+                  )).toList(),
+                ),
+              ),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 20),

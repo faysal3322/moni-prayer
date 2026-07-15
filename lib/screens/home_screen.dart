@@ -286,10 +286,42 @@ class _HomeTabState extends State<_HomeTab> {
                txt.contains('Noon forbidden');
       }).toList();
 
-      // পুরো alert text (headline + সব bullet) কে প্রতি ৫ লাইনে ভাগ করে
+      // ═══ নামাজ-সংক্রান্ত জরুরি তথ্য (widget-এর ১ম লাইনে সবসময় ফিক্সড থাকবে) ═══
+      // "নামাজের সময় হতে বাকি", "ওয়াক্ত শেষ হতে বাকি", "নিষিদ্ধ সময়",
+      // "তাহাজ্জুদের সময়... বাকি", "সেহরি/ইফতার... বাকি" ইত্যাদি countdown/timing alert চিহ্নিত করা।
+      // শুধু headline (প্রথম লাইন) দেখে বিচার করা হয়, যাতে বিস্তারিত নফল ব্লকের
+      // ভেতরের কোনো bullet-এ কাকতালীয়ভাবে এই শব্দ থাকলে ভুল ধরা না পড়ে।
+      bool isPrayerTimingAlert(String txt) {
+        final headline = txt.split('\n').first;
+        return headline.contains('বাকি') ||
+               headline.contains('নিষিদ্ধ সময়') ||
+               headline.contains('পরবর্তী নামাজ') ||
+               headline.contains('সূর্যাস্ত — ইফতারের সময় শুরু') ||
+               headline.contains('remaining') ||
+               headline.contains('starts in') ||
+               headline.contains('ends in') ||
+               headline.contains('Forbidden');
+      }
+
+      String prayerLine = '';
+      if (strictForbidden.isNotEmpty) {
+        final txt = (strictForbidden.first['text'] as String).split('\n').first;
+        prayerLine = '${strictForbidden.first['icon']} $txt';
+      } else {
+        final prayerAlerts = alertList.where((a) => isPrayerTimingAlert(a['text'] as String)).toList();
+        if (prayerAlerts.isNotEmpty) {
+          final txt = (prayerAlerts.first['text'] as String).split('\n').first;
+          prayerLine = '${prayerAlerts.first['icon']} $txt';
+        }
+      }
+
+      // ═══ বাকি (নফল আমল) — ২য় লাইন থেকে rotation-এ ঘুরবে ═══
+      // পুরো alert text (headline + সব bullet) কে প্রতি লাইনে ভাগ করে
       // একাধিক "পাতা"-য় পরিণত করা, যাতে widget-এর ফাঁকা জায়গায় ধাপে ধাপে
-      // (rotation-এ) পুরো content দেখানো যায়
-      const int linesPerPage = 7;
+      // (rotation-এ) পুরো content দেখানো যায়। প্রথম লাইন prayerLine-এর জন্য
+      // বরাদ্দ থাকায় নফল অংশের জন্য ৬ লাইন (৭ - ১) বরাদ্দ।
+      const int totalLines = 7;
+      final int linesPerPage = prayerLine.isNotEmpty ? (totalLines - 1) : totalLines;
       List<String> chunkIntoPages(String icon, String fullText) {
         final lines = fullText.split('\n');
         final pages = <String>[];
@@ -302,24 +334,27 @@ class _HomeTabState extends State<_HomeTab> {
         return pages.isEmpty ? ['$icon $fullText'] : pages;
       }
 
+      final naflAlerts = alertList.where((a) {
+        final txt = a['text'] as String;
+        final headline = txt.split('\n').first;
+        return !headline.contains('নিষিদ্ধ') &&
+               !headline.contains('Forbidden') &&
+               !isPrayerTimingAlert(txt);
+      }).toList();
+
+      final naflPages = <String>[];
+      for (final a in naflAlerts) {
+        naflPages.addAll(chunkIntoPages(a['icon'] as String, a['text'] as String));
+      }
+
+      // প্রতিটা rotation-page এর শুরুতে prayerLine জুড়ে দেওয়া হচ্ছে (fixed প্রথম লাইন)
       final String alertText;
-      if (strictForbidden.isNotEmpty) {
-        final icon = strictForbidden.first['icon'] as String;
-        final txt = strictForbidden.first['text'] as String;
-        alertText = chunkIntoPages(icon, txt).join('\u0001');
+      if (naflPages.isEmpty) {
+        alertText = prayerLine;
+      } else if (prayerLine.isEmpty) {
+        alertText = naflPages.join('\u0001');
       } else {
-        final normalAlerts = alertList.where((a) =>
-            !(a['text'] as String).contains('নিষিদ্ধ') &&
-            !(a['text'] as String).contains('Forbidden')).toList();
-        if (normalAlerts.isEmpty) {
-          alertText = '';
-        } else {
-          final allPages = <String>[];
-          for (final a in normalAlerts) {
-            allPages.addAll(chunkIntoPages(a['icon'] as String, a['text'] as String));
-          }
-          alertText = allPages.join('\u0001');
-        }
+        alertText = naflPages.map((page) => '$prayerLine\n$page').join('\u0001');
       }
       await HomeWidget.saveWidgetData('widget_alert', alertText);
 

@@ -259,7 +259,8 @@ class _HomeTabState extends State<_HomeTab> {
     // প্রতিটা ফিল্ড আলাদা try-catch এ, যাতে একটাতে সমস্যা হলেও
     // বাকি ফিল্ডগুলো ঠিকভাবে সেভ হয় এবং widget পুরোপুরি খালি না থাকে
     try {
-      await HomeWidget.saveWidgetData('widget_time', DateHelper.formatTime12(now, bangla: isBn));
+      // widget-এর সময় সবসময় ইংরেজি (আরবি) সংখ্যায় দেখানো হয়, মূল অ্যাপের ভাষা সেটিং যাই হোক না কেন
+      await HomeWidget.saveWidgetData('widget_time', DateHelper.formatTime12(now, bangla: false));
     } catch (e) { debugPrint('WIDGET ERROR (time): $e'); }
 
     try {
@@ -350,7 +351,7 @@ class _HomeTabState extends State<_HomeTab> {
       // একাধিক "পাতা"-য় পরিণত করা, যাতে widget-এর ফাঁকা জায়গায় ধাপে ধাপে
       // (rotation-এ) পুরো content দেখানো যায়। প্রথম লাইন prayerLine-এর জন্য
       // বরাদ্দ থাকায় নফল অংশের জন্য ৬ লাইন (৭ - ১) বরাদ্দ।
-      const int totalLines = 7;
+      const int totalLines = 9;
       final int linesPerPage = (prayerLine.isNotEmpty ? (totalLines - 1) : totalLines)
           .clamp(1, totalLines);
       List<String> chunkIntoPages(String icon, String fullText) {
@@ -1525,9 +1526,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               children: [
-                // সময়
+                // সময় (সবসময় ইংরেজি/আরবি সংখ্যায় দেখানো হয়)
                 Text(
-                  DateHelper.formatTime12(now, bangla: isBn),
+                  DateHelper.formatTime12(now, bangla: false),
                   style: const TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.bold,

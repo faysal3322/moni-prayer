@@ -248,34 +248,64 @@ class _HomeTabState extends State<_HomeTab> {
 
   // ══ Home Screen Widget এ data পাঠানো (হোমস্ক্রিনের widget আপডেট) ══
   Future<void> _updateHomeWidget() async {
-    try {
-      final pt = _prayerTimes;
-      if (pt == null) {
-        debugPrint('WIDGET: prayerTimes null, skip');
-        return;
-      }
-      final isBn = widget.lang.isBn;
-      final now = DateTime.now();
+    final pt = _prayerTimes;
+    if (pt == null) {
+      debugPrint('WIDGET: prayerTimes null, skip');
+      return;
+    }
+    final isBn = widget.lang.isBn;
+    final now = DateTime.now();
 
+    // প্রতিটা ফিল্ড আলাদা try-catch এ, যাতে একটাতে সমস্যা হলেও
+    // বাকি ফিল্ডগুলো ঠিকভাবে সেভ হয় এবং widget পুরোপুরি খালি না থাকে
+    try {
       await HomeWidget.saveWidgetData('widget_time', DateHelper.formatTime12(now, bangla: isBn));
+    } catch (e) { debugPrint('WIDGET ERROR (time): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_day', widget.lang.dayName(now.weekday));
+    } catch (e) { debugPrint('WIDGET ERROR (day): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_gregorian', DateHelper.formatGregorian(now, bangla: isBn));
+    } catch (e) { debugPrint('WIDGET ERROR (gregorian): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_hijri',
           _hijriDate.isEmpty ? DateHelper.toHijri(now, bangla: isBn) : _hijriDate);
+    } catch (e) { debugPrint('WIDGET ERROR (hijri): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_bangla_date', DateHelper.toBangla(now));
+    } catch (e) { debugPrint('WIDGET ERROR (bangla_date): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_sunrise',
           (isBn ? '🌅 সূর্যোদয় ' : '🌅 Sunrise ') + PrayerTimeHelper.formatTime(pt.sunrise));
+    } catch (e) { debugPrint('WIDGET ERROR (sunrise): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_sunset',
           (isBn ? '🌇 সূর্যাস্ত ' : '🌇 Sunset ') + PrayerTimeHelper.formatTime(pt.maghrib));
+    } catch (e) { debugPrint('WIDGET ERROR (sunset): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_sehri',
           (isBn ? '🍽️ সেহরি ' : '🍽️ Sehri ') + PrayerTimeHelper.formatTime(pt.fajr));
+    } catch (e) { debugPrint('WIDGET ERROR (sehri): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_iftar',
           (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
+    } catch (e) { debugPrint('WIDGET ERROR (iftar): $e'); }
 
+    try {
       // weather: icon + temp + short description
       final shortWeather = _weatherText.isEmpty ? '' : '$_weatherIcon $_weatherText';
       await HomeWidget.saveWidgetData('widget_weather', shortWeather);
+    } catch (e) { debugPrint('WIDGET ERROR (weather): $e'); }
 
+    try {
       // alert: সূর্যোদয় ও দ্বিপ্রহরের নিষিদ্ধ সময়ে শুধু সতর্কবার্তা
       final alertList = _getLiveAlerts(widget.lang);
       final strictForbidden = alertList.where((a) {
@@ -321,7 +351,8 @@ class _HomeTabState extends State<_HomeTab> {
       // (rotation-এ) পুরো content দেখানো যায়। প্রথম লাইন prayerLine-এর জন্য
       // বরাদ্দ থাকায় নফল অংশের জন্য ৬ লাইন (৭ - ১) বরাদ্দ।
       const int totalLines = 7;
-      final int linesPerPage = prayerLine.isNotEmpty ? (totalLines - 1) : totalLines;
+      final int linesPerPage = (prayerLine.isNotEmpty ? (totalLines - 1) : totalLines)
+          .clamp(1, totalLines);
       List<String> chunkIntoPages(String icon, String fullText) {
         final lines = fullText.split('\n');
         final pages = <String>[];
@@ -357,14 +388,16 @@ class _HomeTabState extends State<_HomeTab> {
         alertText = naflPages.map((page) => '$prayerLine\n$page').join('\u0001');
       }
       await HomeWidget.saveWidgetData('widget_alert', alertText);
+    } catch (e) { debugPrint('WIDGET ERROR (alert): $e'); }
 
+    try {
       await HomeWidget.updateWidget(
         name: 'PrayerWidgetProvider',
         androidName: 'com.example.moni_prayer.PrayerWidgetProvider',
       );
       debugPrint('WIDGET: update success');
     } catch (e) {
-      debugPrint('WIDGET ERROR: $e');
+      debugPrint('WIDGET ERROR (updateWidget): $e');
     }
   }
 

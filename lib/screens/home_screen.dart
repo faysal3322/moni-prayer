@@ -351,7 +351,7 @@ class _HomeTabState extends State<_HomeTab> {
       // একাধিক "পাতা"-য় পরিণত করা, যাতে widget-এর ফাঁকা জায়গায় ধাপে ধাপে
       // (rotation-এ) পুরো content দেখানো যায়। প্রথম লাইন prayerLine-এর জন্য
       // বরাদ্দ থাকায় নফল অংশের জন্য ৬ লাইন (৭ - ১) বরাদ্দ।
-      const int totalLines = 9;
+      const int totalLines = 10;
       final int linesPerPage = (prayerLine.isNotEmpty ? (totalLines - 1) : totalLines)
           .clamp(1, totalLines);
       List<String> chunkIntoPages(String icon, String fullText) {

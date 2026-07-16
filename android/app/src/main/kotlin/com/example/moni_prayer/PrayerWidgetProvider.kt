@@ -90,6 +90,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             if (isBn) "pm" else "PM"
         }
         var timeStr = timeFormat.format(now.time) + " " + amPm
+        if (isBn) timeStr = toBanglaDigits(timeStr)
 
         views.setTextViewText(R.id.widget_time, timeStr)
 

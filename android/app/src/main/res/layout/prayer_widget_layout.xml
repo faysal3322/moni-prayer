@@ -168,7 +168,7 @@
         android:textSize="13sp"
         android:textStyle="bold"
         android:gravity="start"
-        android:maxLines="7"
+        android:maxLines="9"
         android:ellipsize="end" />
 
 </LinearLayout>

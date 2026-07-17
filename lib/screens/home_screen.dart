@@ -214,6 +214,8 @@ class _HomeTabState extends State<_HomeTab> {
   PrayerTimes? _prayerTimes;
   SunnahTimes? _sunnahTimes;
   String _hijriDate = '';
+  int _hijriMonthNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি মাস
+  int _hijriDayNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি দিন
   Timer? _autoQazaTimer;
   Timer? _weatherTimer;
   int _alertRotationIndex = 0;
@@ -512,7 +514,14 @@ class _HomeTabState extends State<_HomeTab> {
   Future<void> _loadHijri() async {
     final h = await DateHelper.toHijriWithUserAdjust(
         DateTime.now(), bangla: widget.lang.isBn);
-    if (mounted) setState(() => _hijriDate = h);
+    final md = await DateHelper.getHijriMonthDayWithUserAdjust(DateTime.now());
+    if (mounted) {
+      setState(() {
+        _hijriDate = h;
+        _hijriMonthNum = md['month'] ?? 0;
+        _hijriDayNum = md['day'] ?? 0;
+      });
+    }
   }
 
   Future<void> _loadToday() async {
@@ -641,8 +650,11 @@ class _HomeTabState extends State<_HomeTab> {
     final manualLastThird = pt.maghrib.add(
       Duration(milliseconds: (nightDuration.inMilliseconds * 2 / 3).round()),
     );
-    final h = _HijriSimple.fromDate(now);
-    final hijriMonth = _HijriSimple.getMonth(now);
+    // হোম স্ক্রিনে দেখানো হিজরি তারিখের সাথে মিলিয়ে (DateHelper থেকে, user adjust সহ)
+    // — আগে এখানে _HijriSimple ব্যবহার হতো যা ভিন্ন হিসাব দিত এবং মাস পরিবর্তনের পরও
+    // পুরনো মাসের এলার্ট দেখাত। এখন সবখানে একই হিজরি সোর্স ব্যবহার হচ্ছে।
+    final h = _hijriDayNum;
+    final hijriMonth = _hijriMonthNum;
 
     final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
     final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));

@@ -35,6 +35,16 @@ class DateHelper {
     return toHijri(date, bangla: bangla, adjust: adjust);
   }
 
+  // হোম স্ক্রিনের হিজরি তারিখের সাথে এলার্ট লজিক মিলানোর জন্য —
+  // একই hijri package + user adjust ব্যবহার করে (hMonth, hDay) রিটার্ন করে
+  static Future<Map<String, int>> getHijriMonthDayWithUserAdjust(DateTime date) async {
+    final adjust = await _getHijriAdjust();
+    final totalAdjust = -1 + adjust;
+    final adjustedDate = date.add(Duration(days: totalAdjust));
+    final h = HijriCalendar.fromDate(adjustedDate);
+    return {'month': h.hMonth, 'day': h.hDay};
+  }
+
   static String toBangla(DateTime date) {
     final bMonths = [
       'বৈশাখ','জ্যৈষ্ঠ','আষাঢ়','শ্রাবণ',

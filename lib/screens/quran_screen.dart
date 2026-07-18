@@ -3,6 +3,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
 import 'surah_detail_screen.dart';
+import 'quran_settings_screen.dart';
 
 class QuranScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -80,6 +81,17 @@ class _QuranScreenState extends State<QuranScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isBn ? 'কোরআন' : 'Quran'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: isBn ? 'কোরআন সেটিংস' : 'Quran Settings',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => QuranSettingsScreen(lang: widget.lang),
+              ));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

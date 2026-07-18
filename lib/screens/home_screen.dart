@@ -17,6 +17,7 @@ import 'missed_list_screen.dart';
 import 'names_screen.dart';
 import 'nafl_screen.dart';
 import 'dua_screen.dart';
+import 'quran_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1393,6 +1394,14 @@ class _HomeTabState extends State<_HomeTab> {
             ]),
             const SizedBox(height: 12),
 
+            _QuranEntryCard(
+              lang: lang,
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => QuranScreen(lang: lang),
+              )),
+            ),
+            const SizedBox(height: 12),
+
             _PrayerTimesCard(lang: lang, prayerTimes: _prayerTimes, sunnahTimes: _sunnahTimes),
             const SizedBox(height: 12),
 
@@ -1821,6 +1830,48 @@ class _PendingCard extends StatelessWidget {
           if (suffix.isNotEmpty)
             Text(suffix, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
         ]),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+class _QuranEntryCard extends StatelessWidget {
+  final AppLanguage lang;
+  final VoidCallback onTap;
+
+  const _QuranEntryCard({required this.lang, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isBn = lang.isBn;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.gold.withOpacity(0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.menu_book, color: AppTheme.gold, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isBn ? 'কোরআন' : 'Quran',
+                style: const TextStyle(
+                  color: AppTheme.gold,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
+          ],
+        ),
       ),
     );
   }

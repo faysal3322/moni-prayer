@@ -25,6 +25,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   bool _showTransliteration = true;
   double _fontSize = 24.0;
 
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _ayaKeys = [];
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +38,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -70,6 +74,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
         _chapter = chapter;
         _ayat = ayat;
         _transliteration = translit;
+        _ayaKeys.clear();
+        _ayaKeys.addAll(List.generate(ayat.length, (_) => GlobalKey()));
         _loading = false;
       });
     } catch (e) {
@@ -79,6 +85,86 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
         _loading = false;
       });
     }
+  }
+
+  void _jumpToVerse(int ayaIndex) {
+    Navigator.of(context).pop(); // close the bottom sheet
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
+      final ctx = _ayaKeys[ayaIndex].currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+          alignment: 0.1,
+        );
+      }
+    });
+  }
+
+  void _showVerseJumpSheet() {
+    final isBn = widget.lang.isBn;
+    final nameTranslit = _chapter?['name_transliteration'] as String? ?? '';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    nameTranslit,
+                    style: const TextStyle(
+                      color: AppTheme.gold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Divider(color: Colors.white12, height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: _ayat.length,
+                    itemBuilder: (context, index) {
+                      final ayaNum = _ayat[index]['aya'] as int;
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          isBn ? 'আয়াত $ayaNum' : 'Verse $ayaNum',
+                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                        ),
+                        onTap: () => _jumpToVerse(index),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -91,7 +177,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran')),
+        title: InkWell(
+          onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 22),
+            ],
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
@@ -120,6 +220,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
                       ),
                     )
                   : ListView(
+                      controller: _scrollController,
                       padding: const EdgeInsets.all(14),
                       children: [
                         if (showBismillah)
@@ -145,6 +246,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
                           ),
                         for (int i = 0; i < _ayat.length; i++)
                           _AyaCard(
+                            key: _ayaKeys[i],
                             ayaNumber: _ayat[i]['aya'] as int,
                             arabicText: _ayat[i]['text'] as String? ?? '',
                             transliterationText: i < _transliteration.length
@@ -174,6 +276,7 @@ class _AyaCard extends StatelessWidget {
   final double fontSize;
 
   const _AyaCard({
+    super.key,
     required this.ayaNumber,
     required this.arabicText,
     required this.transliterationText,

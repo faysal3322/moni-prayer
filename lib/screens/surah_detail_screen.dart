@@ -17,6 +17,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   Map<String, dynamic>? _chapter;
   List<Map<String, dynamic>> _ayat = [];
   List<Map<String, dynamic>> _transliteration = [];
+  List<Map<String, dynamic>> _bangla = [];
   bool _loading = true;
   String _error = '';
 
@@ -68,12 +69,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
       final chapter = await QuranDatabaseHelper.getChapter(widget.sura);
       final ayat = await QuranDatabaseHelper.getAyatUthmani(widget.sura);
       final translit = await QuranDatabaseHelper.getAyatTransliteration(widget.sura);
+      final bangla = await QuranDatabaseHelper.getAyatBangla(widget.sura);
       await _loadPrefs();
       if (!mounted) return;
       setState(() {
         _chapter = chapter;
         _ayat = ayat;
         _transliteration = translit;
+        _bangla = bangla;
         _ayaKeys.clear();
         _ayaKeys.addAll(List.generate(ayat.length, (_) => GlobalKey()));
         _loading = false;
@@ -252,6 +255,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
                             transliterationText: i < _transliteration.length
                                 ? (_transliteration[i]['text'] as String? ?? '')
                                 : '',
+                            banglaText: i < _bangla.length
+                                ? (_bangla[i]['text'] as String? ?? '')
+                                : '',
                             lang: widget.lang,
                             showArabic: _showArabic,
                             showBangla: _showBangla,
@@ -269,6 +275,7 @@ class _AyaCard extends StatelessWidget {
   final int ayaNumber;
   final String arabicText;
   final String transliterationText;
+  final String banglaText;
   final AppLanguage lang;
   final bool showArabic;
   final bool showBangla;
@@ -280,6 +287,7 @@ class _AyaCard extends StatelessWidget {
     required this.ayaNumber,
     required this.arabicText,
     required this.transliterationText,
+    required this.banglaText,
     required this.lang,
     required this.showArabic,
     required this.showBangla,
@@ -335,11 +343,13 @@ class _AyaCard extends StatelessWidget {
           if (showBangla) ...[
             const Divider(color: Colors.white12, height: 20),
             Text(
-              isBn ? 'বাংলা অনুবাদ শীঘ্রই যুক্ত হবে' : 'Bangla translation coming soon',
+              banglaText.isNotEmpty
+                  ? banglaText
+                  : (isBn ? 'এই আয়াতের অনুবাদ পাওয়া যায়নি' : 'Translation not available for this verse'),
               style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
+                color: AppTheme.textPrimary,
+                fontSize: 15,
+                height: 1.6,
               ),
             ),
           ],

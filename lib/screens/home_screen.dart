@@ -133,15 +133,18 @@ class _HomeScreenState extends State<HomeScreen> {
         rozaPending: _rozaPending,
         onRefresh: _loadCounts,
         scrollController: _scrollControllers[0]!,
+        onOpenSettings: () => Navigator.push(context, MaterialPageRoute(
+          builder: (_) => SettingsScreen(lang: lang, onChanged: () {
+            _loadPrefs();
+            _loadCounts();
+          }),
+        )),
       ),
       CalendarScreen(lang: lang, onDataChanged: _loadCounts),
       NaflScreen(lang: lang),
+      QuranScreen(lang: lang),
       DuaScreen(lang: lang),
       NamesScreen(lang: lang),
-      SettingsScreen(lang: lang, onChanged: () {
-        _loadPrefs();
-        _loadCounts();
-      }),
     ];
 
     return WillPopScope(
@@ -169,15 +172,15 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationDestination(
                 icon: const Icon(Icons.menu_book_outlined),
                 selectedIcon: const Icon(Icons.menu_book),
-                label: isBn ? 'দোয়া' : 'Dua'),
+                label: isBn ? 'কোরআন' : 'Quran'),
             NavigationDestination(
                 icon: const Icon(Icons.auto_stories_outlined),
                 selectedIcon: const Icon(Icons.auto_stories),
-                label: isBn ? '৯৯ নাম' : '99 Names'),
+                label: isBn ? 'দোয়া' : 'Dua'),
             NavigationDestination(
-                icon: const Icon(Icons.settings_outlined),
-                selectedIcon: const Icon(Icons.settings),
-                label: lang.settings),
+                icon: const Icon(Icons.star_outline),
+                selectedIcon: const Icon(Icons.star),
+                label: isBn ? '৯৯ নাম' : '99 Names'),
           ],
         ),
       ),
@@ -194,6 +197,7 @@ class _HomeTab extends StatefulWidget {
   final int rozaPending;
   final VoidCallback onRefresh;
   final ScrollController scrollController;
+  final VoidCallback onOpenSettings;
 
   const _HomeTab({
     required this.lang,
@@ -203,6 +207,7 @@ class _HomeTab extends StatefulWidget {
     required this.rozaPending,
     required this.onRefresh,
     required this.scrollController,
+    required this.onOpenSettings,
   });
 
   @override
@@ -1362,9 +1367,23 @@ class _HomeTabState extends State<_HomeTab> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text(lang.bismillah,
-                style: const TextStyle(fontSize: 28, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
-                textAlign: TextAlign.center),
+            Stack(
+              children: [
+                Text(lang.bismillah,
+                    style: const TextStyle(fontSize: 28, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
+                    textAlign: TextAlign.center),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: IconButton(
+                    onPressed: widget.onOpenSettings,
+                    icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary, size: 22),
+                    tooltip: lang.settings,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(lang.prayerCount(widget.userName),
                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
@@ -1392,14 +1411,6 @@ class _HomeTabState extends State<_HomeTab> {
                 )).then((_) => widget.onRefresh()),
               )),
             ]),
-            const SizedBox(height: 12),
-
-            _QuranEntryCard(
-              lang: lang,
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => QuranScreen(lang: lang),
-              )),
-            ),
             const SizedBox(height: 12),
 
             _PrayerTimesCard(lang: lang, prayerTimes: _prayerTimes, sunnahTimes: _sunnahTimes),
@@ -1830,48 +1841,6 @@ class _PendingCard extends StatelessWidget {
           if (suffix.isNotEmpty)
             Text(suffix, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
         ]),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════
-class _QuranEntryCard extends StatelessWidget {
-  final AppLanguage lang;
-  final VoidCallback onTap;
-
-  const _QuranEntryCard({required this.lang, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isBn = lang.isBn;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppTheme.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.gold.withOpacity(0.4)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.menu_book, color: AppTheme.gold, size: 22),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                isBn ? 'কোরআন' : 'Quran',
-                style: const TextStyle(
-                  color: AppTheme.gold,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
-          ],
-        ),
       ),
     );
   }

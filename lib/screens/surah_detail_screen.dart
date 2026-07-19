@@ -164,23 +164,39 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Repeatedly tries Scrollable.ensureVisible on the target aya's GlobalKey,
+  /// retrying for up to ~1.5s. This is more reliable than a single fixed delay
+  /// because it keeps checking until the widget's context is actually laid out
+  /// (list/page rebuilds after closing the bottom sheet can take a variable
+  /// number of frames, especially for long surahs).
+  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 15}) {
+    if (!mounted) return;
+    if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
+    final ctx = _ayaKeys[ayaIndex].currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        alignment: 0.05,
+      );
+      return;
+    }
+    if (attemptsLeft <= 0) return;
+    // Context not ready yet (widget not laid out on screen) — retry next frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
+      });
+    });
+  }
+
   void _jumpToVerse(int ayaIndex) {
     Navigator.of(context).pop(); // close the bottom sheet
-    // Wait for the bottom sheet's close animation to finish before measuring context.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (!mounted) return;
-        if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
-        final ctx = _ayaKeys[ayaIndex].currentContext;
-        if (ctx != null) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-            alignment: 0.05,
-          );
-        }
-      });
+    // Wait for the bottom sheet's close animation to finish, then retry-scroll
+    // until the target verse's context becomes available.
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _scrollToVerse(ayaIndex);
     });
   }
 

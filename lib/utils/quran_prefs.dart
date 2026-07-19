@@ -7,6 +7,7 @@ class QuranPrefs {
   static const _keyShowBangla = 'quran_show_bangla';
   static const _keyShowTransliteration = 'quran_show_transliteration';
   static const _keyFontSize = 'quran_font_size';
+  static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
 
   // Default: Arabic + English transliteration on (Bangla text not available yet)
   static Future<bool> getShowArabic() async {
@@ -49,5 +50,16 @@ class QuranPrefs {
   static Future<void> setFontSize(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyFontSize, value);
+  }
+
+  /// 'list' (card-by-card, with translation) or 'page' (mushaf-style flowing Arabic).
+  static Future<String> getViewMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyViewMode) ?? 'list';
+  }
+
+  static Future<void> setViewMode(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyViewMode, value);
   }
 }

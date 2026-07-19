@@ -627,18 +627,18 @@ class _MushafPageView extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: Container(
                             key: ayaKeys.length > i ? ayaKeys[i] : null,
-                            width: fontSize * 0.85,
-                            height: fontSize * 0.85,
+                            width: fontSize * 1.1,
+                            height: fontSize * 1.1,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1),
+                              border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1.2),
                             ),
                             child: Text(
                               lang.toLocalNum(ayat[i]['aya'] as int),
                               style: TextStyle(
                                 color: AppTheme.gold,
-                                fontSize: fontSize * 0.32,
+                                fontSize: fontSize * 0.48,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -698,10 +698,11 @@ class _AyaCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Container(
-                width: 26,
-                height: 26,
+                width: 34,
+                height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -709,7 +710,7 @@ class _AyaCard extends StatelessWidget {
                 ),
                 child: Text(
                   lang.toLocalNum(ayaNumber),
-                  style: const TextStyle(color: AppTheme.gold, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppTheme.gold, fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

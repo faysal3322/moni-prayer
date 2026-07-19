@@ -92,33 +92,41 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
 
   void _jumpToVerse(int ayaIndex) {
     Navigator.of(context).pop(); // close the bottom sheet
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
-      final ctx = _ayaKeys[ayaIndex].currentContext;
-      if (ctx != null) {
-        Scrollable.ensureVisible(
-          ctx,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-          alignment: 0.1,
-        );
-      }
+    // Wait for the bottom sheet's close animation to finish before measuring context.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
+        final ctx = _ayaKeys[ayaIndex].currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+            alignment: 0.05,
+          );
+        }
+      });
     });
   }
 
   void _showVerseJumpSheet() {
     final isBn = widget.lang.isBn;
     final nameTranslit = _chapter?['name_transliteration'] as String? ?? '';
+    final searchController = TextEditingController();
+    final ValueNotifier<String> searchQuery = ValueNotifier('');
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardBg,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.3,
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
           maxChildSize: 0.9,
           expand: false,
           builder: (context, scrollController) {
@@ -144,20 +152,90 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
                     ),
                   ),
                 ),
+                // আয়াত নম্বর সার্চ বক্স — নম্বর টাইপ করলে সরাসরি সেই আয়াতে যাওয়া যাবে
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    controller: searchController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: isBn ? 'আয়াত নম্বর লিখুন...' : 'Enter verse number...',
+                      hintStyle: const TextStyle(color: AppTheme.textSecondary),
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
+                      filled: true,
+                      fillColor: Colors.black26,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.accent),
+                      ),
+                    ),
+                    onChanged: (value) => searchQuery.value = value.trim(),
+                    onSubmitted: (value) {
+                      final num = int.tryParse(value.trim());
+                      if (num != null) {
+                        final index = _ayat.indexWhere((a) => (a['aya'] as int) == num);
+                        if (index != -1) {
+                          _jumpToVerse(index);
+                        }
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
                 const Divider(color: Colors.white12, height: 1),
                 Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: _ayat.length,
-                    itemBuilder: (context, index) {
-                      final ayaNum = _ayat[index]['aya'] as int;
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          isBn ? 'আয়াত $ayaNum' : 'Verse $ayaNum',
-                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                        ),
-                        onTap: () => _jumpToVerse(index),
+                  child: ValueListenableBuilder<String>(
+                    valueListenable: searchQuery,
+                    builder: (context, query, _) {
+                      final filteredIndices = <int>[];
+                      if (query.isEmpty) {
+                        filteredIndices.addAll(List.generate(_ayat.length, (i) => i));
+                      } else {
+                        final q = int.tryParse(query);
+                        for (int i = 0; i < _ayat.length; i++) {
+                          final ayaNum = _ayat[i]['aya'] as int;
+                          if (q != null && ayaNum.toString().startsWith(query)) {
+                            filteredIndices.add(i);
+                          } else if (q == null) {
+                            filteredIndices.add(i);
+                          }
+                        }
+                      }
+
+                      if (filteredIndices.isEmpty) {
+                        return Center(
+                          child: Text(
+                            isBn ? 'কোনো আয়াত পাওয়া যায়নি' : 'No verse found',
+                            style: const TextStyle(color: AppTheme.textSecondary),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        itemCount: filteredIndices.length,
+                        itemBuilder: (context, listIndex) {
+                          final index = filteredIndices[listIndex];
+                          final ayaNum = _ayat[index]['aya'] as int;
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              isBn ? 'আয়াত $ayaNum' : 'Verse $ayaNum',
+                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            ),
+                            onTap: () => _jumpToVerse(index),
+                          );
+                        },
                       );
                     },
                   ),
@@ -167,7 +245,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
           },
         );
       },
-    );
+    ).whenComplete(() {
+      searchController.dispose();
+      searchQuery.dispose();
+    });
   }
 
   @override

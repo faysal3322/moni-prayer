@@ -3,6 +3,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
 import '../utils/quran_prefs.dart';
+import 'quran_settings_screen.dart';
 
 class SurahDetailScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -14,6 +15,71 @@ class SurahDetailScreen extends StatefulWidget {
 }
 
 class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindingObserver {
+  static const int _totalSurahs = 114;
+  late PageController _pageController;
+  late int _currentSura;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _currentSura = widget.sura;
+    _pageController = PageController(initialPage: _currentSura - 1);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _openSettings() {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => QuranSettingsScreen(lang: widget.lang),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.lang.isBn ? 'কোরআন' : 'Quran'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: widget.lang.isBn ? 'কোরআন সেটিংস' : 'Quran Settings',
+            onPressed: _openSettings,
+          ),
+        ],
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _totalSurahs,
+        onPageChanged: (index) {
+          setState(() => _currentSura = index + 1);
+        },
+        itemBuilder: (context, index) {
+          final suraNumber = index + 1;
+          return _SurahPage(lang: widget.lang, sura: suraNumber);
+        },
+      ),
+    );
+  }
+}
+
+/// একটা নির্দিষ্ট সূরার আয়াতসমূহ দেখানোর জন্য পৃথক widget।
+/// PageView-এর প্রতিটি পেজ এই widget-এর একটি instance, যা lazy-load হয়।
+class _SurahPage extends StatefulWidget {
+  final AppLanguage lang;
+  final int sura;
+  const _SurahPage({required this.lang, required this.sura});
+
+  @override
+  State<_SurahPage> createState() => _SurahPageState();
+}
+
+class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   Map<String, dynamic>? _chapter;
   List<Map<String, dynamic>> _ayat = [];
   List<Map<String, dynamic>> _transliteration = [];
@@ -259,95 +325,101 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     final showBismillah = widget.sura != 1 && widget.sura != 9 && _showArabic;
     final noLanguageOn = !_showArabic && !_showBangla && !_showTransliteration;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: InkWell(
+    return Column(
+      children: [
+        // সূরার নাম + আয়াত জাম্প বাটন, প্রতিটি পেজের ওপরে
+        InkWell(
           onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            color: AppTheme.cardBg,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
                   nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
-                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-              ),
-              if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 22),
-            ],
+                if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
+              ],
+            ),
           ),
         ),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
-          : _error.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      isBn ? 'আয়াত লোড করা যায়নি।\n$_error' : 'Could not load verses.\n$_error',
-                      style: const TextStyle(color: AppTheme.missed, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              : noLanguageOn
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
+              : _error.isNotEmpty
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          isBn
-                              ? 'কোনো ভাষা চালু নেই। কোরআন সেটিংস থেকে অন্তত একটি ভাষা চালু করুন।'
-                              : 'No language is enabled. Turn on at least one in Quran Settings.',
-                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                          isBn ? 'আয়াত লোড করা যায়নি।\n$_error' : 'Could not load verses.\n$_error',
+                          style: const TextStyle(color: AppTheme.missed, fontSize: 13),
                           textAlign: TextAlign.center,
                         ),
                       ),
                     )
-                  : ListView(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(14),
-                      children: [
-                        if (showBismillah)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                  : noLanguageOn
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
                             child: Text(
-                              'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-                              style: TextStyle(
-                                fontSize: _fontSize + 2,
-                                color: AppTheme.gold,
-                                fontFamily: 'ScheherazadeNew',
-                                height: 1.8,
-                              ),
+                              isBn
+                                  ? 'কোনো ভাষা চালু নেই। কোরআন সেটিংস থেকে অন্তত একটি ভাষা চালু করুন।'
+                                  : 'No language is enabled. Turn on at least one in Quran Settings.',
+                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                               textAlign: TextAlign.center,
-                              textDirection: TextDirection.rtl,
                             ),
                           ),
-                        for (int i = 0; i < _ayat.length; i++)
-                          _AyaCard(
-                            key: _ayaKeys[i],
-                            ayaNumber: _ayat[i]['aya'] as int,
-                            arabicText: _ayat[i]['text'] as String? ?? '',
-                            transliterationText: i < _transliteration.length
-                                ? (_transliteration[i]['text'] as String? ?? '')
-                                : '',
-                            banglaText: i < _bangla.length
-                                ? (_bangla[i]['text'] as String? ?? '')
-                                : '',
-                            lang: widget.lang,
-                            showArabic: _showArabic,
-                            showBangla: _showBangla,
-                            showTransliteration: _showTransliteration,
-                            fontSize: _fontSize,
-                          ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                        )
+                      : ListView(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(14),
+                          children: [
+                            if (showBismillah)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+                                  style: TextStyle(
+                                    fontSize: _fontSize + 2,
+                                    color: AppTheme.gold,
+                                    fontFamily: 'ScheherazadeNew',
+                                    height: 1.8,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  textDirection: TextDirection.rtl,
+                                ),
+                              ),
+                            for (int i = 0; i < _ayat.length; i++)
+                              _AyaCard(
+                                key: _ayaKeys[i],
+                                ayaNumber: _ayat[i]['aya'] as int,
+                                arabicText: _ayat[i]['text'] as String? ?? '',
+                                transliterationText: i < _transliteration.length
+                                    ? (_transliteration[i]['text'] as String? ?? '')
+                                    : '',
+                                banglaText: i < _bangla.length
+                                    ? (_bangla[i]['text'] as String? ?? '')
+                                    : '',
+                                lang: widget.lang,
+                                showArabic: _showArabic,
+                                showBangla: _showBangla,
+                                showTransliteration: _showTransliteration,
+                                fontSize: _fontSize,
+                              ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+        ),
+      ],
     );
   }
 }

@@ -101,4 +101,76 @@ class QuranDatabaseHelper {
       orderBy: 'sura ASC',
     );
   }
+
+  /// All 30 juz (para) start points: {id, sura, aya}, ordered 1..30.
+  static Future<List<Map<String, dynamic>>> getJuzList() async {
+    final db = await database;
+    return db.query('juz', orderBy: 'id ASC');
+  }
+
+  /// All ayat belonging to a given juz number (1..30), possibly spanning
+  /// multiple surahs, in Uthmani script with sura/aya info.
+  /// Uses the start point of this juz and the start point of the next juz
+  /// (or end of Quran for juz 30) to bound the range.
+  static Future<List<Map<String, dynamic>>> getAyatForJuz(int juzNumber) async {
+    final db = await database;
+    final juzRows = await db.query('juz', where: 'id = ?', whereArgs: [juzNumber]);
+    if (juzRows.isEmpty) return [];
+    final startSura = juzRows.first['sura'] as int;
+    final startAya = juzRows.first['aya'] as int;
+
+    final nextJuzRows = await db.query('juz', where: 'id = ?', whereArgs: [juzNumber + 1]);
+
+    if (nextJuzRows.isEmpty) {
+      // Last juz — everything from the start point to the end of the Quran.
+      return db.rawQuery('''
+        SELECT * FROM quran_uthmani
+        WHERE (sura > ?) OR (sura = ? AND aya >= ?)
+        ORDER BY sura ASC, aya ASC
+      ''', [startSura, startSura, startAya]);
+    }
+
+    final endSura = nextJuzRows.first['sura'] as int;
+    final endAya = nextJuzRows.first['aya'] as int;
+
+    return db.rawQuery('''
+      SELECT * FROM quran_uthmani
+      WHERE (sura > ? OR (sura = ? AND aya >= ?))
+        AND (sura < ? OR (sura = ? AND aya < ?))
+      ORDER BY sura ASC, aya ASC
+    ''', [startSura, startSura, startAya, endSura, endSura, endAya]);
+  }
+
+  /// Fetch a single ayah's Uthmani text by sura+aya (used by "আমার কোরআন" collections).
+  static Future<Map<String, dynamic>?> getSingleAya(int sura, int aya) async {
+    final db = await database;
+    final rows = await db.query(
+      'quran_uthmani',
+      where: 'sura = ? AND aya = ?',
+      whereArgs: [sura, aya],
+    );
+    return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch a single ayah's Bengali translation by sura+aya.
+  static Future<Map<String, dynamic>?> getSingleAyaBangla(int sura, int aya) async {
+    final db = await database;
+    final rows = await db.query(
+      'quran_bn_muhiuddinkhan',
+      where: 'sura = ? AND aya = ?',
+      whereArgs: [sura, aya],
+    );
+    return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch a single ayah's English transliteration by sura+aya.
+  static Future<Map<String, dynamic>?> getSingleAyaTransliteration(int sura, int aya) async {
+    final db = await database;
+    final rows = await db.query(
+      'quran_en_transliteration',
+      where: 'sura = ? AND aya = ?',
+      whereArgs: [sura, aya],
+    );
+    return rows.isNotEmpty ? rows.first : null;
+  }
 }

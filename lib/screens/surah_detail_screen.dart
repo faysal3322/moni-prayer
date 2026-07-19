@@ -138,6 +138,16 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     await QuranPrefs.setViewMode(mode);
   }
 
+  static const double _minFontSize = 18.0;
+  static const double _maxFontSize = 40.0;
+
+  Future<void> _changeFontSize(double delta) async {
+    final newSize = (_fontSize + delta).clamp(_minFontSize, _maxFontSize);
+    if (newSize == _fontSize) return;
+    setState(() => _fontSize = newSize);
+    await QuranPrefs.setFontSize(newSize);
+  }
+
   Future<void> _load() async {
     try {
       final chapter = await QuranDatabaseHelper.getChapter(widget.sura);
@@ -165,11 +175,17 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   }
 
   /// Repeatedly tries Scrollable.ensureVisible on the target aya's GlobalKey,
-  /// retrying for up to ~1.5s. This is more reliable than a single fixed delay
+  /// retrying for up to ~3s. This is more reliable than a single fixed delay
   /// because it keeps checking until the widget's context is actually laid out
   /// (list/page rebuilds after closing the bottom sheet can take a variable
   /// number of frames, especially for long surahs).
-  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 15}) {
+  ///
+  /// In list mode, a non-lazy ListView builds every _AyaCard up front, but for
+  /// long surahs that first layout pass can take longer than the old fixed
+  /// retry budget, so the GlobalKey's context was still null when we gave up
+  /// and the jump silently did nothing. As a fallback, once we run out of
+  /// attempts we jump to an estimated scroll offset based on the item's index.
+  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 30}) {
     if (!mounted) return;
     if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
     final ctx = _ayaKeys[ayaIndex].currentContext;
@@ -182,11 +198,46 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       );
       return;
     }
-    if (attemptsLeft <= 0) return;
+    if (attemptsLeft <= 0) {
+      _scrollToVerseFallback(ayaIndex);
+      return;
+    }
     // Context not ready yet (widget not laid out on screen) — retry next frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 100), () {
         _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
+      });
+    });
+  }
+
+  /// Best-effort scroll when the target GlobalKey never got a context
+  /// (e.g. very long surah still building off-screen items). Estimates an
+  /// offset from the item's position among all verses so the jump still
+  /// moves the user close to the right verse instead of doing nothing.
+  void _scrollToVerseFallback(int ayaIndex) {
+    if (!_scrollController.hasClients) return;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (_ayat.isEmpty || maxExtent <= 0) return;
+    final estimated = (ayaIndex / _ayat.length) * maxExtent;
+    _scrollController.animateTo(
+      estimated.clamp(0.0, maxExtent),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+    // After the estimated jump, the target card is likely close to visible,
+    // so its context should now exist — try one more precise pass.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        final ctx = _ayaKeys[ayaIndex].currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: 0.05,
+          );
+        }
       });
     });
   }
@@ -370,37 +421,47 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
             ),
           ),
         ),
-        // Page / List ভিউ টগল
+        // Page / List ভিউ টগল + ফন্ট সাইজ +/- বাটন
         if (_ayat.isNotEmpty)
           Container(
             width: double.infinity,
             color: AppTheme.cardBg,
             padding: const EdgeInsets.only(bottom: 8),
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.all(3),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ViewModeButton(
+                        icon: Icons.description_outlined,
+                        label: isBn ? 'পেজ' : 'Page',
+                        selected: _viewMode == 'page',
+                        onTap: () => _setViewMode('page'),
+                      ),
+                      _ViewModeButton(
+                        icon: Icons.view_list_outlined,
+                        label: isBn ? 'লিস্ট' : 'List',
+                        selected: _viewMode == 'list',
+                        onTap: () => _setViewMode('list'),
+                      ),
+                    ],
+                  ),
                 ),
-                padding: const EdgeInsets.all(3),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ViewModeButton(
-                      icon: Icons.description_outlined,
-                      label: isBn ? 'পেজ' : 'Page',
-                      selected: _viewMode == 'page',
-                      onTap: () => _setViewMode('page'),
-                    ),
-                    _ViewModeButton(
-                      icon: Icons.view_list_outlined,
-                      label: isBn ? 'লিস্ট' : 'List',
-                      selected: _viewMode == 'list',
-                      onTap: () => _setViewMode('list'),
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                _FontSizeControls(
+                  onDecrease: () => _changeFontSize(-2),
+                  onIncrease: () => _changeFontSize(2),
+                  canDecrease: _fontSize > _minFontSize,
+                  canIncrease: _fontSize < _maxFontSize,
                 ),
-              ),
+              ],
             ),
           ),
         Expanded(
@@ -487,6 +548,60 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                         ),
         ),
       ],
+    );
+  }
+}
+
+/// রিডিং পেজেই সরাসরি ফন্ট সাইজ বাড়ানো/কমানোর জন্য +/- বাটন —
+/// সেটিংসে না গিয়ে তাৎক্ষণিক পরিবর্তনের জন্য।
+class _FontSizeControls extends StatelessWidget {
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+  final bool canDecrease;
+  final bool canIncrease;
+
+  const _FontSizeControls({
+    required this.onDecrease,
+    required this.onIncrease,
+    required this.canDecrease,
+    required this.canIncrease,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, size: 18),
+            color: canDecrease ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
+            onPressed: canDecrease ? onDecrease : null,
+            tooltip: 'A-',
+            splashRadius: 18,
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(),
+          ),
+          const Text(
+            'A',
+            style: TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, size: 18),
+            color: canIncrease ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
+            onPressed: canIncrease ? onIncrease : null,
+            tooltip: 'A+',
+            splashRadius: 18,
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
     );
   }
 }

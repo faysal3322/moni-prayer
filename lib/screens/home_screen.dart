@@ -1369,11 +1369,14 @@ class _HomeTabState extends State<_HomeTab> {
           children: [
             Stack(
               children: [
-                Text(lang.bismillah,
-                    style: const TextStyle(fontSize: 28, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
-                    textAlign: TextAlign.center),
+                Padding(
+                  padding: const EdgeInsets.only(right: 40),
+                  child: Text(lang.bismillah,
+                      style: const TextStyle(fontSize: 28, color: AppTheme.gold, fontFamily: 'ScheherazadeNew', height: 1.8),
+                      textAlign: TextAlign.center),
+                ),
                 Positioned(
-                  right: 0,
+                  right: -8,
                   top: 0,
                   bottom: 0,
                   child: IconButton(

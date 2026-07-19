@@ -91,6 +91,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   bool _showBangla = false;
   bool _showTransliteration = true;
   double _fontSize = 24.0;
+  String _viewMode = 'list';
 
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _ayaKeys = [];
@@ -121,13 +122,20 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     final bangla = await QuranPrefs.getShowBangla();
     final translit = await QuranPrefs.getShowTransliteration();
     final fontSize = await QuranPrefs.getFontSize();
+    final viewMode = await QuranPrefs.getViewMode();
     if (!mounted) return;
     setState(() {
       _showArabic = arabic;
       _showBangla = bangla;
       _showTransliteration = translit;
       _fontSize = fontSize;
+      _viewMode = viewMode;
     });
+  }
+
+  Future<void> _setViewMode(String mode) async {
+    setState(() => _viewMode = mode);
+    await QuranPrefs.setViewMode(mode);
   }
 
   Future<void> _load() async {
@@ -346,6 +354,39 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
             ),
           ),
         ),
+        // Page / List ভিউ টগল
+        if (_ayat.isNotEmpty)
+          Container(
+            width: double.infinity,
+            color: AppTheme.cardBg,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ViewModeButton(
+                      icon: Icons.description_outlined,
+                      label: isBn ? 'পেজ' : 'Page',
+                      selected: _viewMode == 'page',
+                      onTap: () => _setViewMode('page'),
+                    ),
+                    _ViewModeButton(
+                      icon: Icons.view_list_outlined,
+                      label: isBn ? 'লিস্ট' : 'List',
+                      selected: _viewMode == 'list',
+                      onTap: () => _setViewMode('list'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
@@ -373,7 +414,17 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                             ),
                           ),
                         )
-                      : ListView(
+                      : _viewMode == 'page'
+                          ? _MushafPageView(
+                              scrollController: _scrollController,
+                              nameArabic: _chapter?['name_arabic'] as String? ?? '',
+                              ayat: _ayat,
+                              ayaKeys: _ayaKeys,
+                              showBismillah: showBismillah,
+                              fontSize: _fontSize,
+                              lang: widget.lang,
+                            )
+                          : ListView(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(14),
                           children: [
@@ -420,6 +471,174 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                         ),
         ),
       ],
+    );
+  }
+}
+
+class _ViewModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ViewModeButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.gold.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: selected ? AppTheme.gold : AppTheme.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppTheme.gold : AppTheme.textSecondary,
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// মুসহাফ-স্টাইল পৃষ্ঠা ভিউ — একটানা প্রবাহিত আরবি টেক্সট, প্রতিটি আয়াতের শেষে
+/// ছোট গোল নাম্বার মার্কার। শুধু আরবি দেখায় (বাংলা/উচ্চারণ এই মোডে থাকে না)।
+class _MushafPageView extends StatelessWidget {
+  final ScrollController scrollController;
+  final String nameArabic;
+  final List<Map<String, dynamic>> ayat;
+  final List<GlobalKey> ayaKeys;
+  final bool showBismillah;
+  final double fontSize;
+  final AppLanguage lang;
+
+  const _MushafPageView({
+    required this.scrollController,
+    required this.nameArabic,
+    required this.ayat,
+    required this.ayaKeys,
+    required this.showBismillah,
+    required this.fontSize,
+    required this.lang,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.gold.withOpacity(0.35), width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            // সূরার নাম ফ্রেমে
+            if (nameArabic.isNotEmpty)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.gold.withOpacity(0.5)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  nameArabic,
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    color: AppTheme.gold,
+                    fontFamily: 'ScheherazadeNew',
+                  ),
+                ),
+              ),
+            if (showBismillah)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Text(
+                  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: AppTheme.gold,
+                    fontFamily: 'ScheherazadeNew',
+                    height: 1.8,
+                  ),
+                ),
+              ),
+            // একটানা প্রবাহিত আয়াত টেক্সট, প্রতিটির শেষে ইনলাইন নাম্বার মার্কার
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    for (int i = 0; i < ayat.length; i++) ...[
+                      TextSpan(
+                        text: '${ayat[i]['text'] as String? ?? ''} ',
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          color: AppTheme.textPrimary,
+                          fontFamily: 'ScheherazadeNew',
+                          height: 2.2,
+                        ),
+                      ),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Container(
+                            key: ayaKeys.length > i ? ayaKeys[i] : null,
+                            width: fontSize * 0.85,
+                            height: fontSize * 0.85,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1),
+                            ),
+                            child: Text(
+                              lang.toLocalNum(ayat[i]['aya'] as int),
+                              style: TextStyle(
+                                color: AppTheme.gold,
+                                fontSize: fontSize * 0.32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const TextSpan(text: ' '),
+                    ],
+                  ],
+                ),
+                textAlign: TextAlign.justify,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

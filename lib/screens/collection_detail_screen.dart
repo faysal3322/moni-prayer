@@ -244,8 +244,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   }
 
   Future<void> _onReorder(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex < 0 || oldIndex >= _items.length) return;
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
       final item = _items.removeAt(oldIndex);
       _items.insert(newIndex, item);
     });
@@ -292,6 +293,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
                   itemCount: _items.length,
                   onReorder: _onReorder,
+                  // ডিফল্ট হ্যান্ডেল বন্ধ — এটা চালু থাকলে পুরো কার্ডের (আরবি টেক্সট
+                  // সহ) যেকোনো জায়গা থেকে ড্র্যাগ শুরু হতে পারত, যেটা টেক্সট
+                  // সিলেকশন/স্ক্রল জেসচারের সাথে সংঘর্ষ করে ড্র্যাগ মাঝপথে বাতিল
+                  // করে দিত এবং আইটেম আগের জায়গায় ফিরে যেত। এখন শুধু নিচের
+                  // drag_handle আইকন থেকেই ড্র্যাগ শুরু করা যাবে।
+                  buildDefaultDragHandles: false,
                   itemBuilder: (context, index) {
                     final item = _items[index];
                     final itemId = item['id'] as int;
@@ -326,7 +333,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 constraints: const BoxConstraints(),
                               ),
                               const SizedBox(width: 8),
-                              const Icon(Icons.drag_handle, color: AppTheme.textSecondary, size: 20),
+                              ReorderableDragStartListener(
+                                index: index,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.drag_handle, color: AppTheme.textSecondary, size: 20),
+                                ),
+                              ),
                             ],
                           ),
                           if (_showArabic) ...[

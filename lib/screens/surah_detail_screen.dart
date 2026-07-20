@@ -95,6 +95,10 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   double _fontSize = 24.0;
   String _viewMode = 'list';
 
+  bool _fullSurahLoading = false;
+  bool _fullSurahPlaying = false;
+  int? _fullSurahAyaIndex;
+
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _ayaKeys = [];
 
@@ -109,6 +113,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
+    if (_fullSurahPlaying) QuranAudioHelper.stop();
     super.dispose();
   }
 
@@ -244,7 +249,61 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     });
   }
 
-  void _jumpToVerse(int ayaIndex) {
+  Future<void> _toggleFullSurahPlay() async {
+    if (_fullSurahPlaying) {
+      await QuranAudioHelper.stop();
+      if (mounted) {
+        setState(() {
+          _fullSurahPlaying = false;
+          _fullSurahAyaIndex = null;
+        });
+      }
+      return;
+    }
+
+    if (_fullSurahLoading || _ayat.isEmpty) return;
+    setState(() => _fullSurahLoading = true);
+    try {
+      final surahAudio = await QuranDatabaseHelper.getSurahAudio(widget.sura);
+      final segments = await QuranDatabaseHelper.getAllSegmentsForSura(widget.sura);
+      if (surahAudio == null || segments.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(widget.lang.isBn ? 'অডিও পাওয়া যায়নি' : 'Audio not available')),
+          );
+        }
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _fullSurahPlaying = true);
+      await QuranAudioHelper.playFullSurah(
+        sura: widget.sura,
+        surahAudioUrl: surahAudio['audio_url'] as String,
+        segments: segments,
+        onAyaStart: (ayaIndex, ayaNumber) {
+          if (!mounted) return;
+          setState(() => _fullSurahAyaIndex = ayaIndex);
+          _scrollToVerse(ayaIndex);
+        },
+        onSequenceComplete: () {
+          if (!mounted) return;
+          setState(() {
+            _fullSurahPlaying = false;
+            _fullSurahAyaIndex = null;
+          });
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.lang.isBn ? 'ডাউনলোড ব্যর্থ হয়েছে' : 'Download failed')),
+        );
+        setState(() => _fullSurahPlaying = false);
+      }
+    } finally {
+      if (mounted) setState(() => _fullSurahLoading = false);
+    }
+  }
     Navigator.of(context).pop(); // close the bottom sheet
     // Wait for the bottom sheet's close animation to finish, then retry-scroll
     // until the target verse's context becomes available.
@@ -404,23 +463,51 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
     return Column(
       children: [
-        // সূরার নাম + আয়াত জাম্প বাটন, প্রতিটি পেজের ওপরে
-        InkWell(
-          onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            color: AppTheme.cardBg,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
-                  style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
+        // সূরার নাম + আয়াত জাম্প বাটন + সম্পূর্ণ সূরা প্লে/স্টপ, প্রতিটি পেজের ওপরে
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          color: AppTheme.cardBg,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              InkWell(
+                onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
+                    ],
+                  ),
                 ),
-                if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
-              ],
-            ),
+              ),
+              if (_ayat.isNotEmpty)
+                Positioned(
+                  right: 4,
+                  child: IconButton(
+                    icon: _fullSurahLoading
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                          )
+                        : Icon(
+                            _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
+                            color: AppTheme.gold,
+                            size: 26,
+                          ),
+                    tooltip: _fullSurahPlaying
+                        ? (isBn ? 'থামান' : 'Stop')
+                        : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
+                    onPressed: _toggleFullSurahPlay,
+                  ),
+                ),
+            ],
           ),
         ),
         // Page / List ভিউ টগল + ফন্ট সাইজ +/- বাটন
@@ -545,6 +632,12 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                 showBangla: _showBangla,
                                 showTransliteration: _showTransliteration,
                                 fontSize: _fontSize,
+                                onWillPlay: _fullSurahPlaying
+                                    ? () => setState(() {
+                                          _fullSurahPlaying = false;
+                                          _fullSurahAyaIndex = null;
+                                        })
+                                    : null,
                               ),
                             const SizedBox(height: 20),
                           ],
@@ -788,6 +881,10 @@ class _AyaCard extends StatefulWidget {
   final bool showBangla;
   final bool showTransliteration;
   final double fontSize;
+  /// Called right before this card starts playing its own audio, so the
+  /// parent screen can stop a full-surah playback session if one is running
+  /// (avoids two audio sessions fighting over the same player).
+  final VoidCallback? onWillPlay;
 
   const _AyaCard({
     super.key,
@@ -801,6 +898,7 @@ class _AyaCard extends StatefulWidget {
     required this.showBangla,
     required this.showTransliteration,
     required this.fontSize,
+    this.onWillPlay,
   });
 
   @override
@@ -835,6 +933,7 @@ class _AyaCardState extends State<_AyaCard> {
 
   Future<void> _playAudio() async {
     if (_loadingAudio) return;
+    widget.onWillPlay?.call();
     setState(() {
       _loadingAudio = true;
       _playing = false;

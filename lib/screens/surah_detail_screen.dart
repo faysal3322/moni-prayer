@@ -20,6 +20,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   static const int _totalSurahs = 114;
   late PageController _pageController;
   late int _currentSura;
+  // যখন একটা সূরার সম্পূর্ণ-সূরা প্লেব্যাক শেষ হয়ে পরের সূরায় chain করা
+  // দরকার হয়, সেই টার্গেট সূরা নম্বর এখানে রাখা হয় যাতে PageView-এর
+  // itemBuilder সেই নির্দিষ্ট পেজেই autoPlayOnStart: true পাঠাতে পারে।
+  int? _autoPlayTargetSura;
 
   @override
   void initState() {
@@ -40,6 +44,18 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => QuranSettingsScreen(lang: widget.lang),
     ));
+  }
+
+  /// একটা সূরার সম্পূর্ণ-প্লেব্যাক শেষ হলে পরের সূরার পেজে সরানো হয় এবং
+  /// সেই পেজ অটো-প্লে দিয়ে খোলার জন্য চিহ্নিত করা হয়।
+  void _goToNextSurahAndAutoPlay(int nextSura) {
+    if (!mounted || nextSura > _totalSurahs) return;
+    setState(() => _autoPlayTargetSura = nextSura);
+    _pageController.animateToPage(
+      nextSura - 1,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -63,7 +79,27 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
         },
         itemBuilder: (context, index) {
           final suraNumber = index + 1;
-          return _SurahPage(lang: widget.lang, sura: suraNumber);
+          final shouldAutoPlay = _autoPlayTargetSura == suraNumber;
+          if (shouldAutoPlay) {
+            // একবার ব্যবহার হয়ে গেলে সাথে সাথে reset করা হচ্ছে, যাতে এই
+            // সূরার পেজ ভবিষ্যতে আবার তৈরি হলে (যেমন ব্যবহারকারী পরে সোয়াইপ
+            // করে ফিরে এলে) অনিচ্ছাকৃতভাবে আবার অটো-প্লে শুরু না হয়।
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _autoPlayTargetSura == suraNumber) {
+                setState(() => _autoPlayTargetSura = null);
+              }
+            });
+          }
+          return _SurahPage(
+            // suraNumber পাল্টালে GlobalKey না থাকলেও পুরনো _SurahPageState
+            // পুনর্ব্যবহার হওয়ার ঝুঁকি এড়াতে key ব্যবহার করা হচ্ছে — এটা
+            // নিশ্চিত করে অটো-প্লে টার্গেট পেজ সবসময় ফ্রেশ state দিয়ে খোলে।
+            key: ValueKey('surah_page_$suraNumber'),
+            lang: widget.lang,
+            sura: suraNumber,
+            autoPlayOnStart: shouldAutoPlay,
+            onRequestNextSurah: () => _goToNextSurahAndAutoPlay(suraNumber + 1),
+          );
         },
       ),
     );
@@ -75,7 +111,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
 class _SurahPage extends StatefulWidget {
   final AppLanguage lang;
   final int sura;
-  const _SurahPage({required this.lang, required this.sura});
+  /// true হলে এই পেজ খোলার সাথে সাথেই সম্পূর্ণ সূরা অটো-প্লে শুরু হবে —
+  /// আগের সূরা শেষ হয়ে এখানে chain হয়ে এলে ব্যবহৃত হয়।
+  final bool autoPlayOnStart;
+  /// এই সূরার প্লেব্যাক শেষ হলে parent (PageView holder)-কে জানায় যাতে
+  /// পরের সূরার পেজে move করে সেখানে অটো-প্লে চালু করা যায়।
+  final VoidCallback? onRequestNextSurah;
+
+  const _SurahPage({
+    required this.lang,
+    required this.sura,
+    this.autoPlayOnStart = false,
+    this.onRequestNextSurah,
+  });
 
   @override
   State<_SurahPage> createState() => _SurahPageState();
@@ -172,6 +220,9 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         _ayaKeys.addAll(List.generate(ayat.length, (_) => GlobalKey()));
         _loading = false;
       });
+      if (widget.autoPlayOnStart && _ayat.isNotEmpty) {
+        _toggleFullSurahPlay();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -291,6 +342,10 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
             _fullSurahPlaying = false;
             _fullSurahAyaIndex = null;
           });
+          // সূরা ১১৪ (আন-নাস)-এর পরে আর কোনো সূরা নেই, তাই chain করা হবে না।
+          if (widget.sura < 114) {
+            widget.onRequestNextSurah?.call();
+          }
         },
       );
     } catch (e) {

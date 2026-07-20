@@ -74,6 +74,7 @@ class QuranAudioHelper {
     required int endMs,
     VoidCallback? onComplete,
   }) async {
+    _sequenceToken++; // invalidate any in-flight full-surah sequence
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {
       await downloadSurah(sura, surahAudioUrl);
@@ -96,11 +97,91 @@ class QuranAudioHelper {
     });
   }
 
+  // ── Sequential full-surah playback ─────────────────────────────────────
+  // Each call to playFullSurah gets a fresh session token. If stop() (or a
+  // new playFullSurah/playAya call) happens, the token no longer matches, so
+  // any in-flight "advance to next ayah" step silently no-ops instead of
+  // fighting with whatever plays next. This avoids needing a separate
+  // "is this the active sequence" flag scattered across callbacks.
+  static int _sequenceToken = 0;
+
+  /// Plays every ayah of a surah back-to-back (using the same gapless-seek
+  /// technique as [playAya]), calling [onAyaStart] just before each ayah
+  /// begins (so the UI can auto-scroll to it) and [onSequenceComplete] once
+  /// the final ayah finishes. Call [stop] to cancel at any point.
+  ///
+  /// [segments] must be every row from quran_audio_segments for this surah,
+  /// ordered by aya ASC (see QuranDatabaseHelper.getAllSegmentsForSura).
+  static Future<void> playFullSurah({
+    required int sura,
+    required String surahAudioUrl,
+    required List<Map<String, dynamic>> segments,
+    required void Function(int ayaIndex, int ayaNumber) onAyaStart,
+    VoidCallback? onSequenceComplete,
+  }) async {
+    if (segments.isEmpty) return;
+    final myToken = ++_sequenceToken;
+
+    final file = await _localSurahFile(sura);
+    if (!await file.exists()) {
+      await downloadSurah(sura, surahAudioUrl);
+    }
+    if (myToken != _sequenceToken) return; // stopped/superseded while downloading
+
+    Future<void> playIndex(int i) async {
+      if (myToken != _sequenceToken) return;
+      if (i >= segments.length) {
+        onSequenceComplete?.call();
+        return;
+      }
+      final seg = segments[i];
+      final startMs = seg['timestamp_from_ms'] as int;
+      // Last ayah: no end clamp, let it play to the end of the file.
+      final endMs = (i == segments.length - 1) ? null : seg['timestamp_to_ms'] as int;
+      final ayaNumber = seg['aya'] as int;
+
+      onAyaStart(i, ayaNumber);
+
+      await _positionSub?.cancel();
+      _currentStopAtMs = endMs;
+
+      await player.stop();
+      await player.play(DeviceFileSource(file.path), position: Duration(milliseconds: startMs));
+
+      if (endMs != null) {
+        _positionSub = player.onPositionChanged.listen((pos) {
+          if (myToken != _sequenceToken) {
+            _positionSub?.cancel();
+            _positionSub = null;
+            return;
+          }
+          if (pos.inMilliseconds >= endMs) {
+            _positionSub?.cancel();
+            _positionSub = null;
+            playIndex(i + 1);
+          }
+        });
+      } else {
+        // Last ayah — rely on the player's own completion event instead of
+        // a timestamp watcher.
+        StreamSubscription? completeSub;
+        completeSub = player.onPlayerComplete.listen((_) {
+          completeSub?.cancel();
+          if (myToken == _sequenceToken) onSequenceComplete?.call();
+        });
+      }
+    }
+
+    await playIndex(0);
+  }
+
   /// Stops playback and cancels any pending auto-stop watcher.
   static Future<void> stop() async {
+    _sequenceToken++; // invalidate any in-flight sequence
     await _positionSub?.cancel();
     _positionSub = null;
     _currentStopAtMs = null;
+    _onAyaComplete = null;
     await player.stop();
   }
 

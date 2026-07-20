@@ -119,6 +119,7 @@ class _SurahPage extends StatefulWidget {
   final VoidCallback? onRequestNextSurah;
 
   const _SurahPage({
+    super.key,
     required this.lang,
     required this.sura,
     this.autoPlayOnStart = false,

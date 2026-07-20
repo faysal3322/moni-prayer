@@ -36,8 +36,8 @@ class QuranAudioHelper {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.example.moni_prayer.quran_audio',
         androidNotificationChannelName: 'Quran Recitation',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: false,
+        androidNotificationOngoing: false,
+        androidStopForegroundOnPause: true,
       ),
     ).then((handler) => _handler = handler);
   }

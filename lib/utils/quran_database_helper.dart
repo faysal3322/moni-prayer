@@ -12,7 +12,7 @@ class QuranDatabaseHelper {
   // Bump this whenever assets/database/quran.sqlite is replaced with new content
   // (e.g. new translation tables) so existing installs re-copy the updated file
   // instead of keeping a stale cached copy in writable storage.
-  static const int _assetDbVersion = 2;
+  static const int _assetDbVersion = 3;
 
   static Future<Database> get database async {
     _db ??= await _initDatabase();
@@ -172,5 +172,32 @@ class QuranDatabaseHelper {
       whereArgs: [sura, aya],
     );
     return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch the Saad al-Ghamdi audio URL for the whole surah (gapless, one file).
+  static Future<Map<String, dynamic>?> getSurahAudio(int sura) async {
+    final db = await database;
+    final rows = await db.query('quran_audio_surah', where: 'sura = ?', whereArgs: [sura]);
+    return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch the start/end timestamp (in ms, within the surah's mp3 file) for
+  /// a single ayah — used to seek/clip playback of one verse from the
+  /// gapless surah audio.
+  static Future<Map<String, dynamic>?> getAyaSegment(int sura, int aya) async {
+    final db = await database;
+    final rows = await db.query(
+      'quran_audio_segments',
+      where: 'sura = ? AND aya = ?',
+      whereArgs: [sura, aya],
+    );
+    return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch all ayah timing segments for a surah, ordered by aya number
+  /// (used for sequential/auto-continue playback across the whole surah).
+  static Future<List<Map<String, dynamic>>> getAllSegmentsForSura(int sura) async {
+    final db = await database;
+    return db.query('quran_audio_segments', where: 'sura = ?', whereArgs: [sura], orderBy: 'aya ASC');
   }
 }

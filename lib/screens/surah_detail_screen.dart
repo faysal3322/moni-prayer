@@ -253,7 +253,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         ctx,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
-        alignment: 0.05,
+        alignment: 0.2,
       );
       return;
     }
@@ -294,7 +294,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
             ctx,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            alignment: 0.05,
+            alignment: 0.2,
           );
         }
       });

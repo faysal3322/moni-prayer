@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'dart:io';
+import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'quran_audio_handler.dart';
 
 /// Manages Saad al-Ghamdi recitation audio, stored as one gapless mp3 per
 /// surah (matches the well-known MuslimPro-style layout, so files placed
@@ -14,43 +14,33 @@ import 'package:audioplayers/audioplayers.dart';
 /// using timestamp data (quran_audio_segments table) and stopping playback
 /// once the ayah's end timestamp is reached — no separate per-ayah files
 /// are downloaded.
+///
+/// Actual playback runs inside a [QuranPlaybackHandler], hosted by
+/// audio_service as a real Android foreground service with a media-style
+/// notification. That's what keeps recitation playing when the screen locks
+/// or the app is backgrounded — a plain in-app player gets killed by the OS
+/// as soon as the app leaves the foreground, which is what was happening
+/// before this used audio_service.
 class QuranAudioHelper {
   static const String _reciterFolder = 'saad-al-ghamdi';
   static Directory? _cachedDir;
-  static final AudioPlayer player = AudioPlayer();
-  static bool _contextConfigured = false;
 
-  /// Configures the player so playback continues when the screen locks or
-  /// the app is backgrounded (recitation audio, not a notification-media
-  /// session — there's no lock-screen play/pause control, but audio no
-  /// longer stops when you leave the app or turn the screen off).
-  /// Called once, lazily, before the first playback.
-  static Future<void> _ensureAudioContext() async {
-    if (_contextConfigured) return;
-    _contextConfigured = true;
-    try {
-      await player.setAudioContext(AudioContext(
-        android: AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: true,
-          contentType: AndroidContentType.music,
-          usageType: AndroidUsageType.media,
-          audioFocus: AndroidAudioFocus.gain,
-        ),
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playback,
-          options: const {AVAudioSessionOptions.mixWithOthers},
-        ),
-      ));
-    } catch (_) {
-      // If the platform rejects this config for any reason, playback still
-      // works in the foreground — just without the background guarantee.
-    }
+  static QuranPlaybackHandler? _handler;
+  static Future<QuranPlaybackHandler>? _initFuture;
+
+  /// Initializes the audio_service session (once, lazily) and returns the
+  /// running handler. Must be awaited before any playback call.
+  static Future<QuranPlaybackHandler> _ensureHandler() {
+    return _initFuture ??= AudioService.init(
+      builder: () => QuranPlaybackHandler(),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.example.moni_prayer.quran_audio',
+        androidNotificationChannelName: 'Quran Recitation',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: false,
+      ),
+    ).then((handler) => _handler = handler);
   }
-
-  static StreamSubscription<Duration>? _positionSub;
-  static int? _currentStopAtMs;
-  static VoidCallback? _onAyaComplete;
 
   /// Returns (and creates if needed) the Recitations/saad-al-ghamdi folder.
   static Future<Directory> _getAudioDir() async {
@@ -101,52 +91,25 @@ class QuranAudioHelper {
     required String surahAudioUrl,
     required int startMs,
     required int endMs,
-    VoidCallback? onComplete,
+    void Function()? onComplete,
   }) async {
-    await _ensureAudioContext();
-    _sequenceToken++; // invalidate any in-flight full-surah sequence
+    final handler = await _ensureHandler();
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {
       await downloadSurah(sura, surahAudioUrl);
     }
-
-    await _positionSub?.cancel();
-    _onAyaComplete = onComplete;
-    _currentStopAtMs = endMs;
-
-    await player.stop();
-    await player.play(DeviceFileSource(file.path), position: Duration(milliseconds: startMs));
-
-    _positionSub = player.onPositionChanged.listen((pos) {
-      if (_currentStopAtMs != null && pos.inMilliseconds >= _currentStopAtMs!) {
-        player.pause();
-        _positionSub?.cancel();
-        _positionSub = null;
-        _onAyaComplete?.call();
-      }
-    });
+    await handler.playAya(
+      filePath: file.path,
+      startMs: startMs,
+      endMs: endMs,
+      onComplete: onComplete,
+    );
   }
 
-  // ── Sequential full-surah playback ─────────────────────────────────────
-  // Each call to playFullSurah gets a fresh session token. If stop() (or a
-  // new playFullSurah/playAya call) happens, the token no longer matches, so
-  // any in-flight step silently no-ops instead of fighting with whatever
-  // plays next. This avoids needing a separate "is this the active
-  // sequence" flag scattered across callbacks.
-  static int _sequenceToken = 0;
-
-  /// Plays every ayah of a surah back-to-back. Unlike the old implementation,
-  /// this calls player.play() exactly ONCE for the whole file and then just
-  /// watches the position stream to know when each ayah boundary is crossed
-  /// — it never calls stop()/play() again mid-surah. Calling stop()+play()
-  /// per ayah (the previous approach) made audioplayers re-prepare the
-  /// decoder every time, which is what caused the ~2 second gap of silence
-  /// between every ayah. Since the file is gapless, playback continues
-  /// smoothly through ayah boundaries once started.
-  ///
-  /// Calls [onAyaStart] just before each ayah begins (so the UI can
-  /// auto-scroll to it) and [onSequenceComplete] once the final ayah
-  /// finishes. Call [stop] to cancel at any point.
+  /// Plays every ayah of a surah back-to-back. Calls [onAyaStart] just
+  /// before each ayah begins (so the UI can auto-scroll to it) and
+  /// [onSequenceComplete] once the final ayah finishes. Call [stop] to
+  /// cancel at any point.
   ///
   /// [segments] must be every row from quran_audio_segments for this surah,
   /// ordered by aya ASC (see QuranDatabaseHelper.getAllSegmentsForSura).
@@ -155,80 +118,31 @@ class QuranAudioHelper {
     required String surahAudioUrl,
     required List<Map<String, dynamic>> segments,
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
-    VoidCallback? onSequenceComplete,
+    void Function()? onSequenceComplete,
   }) async {
-    await _ensureAudioContext();
+    final handler = await _ensureHandler();
     if (segments.isEmpty) return;
-    final myToken = ++_sequenceToken;
-
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {
       await downloadSurah(sura, surahAudioUrl);
     }
-    if (myToken != _sequenceToken) return; // stopped/superseded while downloading
-
-    await _positionSub?.cancel();
-    _positionSub = null;
-    _currentStopAtMs = null;
-    _onAyaComplete = null;
-
-    // Tracks which ayah index we're currently "in" so the position listener
-    // only fires onAyaStart once per boundary crossed, instead of on every
-    // position tick.
-    int currentIndex = -1;
-
-    void enterIndex(int i) {
-      if (i == currentIndex) return;
-      currentIndex = i;
-      final ayaNumber = segments[i]['aya'] as int;
-      onAyaStart(i, ayaNumber);
-    }
-
-    StreamSubscription? completeSub;
-
-    await player.stop();
-    await player.play(
-      DeviceFileSource(file.path),
-      position: Duration(milliseconds: segments[0]['timestamp_from_ms'] as int),
+    await handler.playFullSurah(
+      filePath: file.path,
+      segments: segments,
+      onAyaStart: onAyaStart,
+      onSequenceComplete: onSequenceComplete,
     );
-    enterIndex(0);
-
-    _positionSub = player.onPositionChanged.listen((pos) {
-      if (myToken != _sequenceToken) {
-        _positionSub?.cancel();
-        _positionSub = null;
-        return;
-      }
-      final ms = pos.inMilliseconds;
-      // Advance currentIndex forward as long as we've crossed the next
-      // ayah's start timestamp — handles normal playback (one boundary at a
-      // time) as well as any coarser position-update intervals.
-      while (currentIndex + 1 < segments.length &&
-          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int)) {
-        enterIndex(currentIndex + 1);
-      }
-    });
-
-    completeSub = player.onPlayerComplete.listen((_) {
-      completeSub?.cancel();
-      _positionSub?.cancel();
-      _positionSub = null;
-      if (myToken == _sequenceToken) onSequenceComplete?.call();
-    });
   }
 
   /// Stops playback and cancels any pending auto-stop watcher.
   static Future<void> stop() async {
-    _sequenceToken++; // invalidate any in-flight sequence
-    await _positionSub?.cancel();
-    _positionSub = null;
-    _currentStopAtMs = null;
-    _onAyaComplete = null;
-    await player.stop();
+    if (_handler == null) return;
+    await _handler!.stop();
   }
 
   static Future<void> pause() async {
-    await player.pause();
+    if (_handler == null) return;
+    await _handler!.pause();
   }
 
   /// Downloads audio for a whole surah (single file) — used for the
@@ -242,5 +156,3 @@ class QuranAudioHelper {
     onDone?.call();
   }
 }
-
-typedef VoidCallback = void Function();

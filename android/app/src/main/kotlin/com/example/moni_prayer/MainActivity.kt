@@ -6,10 +6,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 
-class MainActivity: FlutterActivity() {
+// audio_service requires FlutterFragmentActivity (not the plain FlutterActivity)
+// so it can host the media-session/notification integration.
+class MainActivity: FlutterFragmentActivity() {
 
     private val tickReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {

@@ -304,6 +304,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       if (mounted) setState(() => _fullSurahLoading = false);
     }
   }
+
+  void _jumpToVerse(int ayaIndex) {
     Navigator.of(context).pop(); // close the bottom sheet
     // Wait for the bottom sheet's close animation to finish, then retry-scroll
     // until the target verse's context becomes available.

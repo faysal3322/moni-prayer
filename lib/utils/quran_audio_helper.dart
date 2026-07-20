@@ -18,6 +18,35 @@ class QuranAudioHelper {
   static const String _reciterFolder = 'saad-al-ghamdi';
   static Directory? _cachedDir;
   static final AudioPlayer player = AudioPlayer();
+  static bool _contextConfigured = false;
+
+  /// Configures the player so playback continues when the screen locks or
+  /// the app is backgrounded (recitation audio, not a notification-media
+  /// session — there's no lock-screen play/pause control, but audio no
+  /// longer stops when you leave the app or turn the screen off).
+  /// Called once, lazily, before the first playback.
+  static Future<void> _ensureAudioContext() async {
+    if (_contextConfigured) return;
+    _contextConfigured = true;
+    try {
+      await player.setAudioContext(AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: true,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: const {AVAudioSessionOptions.mixWithOthers},
+        ),
+      ));
+    } catch (_) {
+      // If the platform rejects this config for any reason, playback still
+      // works in the foreground — just without the background guarantee.
+    }
+  }
 
   static StreamSubscription<Duration>? _positionSub;
   static int? _currentStopAtMs;
@@ -74,6 +103,7 @@ class QuranAudioHelper {
     required int endMs,
     VoidCallback? onComplete,
   }) async {
+    await _ensureAudioContext();
     _sequenceToken++; // invalidate any in-flight full-surah sequence
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {
@@ -127,6 +157,7 @@ class QuranAudioHelper {
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
     VoidCallback? onSequenceComplete,
   }) async {
+    await _ensureAudioContext();
     if (segments.isEmpty) return;
     final myToken = ++_sequenceToken;
 

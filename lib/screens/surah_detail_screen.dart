@@ -3,6 +3,8 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
 import '../utils/quran_prefs.dart';
+import '../utils/quran_audio_helper.dart';
+import '../utils/quran_bookmarks_helper.dart';
 import 'quran_settings_screen.dart';
 
 class SurahDetailScreen extends StatefulWidget {
@@ -529,6 +531,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                             for (int i = 0; i < _ayat.length; i++)
                               _AyaCard(
                                 key: _ayaKeys[i],
+                                sura: widget.sura,
                                 ayaNumber: _ayat[i]['aya'] as int,
                                 arabicText: _ayat[i]['text'] as String? ?? '',
                                 transliterationText: i < _transliteration.length
@@ -774,7 +777,8 @@ class _MushafPageView extends StatelessWidget {
   }
 }
 
-class _AyaCard extends StatelessWidget {
+class _AyaCard extends StatefulWidget {
+  final int sura;
   final int ayaNumber;
   final String arabicText;
   final String transliterationText;
@@ -787,6 +791,7 @@ class _AyaCard extends StatelessWidget {
 
   const _AyaCard({
     super.key,
+    required this.sura,
     required this.ayaNumber,
     required this.arabicText,
     required this.transliterationText,
@@ -799,77 +804,184 @@ class _AyaCard extends StatelessWidget {
   });
 
   @override
+  State<_AyaCard> createState() => _AyaCardState();
+}
+
+class _AyaCardState extends State<_AyaCard> {
+  bool _expanded = false;
+  bool _loadingAudio = false;
+  bool _playing = false;
+  bool _bookmarked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBookmark();
+  }
+
+  Future<void> _checkBookmark() async {
+    final marked = await QuranBookmarksHelper.isBookmarked(widget.sura, widget.ayaNumber);
+    if (mounted) setState(() => _bookmarked = marked);
+  }
+
+  Future<void> _toggleBookmark() async {
+    if (_bookmarked) {
+      await QuranBookmarksHelper.removeBookmark(widget.sura, widget.ayaNumber);
+    } else {
+      await QuranBookmarksHelper.addBookmark(widget.sura, widget.ayaNumber);
+    }
+    if (mounted) setState(() => _bookmarked = !_bookmarked);
+  }
+
+  Future<void> _playAudio() async {
+    if (_loadingAudio) return;
+    setState(() {
+      _loadingAudio = true;
+      _playing = false;
+    });
+    try {
+      final surahAudio = await QuranDatabaseHelper.getSurahAudio(widget.sura);
+      final segment = await QuranDatabaseHelper.getAyaSegment(widget.sura, widget.ayaNumber);
+      if (surahAudio == null || segment == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(widget.lang.isBn ? 'অডিও পাওয়া যায়নি' : 'Audio not available')),
+          );
+        }
+        return;
+      }
+      setState(() => _playing = true);
+      await QuranAudioHelper.playAya(
+        sura: widget.sura,
+        surahAudioUrl: surahAudio['audio_url'] as String,
+        startMs: segment['timestamp_from_ms'] as int,
+        endMs: segment['timestamp_to_ms'] as int,
+        onComplete: () {
+          if (mounted) setState(() => _playing = false);
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.lang.isBn ? 'ডাউনলোড ব্যর্থ হয়েছে' : 'Download failed')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingAudio = false);
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    await QuranAudioHelper.stop();
+    if (mounted) setState(() => _playing = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isBn = lang.isBn;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.gold.withOpacity(0.6)),
+    final isBn = widget.lang.isBn;
+    return GestureDetector(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _expanded ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (_expanded)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: _loadingAudio
+                            ? const SizedBox(
+                                width: 18, height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                              )
+                            : Icon(
+                                _playing ? Icons.stop_circle : Icons.play_circle_fill,
+                                color: AppTheme.gold,
+                                size: 28,
+                              ),
+                        onPressed: _playing ? _stopAudio : _playAudio,
+                        tooltip: isBn ? 'আয়াত শুনুন' : 'Play verse',
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _bookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: _bookmarked ? AppTheme.gold : AppTheme.textSecondary,
+                        ),
+                        onPressed: _toggleBookmark,
+                        tooltip: isBn ? 'বুকমার্ক করুন' : 'Bookmark',
+                      ),
+                    ],
+                  )
+                else
+                  const SizedBox(),
+                Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.gold.withOpacity(0.6)),
+                  ),
+                  child: Text(
+                    widget.lang.toLocalNum(widget.ayaNumber),
+                    style: const TextStyle(color: AppTheme.gold, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                child: Text(
-                  lang.toLocalNum(ayaNumber),
-                  style: const TextStyle(color: AppTheme.gold, fontSize: 15, fontWeight: FontWeight.bold),
+              ],
+            ),
+            if (widget.showArabic) ...[
+              const SizedBox(height: 10),
+              Text(
+                widget.arabicText,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
+                  color: AppTheme.textPrimary,
+                  fontFamily: 'ScheherazadeNew',
+                  height: 2.0,
+                ),
+                textAlign: TextAlign.right,
+                textDirection: TextDirection.rtl,
+              ),
+            ],
+            if (widget.showBangla) ...[
+              const Divider(color: Colors.white12, height: 20),
+              Text(
+                widget.banglaText.isNotEmpty
+                    ? widget.banglaText
+                    : (isBn ? 'এই আয়াতের অনুবাদ পাওয়া যায়নি' : 'Translation not available for this verse'),
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 15,
+                  height: 1.6,
                 ),
               ),
             ],
-          ),
-          if (showArabic) ...[
-            const SizedBox(height: 10),
-            Text(
-              arabicText,
-              style: TextStyle(
-                fontSize: fontSize,
-                color: AppTheme.textPrimary,
-                fontFamily: 'ScheherazadeNew',
-                height: 2.0,
+            if (widget.showTransliteration && widget.transliterationText.isNotEmpty) ...[
+              const Divider(color: Colors.white12, height: 20),
+              Text(
+                widget.transliterationText,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
+                ),
               ),
-              textAlign: TextAlign.right,
-              textDirection: TextDirection.rtl,
-            ),
+            ],
           ],
-          if (showBangla) ...[
-            const Divider(color: Colors.white12, height: 20),
-            Text(
-              banglaText.isNotEmpty
-                  ? banglaText
-                  : (isBn ? 'এই আয়াতের অনুবাদ পাওয়া যায়নি' : 'Translation not available for this verse'),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 15,
-                height: 1.6,
-              ),
-            ),
-          ],
-          if (showTransliteration && transliterationText.isNotEmpty) ...[
-            const Divider(color: Colors.white12, height: 20),
-            Text(
-              transliterationText,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

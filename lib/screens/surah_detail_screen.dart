@@ -521,96 +521,6 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
     return Column(
       children: [
-        // সূরার নাম + আয়াত জাম্প বাটন + সম্পূর্ণ সূরা প্লে/স্টপ, প্রতিটি পেজের ওপরে
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          color: AppTheme.cardBg,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              InkWell(
-                onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
-                        style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
-                    ],
-                  ),
-                ),
-              ),
-              if (_ayat.isNotEmpty)
-                Positioned(
-                  right: 4,
-                  child: IconButton(
-                    icon: _fullSurahLoading
-                        ? const SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
-                          )
-                        : Icon(
-                            _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
-                            color: AppTheme.gold,
-                            size: 26,
-                          ),
-                    tooltip: _fullSurahPlaying
-                        ? (isBn ? 'থামান' : 'Stop')
-                        : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
-                    onPressed: _toggleFullSurahPlay,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        // Page / List ভিউ টগল + ফন্ট সাইজ +/- বাটন
-        if (_ayat.isNotEmpty)
-          Container(
-            width: double.infinity,
-            color: AppTheme.cardBg,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.all(3),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ViewModeButton(
-                        icon: Icons.description_outlined,
-                        label: isBn ? 'পেজ' : 'Page',
-                        selected: _viewMode == 'page',
-                        onTap: () => _setViewMode('page'),
-                      ),
-                      _ViewModeButton(
-                        icon: Icons.view_list_outlined,
-                        label: isBn ? 'লিস্ট' : 'List',
-                        selected: _viewMode == 'list',
-                        onTap: () => _setViewMode('list'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _FontSizeControls(
-                  onDecrease: () => _changeFontSize(-2),
-                  onIncrease: () => _changeFontSize(2),
-                  canDecrease: _fontSize > _minFontSize,
-                  canIncrease: _fontSize < _maxFontSize,
-                ),
-              ],
-            ),
-          ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
@@ -701,6 +611,96 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                           ],
                         ),
         ),
+        // সূরার নাম + আয়াত জাম্প বাটন + সম্পূর্ণ সূরা প্লে/স্টপ, এখন পেজের নিচে
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          color: AppTheme.cardBg,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              InkWell(
+                onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
+                    ],
+                  ),
+                ),
+              ),
+              if (_ayat.isNotEmpty)
+                Positioned(
+                  right: 4,
+                  child: IconButton(
+                    icon: _fullSurahLoading
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                          )
+                        : Icon(
+                            _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
+                            color: AppTheme.gold,
+                            size: 26,
+                          ),
+                    tooltip: _fullSurahPlaying
+                        ? (isBn ? 'থামান' : 'Stop')
+                        : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
+                    onPressed: _toggleFullSurahPlay,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Page / List ভিউ টগল + ফন্ট সাইজ +/- বাটন, এখন পেজের নিচে
+        if (_ayat.isNotEmpty)
+          Container(
+            width: double.infinity,
+            color: AppTheme.cardBg,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.all(3),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ViewModeButton(
+                        icon: Icons.description_outlined,
+                        label: isBn ? 'পেজ' : 'Page',
+                        selected: _viewMode == 'page',
+                        onTap: () => _setViewMode('page'),
+                      ),
+                      _ViewModeButton(
+                        icon: Icons.view_list_outlined,
+                        label: isBn ? 'লিস্ট' : 'List',
+                        selected: _viewMode == 'list',
+                        onTap: () => _setViewMode('list'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _FontSizeControls(
+                  onDecrease: () => _changeFontSize(-2),
+                  onIncrease: () => _changeFontSize(2),
+                  canDecrease: _fontSize > _minFontSize,
+                  canIncrease: _fontSize < _maxFontSize,
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

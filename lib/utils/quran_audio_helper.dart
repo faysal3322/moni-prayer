@@ -145,6 +145,7 @@ class QuranAudioHelper {
     required List<Map<String, dynamic>> segments,
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
     void Function()? onSequenceComplete,
+    int startIndex = 0,
   }) async {
     final handler = await _ensureHandler();
     if (segments.isEmpty) return;
@@ -157,6 +158,7 @@ class QuranAudioHelper {
       segments: segments,
       onAyaStart: onAyaStart,
       onSequenceComplete: onSequenceComplete,
+      startIndex: startIndex,
     );
   }
 
@@ -169,6 +171,13 @@ class QuranAudioHelper {
   static Future<void> pause() async {
     if (_handler == null) return;
     await _handler!.pause();
+  }
+
+  /// পজ করা থেকে আবার চালু করে — নতুন করে শুরু থেকে না বাজিয়ে ঠিক
+  /// যেখানে পজ হয়েছিল সেখান থেকেই resume করে।
+  static Future<void> resume() async {
+    if (_handler == null) return;
+    await _handler!.play();
   }
 
   /// Downloads audio for a whole surah (single file) — used for the

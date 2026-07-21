@@ -578,6 +578,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               showBismillah: showBismillah,
                               fontSize: _fontSize,
                               lang: widget.lang,
+                              currentAyaIndex: _fullSurahAyaIndex,
                             )
                           : ListView(
                           controller: _scrollController,
@@ -627,6 +628,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                           _fullSurahAyaIndex = null;
                                         })
                                     : null,
+                                isCurrentlyPlaying: _fullSurahAyaIndex == i,
                               ),
                             const SizedBox(height: 20),
                           ],
@@ -854,6 +856,10 @@ class _MushafPageView extends StatelessWidget {
   final bool showBismillah;
   final double fontSize;
   final AppLanguage lang;
+  /// Index (into [ayat]) of the ayah currently being read aloud during
+  /// full-surah playback, or null if nothing is playing. Used to highlight
+  /// that ayah's text in the flowing mushaf-style layout.
+  final int? currentAyaIndex;
 
   const _MushafPageView({
     required this.scrollController,
@@ -863,6 +869,7 @@ class _MushafPageView extends StatelessWidget {
     required this.showBismillah,
     required this.fontSize,
     required this.lang,
+    this.currentAyaIndex,
   });
 
   @override
@@ -928,6 +935,11 @@ class _MushafPageView extends StatelessWidget {
                           color: AppTheme.textPrimary,
                           fontFamily: 'ScheherazadeNew',
                           height: 2.2,
+                          // audio প্লে চলাকালীন যেই আয়াতটা এখন পড়া হচ্ছে
+                          // সেটার পিছনে হালকা সবুজ ব্যাকগ্রাউন্ড হাইলাইট
+                          backgroundColor: currentAyaIndex == i
+                              ? AppTheme.primary.withOpacity(0.35)
+                              : null,
                         ),
                       ),
                       WidgetSpan(
@@ -941,12 +953,15 @@ class _MushafPageView extends StatelessWidget {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
+                              color: currentAyaIndex == i
+                                  ? AppTheme.gold.withOpacity(0.85)
+                                  : null,
                               border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1.2),
                             ),
                             child: Text(
                               lang.toLocalNum(ayat[i]['aya'] as int),
                               style: TextStyle(
-                                color: AppTheme.gold,
+                                color: currentAyaIndex == i ? AppTheme.cardBg : AppTheme.gold,
                                 fontSize: fontSize * 0.48,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -983,6 +998,10 @@ class _AyaCard extends StatefulWidget {
   /// parent screen can stop a full-surah playback session if one is running
   /// (avoids two audio sessions fighting over the same player).
   final VoidCallback? onWillPlay;
+  /// True when this ayah is the one currently being read aloud during a
+  /// full-surah playback session (independent of this card's own single-ayah
+  /// play button) — used to highlight the card.
+  final bool isCurrentlyPlaying;
 
   const _AyaCard({
     super.key,
@@ -997,6 +1016,7 @@ class _AyaCard extends StatefulWidget {
     required this.showTransliteration,
     required this.fontSize,
     this.onWillPlay,
+    this.isCurrentlyPlaying = false,
   });
 
   @override
@@ -1078,14 +1098,23 @@ class _AyaCardState extends State<_AyaCard> {
     final isBn = widget.lang.isBn;
     return GestureDetector(
       onTap: () => setState(() => _expanded = !_expanded),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          // পুরো সূরা প্লে চলাকালীন যেই আয়াতটা এখন পড়া হচ্ছে সেটার
+          // ব্যাকগ্রাউন্ড হালকা সবুজ হাইলাইট হয়, স্ক্রিনশটে দেখানো
+          // অন্য অ্যাপের মতো।
+          color: widget.isCurrentlyPlaying
+              ? AppTheme.primary.withOpacity(0.28)
+              : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _expanded ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+            color: widget.isCurrentlyPlaying
+                ? AppTheme.gold
+                : (_expanded ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25)),
+            width: widget.isCurrentlyPlaying ? 1.6 : 1.0,
           ),
         ),
         child: Column(

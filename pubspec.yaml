@@ -27,7 +27,7 @@ dependencies:
   audioplayers: ^6.0.0
   just_audio: ^0.9.40
   audio_service: ^0.18.15
-  home_widget: ^0.5.0
+  home_widget: ^0.7.0
   http: ^1.2.0
 dev_dependencies:
   flutter_test:

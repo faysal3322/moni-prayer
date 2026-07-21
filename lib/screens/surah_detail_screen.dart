@@ -352,7 +352,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.lang.isBn ? 'ডাউনলোড ব্যর্থ হয়েছে' : 'Download failed')),
+          SnackBar(content: Text(widget.lang.isBn ? 'ব্যর্থ হয়েছে: $e' : 'Failed: $e')),
         );
         setState(() => _fullSurahPlaying = false);
       }
@@ -1020,7 +1020,7 @@ class _AyaCardState extends State<_AyaCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.lang.isBn ? 'ডাউনলোড ব্যর্থ হয়েছে' : 'Download failed')),
+          SnackBar(content: Text(widget.lang.isBn ? 'ব্যর্থ হয়েছে: $e' : 'Failed: $e')),
         );
       }
     } finally {

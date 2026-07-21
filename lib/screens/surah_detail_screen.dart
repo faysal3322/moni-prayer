@@ -634,10 +634,10 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                           ],
                         ),
         ),
-        // নিচের বার (সূরার নাম/জাম্প/প্লে + Page-List টগল/ফন্ট সাইজ):
-        // - AnimatedSize দিয়ে স্ক্রল ডিরেকশন অনুযায়ী smooth ভাবে hide/show হয়
-        // - SafeArea দিয়ে wrap করা হয়েছে যাতে gesture navigation bar-এর
-        //   নিচে চাপা পড়ে না যায় (device-এর bottom system inset যোগ হয়)
+        // নিচের একটাই কম্প্যাক্ট বার — Page/List টগল + সূরার নাম/জাম্প +
+        // প্লে-কন্ট্রোল + ফন্ট সাইজ, সব একলাইনে (অন্য অ্যাপের রেফারেন্স
+        // অনুযায়ী)। AnimatedSize দিয়ে স্ক্রল ডিরেকশনে hide/show হয়,
+        // SafeArea দিয়ে gesture navigation bar-এর নিচে চাপা পড়া এড়ানো হয়।
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
@@ -645,100 +645,103 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
               ? const SizedBox(width: double.infinity, height: 0)
               : SafeArea(
                   top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // সূরার নাম + আয়াত জাম্প বাটন + সম্পূর্ণ সূরা প্লে/স্টপ, এখন পেজের নিচে
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        color: AppTheme.cardBg,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            InkWell(
-                              onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
-                                      style: const TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 20, color: AppTheme.gold),
-                                  ],
+                  child: Container(
+                    width: double.infinity,
+                    color: AppTheme.cardBg,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    child: Row(
+                      children: [
+                        // Page/List টগল — ছোট, বাম দিকে
+                        if (_ayat.isNotEmpty)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.all(3),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ViewModeButton(
+                                  icon: Icons.description_outlined,
+                                  label: isBn ? 'পেজ' : 'Page',
+                                  selected: _viewMode == 'page',
+                                  onTap: () => _setViewMode('page'),
+                                  compact: true,
                                 ),
+                                _ViewModeButton(
+                                  icon: Icons.view_list_outlined,
+                                  label: isBn ? 'লিস্ট' : 'List',
+                                  selected: _viewMode == 'list',
+                                  onTap: () => _setViewMode('list'),
+                                  compact: true,
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(width: 6),
+                        // মাঝে: সূরার নাম + আয়াত জাম্প — flexible, বাকি জায়গা নেয়
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: _ayat.isNotEmpty ? _showVerseJumpSheet : null,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran'),
+                                      style: const TextStyle(color: AppTheme.gold, fontSize: 15, fontWeight: FontWeight.bold),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (_fullSurahPlaying && _fullSurahAyaIndex != null && _fullSurahAyaIndex! < _ayat.length) ...[
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '- ${_ayat[_fullSurahAyaIndex!]['aya']}',
+                                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                                    ),
+                                  ],
+                                  if (_ayat.isNotEmpty) const Icon(Icons.arrow_drop_down, size: 18, color: AppTheme.gold),
+                                ],
                               ),
                             ),
-                            if (_ayat.isNotEmpty)
-                              Positioned(
-                                right: 4,
-                                child: IconButton(
-                                  icon: _fullSurahLoading
-                                      ? const SizedBox(
-                                          width: 20, height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
-                                        )
-                                      : Icon(
-                                          _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
-                                          color: AppTheme.gold,
-                                          size: 26,
-                                        ),
-                                  tooltip: _fullSurahPlaying
-                                      ? (isBn ? 'থামান' : 'Stop')
-                                      : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
-                                  onPressed: _toggleFullSurahPlay,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      // Page / List ভিউ টগল + ফন্ট সাইজ +/- বাটন, এখন পেজের নিচে
-                      if (_ayat.isNotEmpty)
-                        Container(
-                          width: double.infinity,
-                          color: AppTheme.cardBg,
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black26,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.all(3),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _ViewModeButton(
-                                      icon: Icons.description_outlined,
-                                      label: isBn ? 'পেজ' : 'Page',
-                                      selected: _viewMode == 'page',
-                                      onTap: () => _setViewMode('page'),
-                                    ),
-                                    _ViewModeButton(
-                                      icon: Icons.view_list_outlined,
-                                      label: isBn ? 'লিস্ট' : 'List',
-                                      selected: _viewMode == 'list',
-                                      onTap: () => _setViewMode('list'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _FontSizeControls(
-                                onDecrease: () => _changeFontSize(-2),
-                                onIncrease: () => _changeFontSize(2),
-                                canDecrease: _fontSize > _minFontSize,
-                                canIncrease: _fontSize < _maxFontSize,
-                              ),
-                            ],
                           ),
                         ),
-                    ],
+                        const SizedBox(width: 4),
+                        // ডানে: ফন্ট সাইজ কন্ট্রোল (কম্প্যাক্ট)
+                        _FontSizeControls(
+                          onDecrease: () => _changeFontSize(-2),
+                          onIncrease: () => _changeFontSize(2),
+                          canDecrease: _fontSize > _minFontSize,
+                          canIncrease: _fontSize < _maxFontSize,
+                          compact: true,
+                        ),
+                        const SizedBox(width: 4),
+                        // ডানে: সম্পূর্ণ সূরা প্লে/স্টপ বাটন
+                        if (_ayat.isNotEmpty)
+                          IconButton(
+                            icon: _fullSurahLoading
+                                ? const SizedBox(
+                                    width: 20, height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                                  )
+                                : Icon(
+                                    _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
+                                    color: AppTheme.gold,
+                                    size: 26,
+                                  ),
+                            tooltip: _fullSurahPlaying
+                                ? (isBn ? 'থামান' : 'Stop')
+                                : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
+                            onPressed: _toggleFullSurahPlay,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
         ),
@@ -755,16 +758,20 @@ class _FontSizeControls extends StatelessWidget {
   final VoidCallback onIncrease;
   final bool canDecrease;
   final bool canIncrease;
+  final bool compact;
 
   const _FontSizeControls({
     required this.onDecrease,
     required this.onIncrease,
     required this.canDecrease,
     required this.canIncrease,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = compact ? 15.0 : 18.0;
+    final btnPadding = compact ? const EdgeInsets.all(3.0) : const EdgeInsets.all(6.0);
     return Container(
       decoration: BoxDecoration(
         color: Colors.black26,
@@ -775,25 +782,26 @@ class _FontSizeControls extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.remove, size: 18),
+            icon: Icon(Icons.remove, size: iconSize),
             color: canDecrease ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
             onPressed: canDecrease ? onDecrease : null,
             tooltip: 'A-',
-            splashRadius: 18,
-            padding: const EdgeInsets.all(6),
+            splashRadius: compact ? 14 : 18,
+            padding: btnPadding,
             constraints: const BoxConstraints(),
           ),
-          const Text(
-            'A',
-            style: TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.bold),
-          ),
+          if (!compact)
+            const Text(
+              'A',
+              style: TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
           IconButton(
-            icon: const Icon(Icons.add, size: 18),
+            icon: Icon(Icons.add, size: iconSize),
             color: canIncrease ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
             onPressed: canIncrease ? onIncrease : null,
             tooltip: 'A+',
-            splashRadius: 18,
-            padding: const EdgeInsets.all(6),
+            splashRadius: compact ? 14 : 18,
+            padding: btnPadding,
             constraints: const BoxConstraints(),
           ),
         ],
@@ -807,12 +815,14 @@ class _ViewModeButton extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final bool compact;
 
   const _ViewModeButton({
     required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -821,7 +831,9 @@ class _ViewModeButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        padding: compact
+            ? const EdgeInsets.symmetric(horizontal: 9, vertical: 6)
+            : const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? AppTheme.gold.withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
@@ -829,16 +841,18 @@ class _ViewModeButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: selected ? AppTheme.gold : AppTheme.textSecondary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppTheme.gold : AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            Icon(icon, size: compact ? 15 : 16, color: selected ? AppTheme.gold : AppTheme.textSecondary),
+            if (!compact) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? AppTheme.gold : AppTheme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

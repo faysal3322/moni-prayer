@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'quran_audio_handler.dart';
 
 /// Manages Saad al-Ghamdi recitation audio, stored as one gapless mp3 per
@@ -30,7 +31,15 @@ class QuranAudioHelper {
 
   /// Initializes the audio_service session (once, lazily) and returns the
   /// running handler. Must be awaited before any playback call.
-  static Future<QuranPlaybackHandler> _ensureHandler() {
+  ///
+  /// Requests notification permission first: on Android 13+, the foreground
+  /// service that keeps audio playing in the background needs to show a
+  /// notification, and without POST_NOTIFICATIONS granted that can prevent
+  /// the service (and therefore playback) from starting correctly.
+  static Future<QuranPlaybackHandler> _ensureHandler() async {
+    if (Platform.isAndroid) {
+      await Permission.notification.request();
+    }
     return _initFuture ??= AudioService.init(
       builder: () => QuranPlaybackHandler(),
       config: const AudioServiceConfig(

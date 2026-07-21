@@ -63,6 +63,23 @@ class QuranAudioHelper {
     return dir;
   }
 
+  /// Creates the Recitations/saad-al-ghamdi folder immediately (e.g. at app
+  /// startup) so it exists on the device even before the user plays or
+  /// downloads any audio. This lets the user manually copy recitation files
+  /// into it via a file manager right after installing the app.
+  ///
+  /// Safe to call multiple times and safe to ignore failures — folder
+  /// creation is a convenience, not something that should block app startup.
+  static Future<void> ensureAudioDirExists() async {
+    try {
+      await _getAudioDir();
+    } catch (_) {
+      // Ignore: e.g. storage not ready yet on some devices at first launch.
+      // The folder will still be created lazily the first time playback
+      // or download is attempted.
+    }
+  }
+
   static String _filenameForSura(int sura) => '${sura.toString().padLeft(3, '0')}.mp3';
 
   /// True if the surah's audio file already exists locally (downloaded

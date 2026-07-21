@@ -10,14 +10,16 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import io.flutter.embedding.android.FlutterFragmentActivity
+import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-// audio_service requires FlutterFragmentActivity (not the plain FlutterActivity)
-// so it can host the media-session/notification integration.
-class MainActivity: FlutterFragmentActivity() {
+// audio_service requires the Activity to extend one of its own base classes
+// (AudioServiceActivity / AudioServiceFragmentActivity) — not a plain
+// FlutterFragmentActivity — so it can correctly bind to the shared
+// FlutterEngine used by the background media session.
+class MainActivity: AudioServiceFragmentActivity() {
 
     private val BACKUP_CHANNEL = "com.example.moni_prayer/backup"
 

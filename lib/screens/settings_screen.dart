@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
@@ -20,6 +20,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const _backupChannel = MethodChannel('com.example.moni_prayer/backup');
+
   late TextEditingController _nameCtrl;
   String _currentLang = 'bn';
   int _hijriAdjust = 0;
@@ -65,21 +67,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     widget.onChanged();
   }
 
+  /// Saves the backup JSON directly into the phone's public Download
+  /// folder, using Android's MediaStore API on the native side. This
+  /// avoids relying on the share sheet (which some devices/apps handle
+  /// inconsistently) and works the same way across manufacturers,
+  /// including MIUI/Xiaomi devices.
   Future<void> _backup() async {
     try {
+      // Required on Android 9 and below (declaring the permission in the
+      // manifest isn't enough there); on Android 10+ this is a no-op since
+      // MediaStore writes to Downloads don't need it.
+      if (Platform.isAndroid) {
+        final status = await Permission.storage.request();
+        if (status.isPermanentlyDenied) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(widget.lang.isBn
+                ? 'ব্যাকআপের জন্য স্টোরেজ অনুমতি প্রয়োজন। সেটিংস থেকে অনুমতি দিন।'
+                : 'Storage permission is needed for backup. Please allow it from Settings.'),
+            backgroundColor: AppTheme.missed,
+          ));
+          return;
+        }
+      }
+
       final data = await DatabaseHelper.exportAllData();
       final prefs = await SharedPreferences.getInstance();
       data['user_name'] = prefs.getString('user_name') ?? 'FAYSAL';
       data['language'] = prefs.getString('language') ?? 'bn';
       final now = DateTime.now();
-      final fileName = 'moni_prayer_backup_${now.year}_${now.month.toString().padLeft(2,'0')}_${now.day.toString().padLeft(2,'0')}.json';
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsString(jsonEncode(data));
-      await Share.shareXFiles([XFile(file.path)], subject: 'MONI PRAYER Backup');
-    } catch (e) {
+      final fileName =
+          'moni_prayer_backup_${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}.json';
+
+      final savedPath = await _backupChannel.invokeMethod<String>('saveToDownloads', {
+        'fileName': fileName,
+        'content': jsonEncode(data),
+      });
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: $e'), backgroundColor: AppTheme.missed));
+        content: Text(widget.lang.isBn
+            ? 'ব্যাকআপ সেভ হয়েছে: ${savedPath ?? fileName}'
+            : 'Backup saved: ${savedPath ?? fileName}'),
+        backgroundColor: AppTheme.completed,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'), backgroundColor: AppTheme.missed));
     }
   }
 
@@ -98,9 +133,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (confirmed != true) return;
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+      // FileType.custom + allowedExtensions triggers "This operation is not
+      // supported" on some MIUI/Xiaomi file-picker builds. FileType.any
+      // works consistently everywhere; we just check the extension after.
+      final result = await FilePicker.platform.pickFiles(type: FileType.any);
       if (result == null) return;
-      final file = File(result.files.single.path!);
+      final pickedPath = result.files.single.path;
+      if (pickedPath == null) return;
+      if (!pickedPath.toLowerCase().endsWith('.json')) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(widget.lang.isBn
+              ? 'দয়া করে একটি .json ব্যাকআপ ফাইল নির্বাচন করুন'
+              : 'Please select a .json backup file'),
+          backgroundColor: AppTheme.missed,
+        ));
+        return;
+      }
+      final file = File(pickedPath);
       final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       await DatabaseHelper.importAllData(json);
       final prefs = await SharedPreferences.getInstance();
@@ -111,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Text(widget.lang.isBn ? 'রিস্টোর সম্পন্ন' : 'Restore complete'),
         backgroundColor: AppTheme.completed));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: $e'), backgroundColor: AppTheme.missed));
     }
@@ -206,8 +257,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             isBn
-                ? 'আপনার সমস্ত ডেটা JSON ফাইলে সেভ করুন বা পুনরুদ্ধার করুন।'
-                : 'Save or restore all your data as a JSON file.',
+                ? 'আপনার সমস্ত ডেটা Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
+                : 'Save your data as a JSON file in your Download folder, or restore from one.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 12),

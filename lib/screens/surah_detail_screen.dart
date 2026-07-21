@@ -147,7 +147,11 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
   bool _fullSurahLoading = false;
   bool _fullSurahPlaying = false;
+  bool _fullSurahPaused = false;
   int? _fullSurahAyaIndex;
+  // যেই আয়াতে সর্বশেষ ম্যানুয়ালি জাম্প করা হয়েছে (verse-jump শিট থেকে) —
+  // এরপর নিচের Play বাটন চাপলে ১ নম্বর থেকে না গিয়ে এখান থেকেই শুরু হবে।
+  int _resumeFromIndex = 0;
 
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _ayaKeys = [];
@@ -263,7 +267,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   /// retry budget, so the GlobalKey's context was still null when we gave up
   /// and the jump silently did nothing. As a fallback, once we run out of
   /// attempts we jump to an estimated scroll offset based on the item's index.
-  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 30}) {
+  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 5}) {
     if (!mounted) return;
     if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
     final ctx = _ayaKeys[ayaIndex].currentContext;
@@ -320,15 +324,20 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     });
   }
 
+  /// Play/Pause বাটনের মূল লজিক। চলমান অবস্থায় চাপলে stop না করে pause করে
+  /// (যাতে "রিজিউম" সম্ভব হয়) — pause অবস্থায় চাপলে ঠিক সেখান থেকেই আবার চালু হয়।
   Future<void> _toggleFullSurahPlay() async {
-    if (_fullSurahPlaying) {
-      await QuranAudioHelper.stop();
-      if (mounted) {
-        setState(() {
-          _fullSurahPlaying = false;
-          _fullSurahAyaIndex = null;
-        });
-      }
+    if (_fullSurahPlaying && !_fullSurahPaused) {
+      // চলমান থেকে পজ করা
+      await QuranAudioHelper.pause();
+      if (mounted) setState(() => _fullSurahPaused = true);
+      return;
+    }
+
+    if (_fullSurahPaused) {
+      // পজ থেকে আবার চালু করা — নতুন সিকোয়েন্স শুরু না করে সরাসরি resume
+      await QuranAudioHelper.resume();
+      if (mounted) setState(() => _fullSurahPaused = false);
       return;
     }
 
@@ -346,22 +355,30 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         return;
       }
       if (!mounted) return;
-      setState(() => _fullSurahPlaying = true);
+      setState(() {
+        _fullSurahPlaying = true;
+        _fullSurahPaused = false;
+      });
       await QuranAudioHelper.playFullSurah(
         sura: widget.sura,
         surahAudioUrl: surahAudio['audio_url'] as String,
         segments: segments,
+        startIndex: _resumeFromIndex,
         onAyaStart: (ayaIndex, ayaNumber) {
           if (!mounted) return;
           setState(() => _fullSurahAyaIndex = ayaIndex);
+          _resumeFromIndex = ayaIndex; // পরের বার Play চাপলে এখান থেকেই শুরু হবে
           _scrollToVerse(ayaIndex);
         },
         onSequenceComplete: () {
           if (!mounted) return;
           setState(() {
             _fullSurahPlaying = false;
+            _fullSurahPaused = false;
             _fullSurahAyaIndex = null;
           });
+          // সূরা শেষ হয়ে গেলে পরের বার প্লে করলে আবার প্রথম থেকে শুরু হবে।
+          _resumeFromIndex = 0;
           // সূরা ১১৪ (আন-নাস)-এর পরে আর কোনো সূরা নেই, তাই chain করা হবে না।
           if (widget.sura < 114) {
             widget.onRequestNextSurah?.call();
@@ -380,11 +397,61 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     }
   }
 
+  /// সম্পূর্ণ থামানোর জন্য (stop বাটন প্রয়োজন হলে ভবিষ্যতে ব্যবহারের জন্য রাখা) —
+  /// বর্তমানে UI-তে ব্যবহার না হলেও pause-vs-stop এর পার্থক্য স্পষ্ট রাখতে রাখা।
+  Future<void> _stopFullSurah() async {
+    await QuranAudioHelper.stop();
+    if (mounted) {
+      setState(() {
+        _fullSurahPlaying = false;
+        _fullSurahPaused = false;
+        _fullSurahAyaIndex = null;
+      });
+    }
+    _resumeFromIndex = 0;
+  }
+
+  /// আগের আয়াত থেকে আবার চালানো (◀◀ বাটন)।
+  Future<void> _playPreviousAya() async {
+    if (_ayat.isEmpty) return;
+    final current = _fullSurahAyaIndex ?? _resumeFromIndex;
+    final target = (current - 1).clamp(0, _ayat.length - 1);
+    _resumeFromIndex = target;
+    await QuranAudioHelper.stop();
+    if (mounted) {
+      setState(() {
+        _fullSurahPlaying = false;
+        _fullSurahPaused = false;
+      });
+    }
+    await _toggleFullSurahPlay();
+  }
+
+  /// পরের আয়াত থেকে চালানো (▶▶ বাটন)।
+  Future<void> _playNextAya() async {
+    if (_ayat.isEmpty) return;
+    final current = _fullSurahAyaIndex ?? _resumeFromIndex;
+    final target = (current + 1).clamp(0, _ayat.length - 1);
+    _resumeFromIndex = target;
+    await QuranAudioHelper.stop();
+    if (mounted) {
+      setState(() {
+        _fullSurahPlaying = false;
+        _fullSurahPaused = false;
+      });
+    }
+    await _toggleFullSurahPlay();
+  }
+
   void _jumpToVerse(int ayaIndex) {
+    _resumeFromIndex = ayaIndex;
     Navigator.of(context).pop(); // close the bottom sheet
-    // Wait for the bottom sheet's close animation to finish, then retry-scroll
-    // until the target verse's context becomes available.
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // Wait for the bottom sheet's close animation to finish (Material's
+    // default modal transition is ~300ms; giving it a bit more margin makes
+    // this reliable on slower devices), then retry-scroll until the target
+    // verse's context becomes available.
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
       _scrollToVerse(ayaIndex);
     });
   }
@@ -625,6 +692,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                 onWillPlay: _fullSurahPlaying
                                     ? () => setState(() {
                                           _fullSurahPlaying = false;
+                                          _fullSurahPaused = false;
                                           _fullSurahAyaIndex = null;
                                         })
                                     : null,
@@ -719,27 +787,45 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                           canIncrease: _fontSize < _maxFontSize,
                           compact: true,
                         ),
-                        const SizedBox(width: 4),
-                        // ডানে: সম্পূর্ণ সূরা প্লে/স্টপ বাটন
-                        if (_ayat.isNotEmpty)
+                        const SizedBox(width: 2),
+                        // ডানে: ◀◀ (আগের আয়াত) ⏸/▶ (প্লে-পজ) ▶▶ (পরের আয়াত)
+                        // — রেফারেন্স স্ক্রিনশট অনুযায়ী কম্প্যাক্ট কন্ট্রোল গ্রুপ
+                        if (_ayat.isNotEmpty) ...[
+                          IconButton(
+                            icon: const Icon(Icons.fast_rewind, size: 20),
+                            color: AppTheme.gold,
+                            tooltip: isBn ? 'আগের আয়াত' : 'Previous verse',
+                            onPressed: (_fullSurahPlaying || _fullSurahPaused) ? _playPreviousAya : null,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
                           IconButton(
                             icon: _fullSurahLoading
                                 ? const SizedBox(
-                                    width: 20, height: 20,
+                                    width: 18, height: 18,
                                     child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
                                   )
                                 : Icon(
-                                    _fullSurahPlaying ? Icons.stop_circle : Icons.play_circle_fill,
+                                    (_fullSurahPlaying && !_fullSurahPaused) ? Icons.pause_circle_filled : Icons.play_circle_fill,
                                     color: AppTheme.gold,
-                                    size: 26,
+                                    size: 30,
                                   ),
-                            tooltip: _fullSurahPlaying
-                                ? (isBn ? 'থামান' : 'Stop')
+                            tooltip: (_fullSurahPlaying && !_fullSurahPaused)
+                                ? (isBn ? 'পজ করুন' : 'Pause')
                                 : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
                             onPressed: _toggleFullSurahPlay,
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                           ),
+                          IconButton(
+                            icon: const Icon(Icons.fast_forward, size: 20),
+                            color: AppTheme.gold,
+                            tooltip: isBn ? 'পরের আয়াত' : 'Next verse',
+                            onPressed: (_fullSurahPlaying || _fullSurahPaused) ? _playNextAya : null,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
+                        ],
                       ],
                     ),
                   ),

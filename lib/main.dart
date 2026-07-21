@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_language.dart';
+import 'utils/quran_audio_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,13 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final String lang = prefs.getString('language') ?? 'bn';
   final String userName = prefs.getString('user_name') ?? 'FAYSAL';
+
+  // Create the Recitations folder right away so it exists on the device
+  // as soon as the app is installed and opened — even before the user
+  // plays or downloads any Quran audio. This lets the user manually copy
+  // recitation files into it via a file manager.
+  // Runs in the background; doesn't block app startup if it's slow.
+  QuranAudioHelper.ensureAudioDirExists();
 
   runApp(MoniPrayerApp(initialLang: lang, userName: userName));
 }

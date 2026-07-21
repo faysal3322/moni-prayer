@@ -97,8 +97,11 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     required List<Map<String, dynamic>> segments,
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
     void Function()? onSequenceComplete,
+    int startIndex = 0,
   }) async {
     if (segments.isEmpty) return;
+    // নেগেটিভ বা রেঞ্জের বাইরের ইনডেক্স হলে নিরাপদে শুরু থেকে চালানো হবে।
+    final safeStart = (startIndex < 0 || startIndex >= segments.length) ? 0 : startIndex;
     final myToken = ++_sequenceToken;
 
     await _positionSub?.cancel();
@@ -119,10 +122,10 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
     await _loadAndPlay(
       filePath,
-      Duration(milliseconds: segments[0]['timestamp_from_ms'] as int),
+      Duration(milliseconds: segments[safeStart]['timestamp_from_ms'] as int),
     );
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
-    enterIndex(0);
+    enterIndex(safeStart);
 
     _positionSub = player.positionStream.listen((pos) {
       if (myToken != _sequenceToken) {

@@ -173,7 +173,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
-    if (_fullSurahPlaying) QuranAudioHelper.stop();
+    // স্ক্রিন থেকে বের হলেও সূরা প্লে ব্যাকগ্রাউন্ডে চলতে থাকবে (lock screen
+    // এও যেমন চলে) — তাই এখানে ইচ্ছাকৃতভাবে audio বন্ধ করা হয় না।
     super.dispose();
   }
 
@@ -798,23 +799,52 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                               ),
-                              IconButton(
-                                icon: _fullSurahLoading
-                                    ? const SizedBox(
-                                        width: 18, height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
-                                      )
-                                    : Icon(
-                                        (_fullSurahPlaying && !_fullSurahPaused) ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                                        color: AppTheme.gold,
-                                        size: 30,
+                              Container(
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.gold.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(20),
+                                    onTap: _fullSurahLoading ? null : _toggleFullSurahPlay,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (_fullSurahLoading)
+                                            const SizedBox(
+                                              width: 16, height: 16,
+                                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                                            )
+                                          else
+                                            Icon(
+                                              (_fullSurahPlaying && !_fullSurahPaused) ? Icons.pause : Icons.play_arrow,
+                                              color: AppTheme.gold,
+                                              size: 20,
+                                            ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            (_fullSurahPlaying && !_fullSurahPaused)
+                                                ? (isBn ? 'পজ' : 'Pause')
+                                                : (_fullSurahPaused
+                                                    ? (isBn ? 'রিজিউম' : 'Resume')
+                                                    : (isBn ? 'প্লে' : 'Play')),
+                                            style: const TextStyle(
+                                              color: AppTheme.gold,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                tooltip: (_fullSurahPlaying && !_fullSurahPaused)
-                                    ? (isBn ? 'পজ করুন' : 'Pause')
-                                    : (isBn ? 'সম্পূর্ণ সূরা শুনুন' : 'Play full surah'),
-                                onPressed: _toggleFullSurahPlay,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                    ),
+                                  ),
+                                ),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.fast_forward, size: 20),

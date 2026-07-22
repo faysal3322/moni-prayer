@@ -180,6 +180,13 @@ class QuranAudioHelper {
     await _handler!.play();
   }
 
+  /// Prev/Next বাটনের জন্য — চলমান সেশনেই দ্রুত নির্দিষ্ট আয়াতে সিক করে,
+  /// পুরো audio source আবার লোড করে না বলে প্রায় সাথে সাথে কাজ করে।
+  static Future<void> seekToIndex(int index) async {
+    if (_handler == null) return;
+    await _handler!.seekToIndex(index);
+  }
+
   /// Downloads audio for a whole surah (single file) — used for the
   /// "download for offline" option per-surah. Skips if already present.
   static Future<void> downloadFullSurah(

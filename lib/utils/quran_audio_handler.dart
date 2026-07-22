@@ -118,6 +118,12 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _currentStopAtMs = null;
     _onAyaComplete = null;
 
+    // একই ফাইল আগে থেকেই লোড থাকলে নতুন করে setAudioSource না করে শুধু
+    // seek করলেই চলে — এতে বারবার চালু/থামানোয় দেরি হয় না।
+    // গুরুত্বপূর্ণ: এই তুলনা অবশ্যই _currentFilePath আপডেট করার আগে করতে
+    // হবে, নাহলে সবসময় "same file" ধরা পড়ে এবং ভুল সূরার audio বেজেই যায়।
+    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
+
     // পরে দ্রুত seekToIndex() কল করার জন্য এই সেশনের তথ্য মনে রাখা হচ্ছে।
     _currentFilePath = filePath;
     _currentSegments = segments;
@@ -135,9 +141,6 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       onAyaStart(i, ayaNumber);
     }
 
-    // একই ফাইল আগে থেকেই লোড থাকলে নতুন করে setAudioSource না করে শুধু
-    // seek করলেই চলে — এতে বারবার চালু/থামানোয় দেরি হয় না।
-    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
     if (!sameFileAlreadyLoaded) {
       await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
     }

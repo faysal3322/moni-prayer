@@ -25,6 +25,14 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // plays next.
   int _sequenceToken = 0;
 
+  // পরে prev/next বাটনে দ্রুত সিক করার জন্য বর্তমান সেশনের ফাইল/সেগমেন্ট/
+  // কলব্যাক মনে রাখা হয় — এতে পুরো audio source আবার লোড না করেই লাফানো যায়।
+  String? _currentFilePath;
+  List<Map<String, dynamic>>? _currentSegments;
+  void Function(int ayaIndex, int ayaNumber)? _currentOnAyaStart;
+  void Function()? _currentOnSequenceComplete;
+  int _currentAyaIndex = -1;
+
   QuranPlaybackHandler() {
     // Surface just_audio's playing/processing state to audio_service so the
     // notification's play/pause icon and lock-screen controls stay in sync.
@@ -110,20 +118,31 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _currentStopAtMs = null;
     _onAyaComplete = null;
 
+    // পরে দ্রুত seekToIndex() কল করার জন্য এই সেশনের তথ্য মনে রাখা হচ্ছে।
+    _currentFilePath = filePath;
+    _currentSegments = segments;
+    _currentOnAyaStart = onAyaStart;
+    _currentOnSequenceComplete = onSequenceComplete;
+
     // Tracks which ayah index we're currently "in" so the position listener
     // only fires onAyaStart once per boundary crossed.
     int currentIndex = -1;
     void enterIndex(int i) {
       if (i == currentIndex) return;
       currentIndex = i;
+      _currentAyaIndex = i;
       final ayaNumber = segments[i]['aya'] as int;
       onAyaStart(i, ayaNumber);
     }
 
-    await _loadAndPlay(
-      filePath,
-      Duration(milliseconds: segments[safeStart]['timestamp_from_ms'] as int),
-    );
+    // একই ফাইল আগে থেকেই লোড থাকলে নতুন করে setAudioSource না করে শুধু
+    // seek করলেই চলে — এতে বারবার চালু/থামানোয় দেরি হয় না।
+    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
+    if (!sameFileAlreadyLoaded) {
+      await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
+    }
+    await player.seek(Duration(milliseconds: segments[safeStart]['timestamp_from_ms'] as int));
+    await player.play();
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
     enterIndex(safeStart);
 
@@ -146,6 +165,45 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         _positionSub?.cancel();
         _positionSub = null;
         if (myToken == _sequenceToken) onSequenceComplete?.call();
+      }
+    });
+  }
+
+  /// Prev/Next বাটনের জন্য দ্রুত সিক — audio source নতুন করে লোড না করে
+  /// ঠিক টার্গেট আয়াতের timestamp-এ সরাসরি seek করে, তাই প্রায় তাৎক্ষণিক।
+  /// শুধুমাত্র playFullSurah ইতিমধ্যে চলমান/পজড থাকলে কাজ করে (session data লাগে)।
+  Future<void> seekToIndex(int index) async {
+    final segments = _currentSegments;
+    final onAyaStart = _currentOnAyaStart;
+    if (segments == null || onAyaStart == null) return;
+    if (index < 0 || index >= segments.length) return;
+
+    final myToken = _sequenceToken; // same session, no token bump needed
+    await player.seek(Duration(milliseconds: segments[index]['timestamp_from_ms'] as int));
+    if (!player.playing) await player.play();
+    if (myToken != _sequenceToken) return;
+
+    _currentAyaIndex = index;
+    final ayaNumber = segments[index]['aya'] as int;
+    onAyaStart(index, ayaNumber);
+
+    // পুরনো position listener বন্ধ করে নতুন index থেকে আবার শুরু করা হয়,
+    // যাতে boundary-detection লুপ ঠিক জায়গা থেকে গণনা করে।
+    await _positionSub?.cancel();
+    int currentIndex = index;
+    _positionSub = player.positionStream.listen((pos) {
+      if (myToken != _sequenceToken) {
+        _positionSub?.cancel();
+        _positionSub = null;
+        return;
+      }
+      final ms = pos.inMilliseconds;
+      while (currentIndex + 1 < segments.length &&
+          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int)) {
+        currentIndex++;
+        _currentAyaIndex = currentIndex;
+        final num = segments[currentIndex]['aya'] as int;
+        onAyaStart(currentIndex, num);
       }
     });
   }

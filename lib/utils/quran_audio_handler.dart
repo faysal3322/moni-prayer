@@ -28,7 +28,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // কারণে), যার ফলে হাইলাইট পরের আয়াতে চলে যায় কিন্তু কানে তখনও আগের
   // আয়াতই শোনা যাচ্ছে থাকে। এই অফসেটটা ব্যবহার করে হাইলাইট পরিবর্তনটা
   // ইচ্ছাকৃতভাবে সামান্য দেরিতে করা হয়, যাতে এটা audio-র সাথে মিলে যায়।
-  static const int _highlightDelayMs = 500;
+  static const int _highlightDelayMs = 350;
 
   int _sequenceToken = 0;
 
@@ -162,7 +162,20 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     // থাকত এবং বাটন disabled থেকে যেত (Pause/Stop কাজ করত না)।
     unawaited(player.play());
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
-    enterIndex(safeStart);
+
+    // সূরা ১ ছাড়া বাকি সব সূরায়, যদি একদম প্রথম আয়াত (যেখানে বিসমিল্লাহ
+    // অফসেট প্রযোজ্য) থেকে প্লে শুরু হয়, তাহলে সাথে সাথে হাইলাইট না করে
+    // position stream-কেই সেটা ট্রিগার করতে দেওয়া হয় — যাতে বিসমিল্লাহ
+    // পড়া চলাকালীন হাইলাইট ভুলভাবে ১ নং আয়াতে না চলে যায়।
+    final firstSegmentSura = segments[safeStart]['sura'] as int?;
+    final skipImmediateEnter = safeStart == 0 && firstSegmentSura != 1;
+    if (!skipImmediateEnter) {
+      enterIndex(safeStart);
+    }
+    // skipImmediateEnter হলে currentIndex ইতিমধ্যেই -1 আছে (উপরে সেট করা),
+    // তাই নিচের position-stream লুপ segments[0]-এর (বিসমিল্লাহ-অফসেট করা)
+    // timestamp অতিক্রম হওয়া পর্যন্ত অপেক্ষা করে, তারপরই enterIndex(0) কল
+    // করবে — বিসমিল্লাহ শেষ হওয়ার পরই হাইলাইট পড়বে।
 
     _positionSub = player.positionStream.listen((pos) {
       if (myToken != _sequenceToken) {

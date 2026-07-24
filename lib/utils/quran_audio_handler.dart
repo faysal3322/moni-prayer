@@ -30,6 +30,15 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // ইচ্ছাকৃতভাবে সামান্য দেরিতে করা হয়, যাতে এটা audio-র সাথে মিলে যায়।
   static const int _highlightDelayMs = 350;
 
+  // সূরা আল-ফাতিহা ছাড়া বাকি সব সূরার ১ নং আয়াতের অডিওতে শুরুতেই
+  // "বিসমিল্লাহির রহমানির রহিম" তেলাওয়াতও থাকে, কিন্তু ডেটাবেজে এটা আলাদা
+  // সেগমেন্ট হিসেবে চিহ্নিত না — পুরোটাই আয়াত ১-এর timestamp থেকে ধরা।
+  // এই কনস্ট্যান্টটা শুধু হাইলাইট কখন বদলাবে তা ঠিক করতে ব্যবহার হয় —
+  // কখনোই audio seek/position-এর জন্য না, তাহলে বিসমিল্লাহর অডিওটাই
+  // স্কিপ হয়ে যাবে (আগে এই ভুলটাই হয়েছিল)। এই ৫ সেকেন্ড অতিক্রম হওয়ার
+  // পরই হাইলাইট আয়াত ১-এ যাবে, কিন্তু audio ঠিক শুরু (0ms) থেকেই বাজবে।
+  static const int _basmalahDurationMs = 5000;
+
   int _sequenceToken = 0;
 
   // পরে prev/next বাটনে দ্রুত সিক করার জন্য বর্তমান সেশনের ফাইল/সেগমেন্ট/
@@ -150,9 +159,25 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       onAyaStart(i, ayaNumber);
     }
 
+    // হাইলাইট কখন সেগমেন্ট i-তে ঢুকবে তার threshold — সাধারণ stream-lag
+    // delay সব সেগমেন্টে যোগ হয়, আর সূরা ১ ছাড়া বাকি সব সূরার আয়াত ১-এ
+    // অতিরিক্ত বিসমিল্লাহ-ডিউরেশনও যোগ হয় (কারণ অডিওতে বিসমিল্লাহ ওই
+    // আয়াতের শুরুতেই আছে কিন্তু সেটা ডেটাবেজে আলাদা সেগমেন্ট না)।
+    // এটা শুধু হাইলাইট কখন বদলাবে তা ঠিক করে — audio seek করে raw
+    // timestamp দিয়েই (নিচে), তাই audio কখনোই বিসমিল্লাহ স্কিপ করে না।
+    int highlightThreshold(int i) {
+      final base = segments[i]['timestamp_from_ms'] as int;
+      final sura = segments[i]['sura'] as int?;
+      final aya = segments[i]['aya'] as int?;
+      final isBasmalahAya = aya == 1 && sura != 1;
+      return base + _highlightDelayMs + (isBasmalahAya ? _basmalahDurationMs : 0);
+    }
+
     if (!sameFileAlreadyLoaded) {
       await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
     }
+    // এখানে raw timestamp_from_ms দিয়েই seek হয় — অডিও ঠিক রেকর্ড করা
+    // জায়গা থেকেই শুরু হবে, বিসমিল্লাহসহ। কোনো offset প্রয়োগ করা হয় না।
     await player.seek(Duration(milliseconds: segments[safeStart]['timestamp_from_ms'] as int));
     // গুরুত্বপূর্ণ: player.play() কে await করা যাবে না। just_audio-তে play()-এর
     // future ততক্ষণ resolve হয় না যতক্ষণ না পুরো audio শেষ হয়/থামানো হয় —
@@ -163,18 +188,19 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     unawaited(player.play());
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
 
-    // সূরা ১ ছাড়া বাকি সব সূরায়, যদি একদম প্রথম আয়াত (যেখানে বিসমিল্লাহ
-    // অফসেট প্রযোজ্য) থেকে প্লে শুরু হয়, তাহলে সাথে সাথে হাইলাইট না করে
-    // position stream-কেই সেটা ট্রিগার করতে দেওয়া হয় — যাতে বিসমিল্লাহ
-    // পড়া চলাকালীন হাইলাইট ভুলভাবে ১ নং আয়াতে না চলে যায়।
-    final firstSegmentSura = segments[safeStart]['sura'] as int?;
-    final skipImmediateEnter = safeStart == 0 && firstSegmentSura != 1;
+    // সূরা ১ ছাড়া বাকি সব সূরায় যদি একদম প্রথম আয়াত (বিসমিল্লাহসহ) থেকে
+    // প্লে শুরু হয়, তাহলে সাথে সাথে হাইলাইট না করে position stream-কেই
+    // (নিচে) সেটা ট্রিগার করতে দেওয়া হয় — বিসমিল্লাহ পড়া চলাকালীন হাইলাইট
+    // যেন ভুলভাবে আয়াত ১-এ না চলে যায়।
+    final firstAya = segments[safeStart]['aya'] as int?;
+    final firstSura = segments[safeStart]['sura'] as int?;
+    final skipImmediateEnter = firstAya == 1 && firstSura != 1;
     if (!skipImmediateEnter) {
       enterIndex(safeStart);
     }
     // skipImmediateEnter হলে currentIndex ইতিমধ্যেই -1 আছে (উপরে সেট করা),
-    // তাই নিচের position-stream লুপ segments[0]-এর (বিসমিল্লাহ-অফসেট করা)
-    // timestamp অতিক্রম হওয়া পর্যন্ত অপেক্ষা করে, তারপরই enterIndex(0) কল
+    // তাই নিচের position-stream লুপ segments[safeStart]-এর (বিসমিল্লাহসহ)
+    // threshold অতিক্রম হওয়া পর্যন্ত অপেক্ষা করে, তারপরই enterIndex কল
     // করবে — বিসমিল্লাহ শেষ হওয়ার পরই হাইলাইট পড়বে।
 
     _positionSub = player.positionStream.listen((pos) {
@@ -185,7 +211,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       }
       final ms = pos.inMilliseconds;
       while (currentIndex + 1 < segments.length &&
-          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int) + _highlightDelayMs) {
+          ms >= highlightThreshold(currentIndex + 1)) {
         enterIndex(currentIndex + 1);
       }
     });
@@ -231,8 +257,12 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         return;
       }
       final ms = pos.inMilliseconds;
-      while (currentIndex + 1 < segments.length &&
-          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int) + _highlightDelayMs) {
+      while (currentIndex + 1 < segments.length) {
+        final next = segments[currentIndex + 1];
+        final nextBase = next['timestamp_from_ms'] as int;
+        final nextIsBasmalahAya = next['aya'] == 1 && next['sura'] != 1;
+        final threshold = nextBase + _highlightDelayMs + (nextIsBasmalahAya ? _basmalahDurationMs : 0);
+        if (ms < threshold) break;
         currentIndex++;
         _currentAyaIndex = currentIndex;
         final num = segments[currentIndex]['aya'] as int;

@@ -174,41 +174,6 @@ class QuranDatabaseHelper {
     return rows.isNotEmpty ? rows.first : null;
   }
 
-  /// সূরা আল-ফাতিহা ছাড়া বাকি সব সূরায়, ১ নং আয়াতের অডিও সেগমেন্টের
-  /// শুরুতে "বিসমিল্লাহির রহমানির রহিম" তেলাওয়াতও রেকর্ড করা থাকে, কিন্তু
-  /// ডেটাবেজে এটাকে আলাদা সেগমেন্ট হিসেবে চিহ্নিত করা নেই — পুরোটাই ১ নং
-  /// আয়াতের timestamp_from_ms থেকে ধরা হয়েছে। এর ফলে বিসমিল্লাহ পড়া
-  /// চলাকালীনই হাইলাইট ভুলভাবে ১ নং আয়াতে চলে যায় (অডিও ও হাইলাইটের
-  /// মাঝে গ্যাপ তৈরি হয়)।
-  ///
-  /// সমাধান: ১ নং আয়াতের timestamp_from_ms-কে এই পরিমাণ (মিলিসেকেন্ড)
-  /// এগিয়ে দেওয়া হয়, যাতে বিসমিল্লাহ শেষ হওয়ার পরই হাইলাইট ১ নং আয়াতে
-  /// যায়। ব্যবহারকারীর অ্যাপ শুনে আনুমানিক মাপ অনুযায়ী এই মান সেট করা।
-  static const int _basmalahDurationMs = 5000;
-
-  /// [rows] হলো এক সূরার সব আয়াত সেগমেন্ট (aya ASC অনুযায়ী সাজানো)।
-  /// প্রথম আয়াতের (aya == 1) timestamp_from_ms-এ বিসমিল্লাহ অফসেট যোগ
-  /// করে একটা নতুন লিস্ট রিটার্ন করে — মূল rows/ডেটাবেজ অপরিবর্তিত থাকে।
-  /// সূরা ১ (আল-ফাতিহা) বাদ দেওয়া হয়, কারণ সেখানে বিসমিল্লাহই ১ নং আয়াত।
-  static List<Map<String, dynamic>> _applyBasmalahOffset(
-    int sura,
-    List<Map<String, dynamic>> rows,
-  ) {
-    if (sura == 1 || rows.isEmpty) return rows;
-    return rows.map((row) {
-      if (row['aya'] == 1) {
-        final adjusted = Map<String, dynamic>.from(row);
-        final originalTo = adjusted['timestamp_to_ms'] as int;
-        var newFrom = (adjusted['timestamp_from_ms'] as int) + _basmalahDurationMs;
-        // সেগমেন্ট নিজের timestamp_to_ms ছাড়িয়ে না যায়, তা নিশ্চিত করা
-        if (newFrom > originalTo) newFrom = originalTo;
-        adjusted['timestamp_from_ms'] = newFrom;
-        return adjusted;
-      }
-      return row;
-    }).toList();
-  }
-
   /// Fetch the Saad al-Ghamdi audio URL for the whole surah (gapless, one file).
   static Future<Map<String, dynamic>?> getSurahAudio(int sura) async {
     final db = await database;
@@ -219,6 +184,12 @@ class QuranDatabaseHelper {
   /// Fetch the start/end timestamp (in ms, within the surah's mp3 file) for
   /// a single ayah — used to seek/clip playback of one verse from the
   /// gapless surah audio.
+  ///
+  /// Note: returns the raw database timestamp (no Basmalah adjustment).
+  /// Audio playback must always seek to the true recorded start, otherwise
+  /// the Bismillah recitation at the start of ayah 1 (for every surah
+  /// except Al-Fatiha) gets skipped. Highlight-timing adjustments for the
+  /// Bismillah gap are applied separately in QuranPlaybackHandler.
   static Future<Map<String, dynamic>?> getAyaSegment(int sura, int aya) async {
     final db = await database;
     final rows = await db.query(
@@ -226,15 +197,13 @@ class QuranDatabaseHelper {
       where: 'sura = ? AND aya = ?',
       whereArgs: [sura, aya],
     );
-    if (rows.isEmpty) return null;
-    return _applyBasmalahOffset(sura, rows).first;
+    return rows.isNotEmpty ? rows.first : null;
   }
 
   /// Fetch all ayah timing segments for a surah, ordered by aya number
   /// (used for sequential/auto-continue playback across the whole surah).
   static Future<List<Map<String, dynamic>>> getAllSegmentsForSura(int sura) async {
     final db = await database;
-    final rows = await db.query('quran_audio_segments', where: 'sura = ?', whereArgs: [sura], orderBy: 'aya ASC');
-    return _applyBasmalahOffset(sura, rows);
+    return db.query('quran_audio_segments', where: 'sura = ?', whereArgs: [sura], orderBy: 'aya ASC');
   }
 }

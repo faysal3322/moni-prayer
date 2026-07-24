@@ -28,7 +28,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // কারণে), যার ফলে হাইলাইট পরের আয়াতে চলে যায় কিন্তু কানে তখনও আগের
   // আয়াতই শোনা যাচ্ছে থাকে। এই অফসেটটা ব্যবহার করে হাইলাইট পরিবর্তনটা
   // ইচ্ছাকৃতভাবে সামান্য দেরিতে করা হয়, যাতে এটা audio-র সাথে মিলে যায়।
-  static const int _highlightDelayMs = 350;
+  static const int _highlightDelayMs = 500;
 
   int _sequenceToken = 0;
 

@@ -749,33 +749,14 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                         // ২য় সারি: Page/List টগল + ফন্ট সাইজ + প্লে-কন্ট্রোল
                         Row(
                           children: [
-                            // Page/List টগল — ছোট, বাম দিকে
+                            // Page/List একক টগল বাটন — বাম দিকে, চাপ দিলেই
+                            // বর্তমান মোড অনুযায়ী পরের মোডে (List ⇄ Page) পাল্টে যায়।
+                            // অন্য কোরআন অ্যাপের নিচের-বাম কর্নারের বাটনের রেফারেন্স অনুযায়ী।
                             if (_ayat.isNotEmpty)
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black26,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.all(3),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _ViewModeButton(
-                                      icon: Icons.description_outlined,
-                                      label: isBn ? 'পেজ' : 'Page',
-                                      selected: _viewMode == 'page',
-                                      onTap: () => _setViewMode('page'),
-                                      compact: true,
-                                    ),
-                                    _ViewModeButton(
-                                      icon: Icons.view_list_outlined,
-                                      label: isBn ? 'লিস্ট' : 'List',
-                                      selected: _viewMode == 'list',
-                                      onTap: () => _setViewMode('list'),
-                                      compact: true,
-                                    ),
-                                  ],
-                                ),
+                              _ViewModeToggleButton(
+                                viewMode: _viewMode,
+                                isBn: isBn,
+                                onTap: () => _setViewMode(_viewMode == 'page' ? 'list' : 'page'),
                               ),
                             const Spacer(),
                             // ফন্ট সাইজ কন্ট্রোল
@@ -1011,50 +992,52 @@ class _FontSizeControls extends StatelessWidget {
   }
 }
 
-class _ViewModeButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
+/// একক Page/List টগল বাটন — বর্তমানে যে মোড সক্রিয় সেটাই দেখায়
+/// (আইকন + লেবেল), ট্যাপ করলে অন্য মোডে পাল্টে যায়। যেমন: এখন
+/// 'page' মোডে থাকলে বাটনে "Page" দেখাবে, ট্যাপ করলে 'list' মোডে
+/// চলে যাবে এবং বাটনে "List" দেখাবে — এবং এভাবেই চলতে থাকবে।
+class _ViewModeToggleButton extends StatelessWidget {
+  final String viewMode; // 'page' অথবা 'list'
+  final bool isBn;
   final VoidCallback onTap;
-  final bool compact;
 
-  const _ViewModeButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
+  const _ViewModeToggleButton({
+    required this.viewMode,
+    required this.isBn,
     required this.onTap,
-    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: compact
-            ? const EdgeInsets.symmetric(horizontal: 9, vertical: 6)
-            : const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.gold.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: compact ? 15 : 16, color: selected ? AppTheme.gold : AppTheme.textSecondary),
-            if (!compact) ...[
+    final isPage = viewMode == 'page';
+    final icon = isPage ? Icons.description_outlined : Icons.view_list_outlined;
+    final label = isPage
+        ? (isBn ? 'পেজ' : 'Page')
+        : (isBn ? 'লিস্ট' : 'List');
+
+    return Material(
+      color: Colors.black26,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: AppTheme.gold),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  color: selected ? AppTheme.gold : AppTheme.textSecondary,
+                style: const TextStyle(
+                  color: AppTheme.gold,
                   fontSize: 13,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

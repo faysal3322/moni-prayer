@@ -46,7 +46,12 @@ class QuranAudioHelper {
         androidNotificationChannelId: 'com.example.moni_prayer.quran_audio',
         androidNotificationChannelName: 'Quran Recitation',
         androidNotificationOngoing: false,
-        androidStopForegroundOnPause: true,
+        // false রাখা জরুরি: true থাকলে pause করার সাথে সাথে Android
+        // foreground service বন্ধ হয়ে যায়, এরপর আবার Play/Pause চাপলে
+        // handler-এর কমান্ড আর সাড়া দেয় না (UI আটকে যায়, force-close
+        // করা লাগে)। false রাখলে pause করলেও service/notification চালু
+        // থাকে এবং resume/pause নির্ভরযোগ্যভাবে কাজ করে।
+        androidStopForegroundOnPause: false,
       ),
     ).then((handler) => _handler = handler);
   }
@@ -163,21 +168,39 @@ class QuranAudioHelper {
   }
 
   /// Stops playback and cancels any pending auto-stop watcher.
+  ///
+  /// Wrapped with a timeout: if the platform/audio_service call ever hangs
+  /// (e.g. the foreground service got killed unexpectedly), this still
+  /// returns instead of leaving the UI's await stuck forever — which is
+  /// what forced a full app close before.
   static Future<void> stop() async {
     if (_handler == null) return;
-    await _handler!.stop();
+    try {
+      await _handler!.stop().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Timed out or failed — nothing more we can safely do here; the UI
+      // layer's setState still runs so the Play/Pause button stays usable.
+    }
   }
 
   static Future<void> pause() async {
     if (_handler == null) return;
-    await _handler!.pause();
+    try {
+      await _handler!.pause().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Same reasoning as stop(): never let this hang the UI.
+    }
   }
 
   /// পজ করা থেকে আবার চালু করে — নতুন করে শুরু থেকে না বাজিয়ে ঠিক
   /// যেখানে পজ হয়েছিল সেখান থেকেই resume করে।
   static Future<void> resume() async {
     if (_handler == null) return;
-    await _handler!.play();
+    try {
+      await _handler!.play().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Same reasoning as stop(): never let this hang the UI.
+    }
   }
 
   /// Prev/Next বাটনের জন্য — চলমান সেশনেই দ্রুত নির্দিষ্ট আয়াতে সিক করে,

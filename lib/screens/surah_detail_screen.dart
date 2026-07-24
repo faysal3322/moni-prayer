@@ -768,76 +768,85 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               compact: true,
                             ),
                             const SizedBox(width: 6),
-                            // ◀◀ (আগের আয়াত) ⏸/▶ (প্লে-পজ) ▶▶ (পরের আয়াত)
-                            if (_ayat.isNotEmpty) ...[
-                              IconButton(
-                                icon: const Icon(Icons.fast_rewind, size: 20),
-                                color: (_fullSurahPlaying || _fullSurahPaused)
-                                    ? AppTheme.gold
-                                    : AppTheme.textSecondary.withOpacity(0.4),
-                                tooltip: isBn ? 'আগের আয়াত' : 'Previous verse',
-                                onPressed: (_fullSurahPlaying || _fullSurahPaused) ? _playPreviousAya : null,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                              ),
-                              Container(
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.gold.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1),
+                            // চলমান/পজড অবস্থায়: ◀◀ (আগের আয়াত) ⏸/▶ (প্লে-পজ) ▶▶ (পরের আয়াত) — ৩টা বাটন
+                            // বন্ধ অবস্থায়: শুধু একটা গোল ▶ প্লে বাটন — অন্য কোরআন অ্যাপের রেফারেন্স অনুযায়ী
+                            if (_ayat.isNotEmpty)
+                              if (_fullSurahPlaying || _fullSurahPaused) ...[
+                                IconButton(
+                                  icon: const Icon(Icons.fast_rewind, size: 20),
+                                  color: AppTheme.gold,
+                                  tooltip: isBn ? 'আগের আয়াত' : 'Previous verse',
+                                  onPressed: _playPreviousAya,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                 ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(20),
-                                    onTap: _fullSurahLoading ? null : _toggleFullSurahPlay,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (_fullSurahLoading)
-                                            const SizedBox(
-                                              width: 16, height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
-                                            )
-                                          else
-                                            Icon(
-                                              (_fullSurahPlaying && !_fullSurahPaused) ? Icons.pause : Icons.play_arrow,
-                                              color: AppTheme.gold,
-                                              size: 20,
-                                            ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            (_fullSurahPlaying && !_fullSurahPaused)
-                                                ? (isBn ? 'পজ' : 'Pause')
-                                                : (_fullSurahPaused
-                                                    ? (isBn ? 'রিজিউম' : 'Resume')
-                                                    : (isBn ? 'প্লে' : 'Play')),
-                                            style: const TextStyle(
-                                              color: AppTheme.gold,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.gold.withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    shape: const CircleBorder(),
+                                    child: InkWell(
+                                      customBorder: const CircleBorder(),
+                                      onTap: _fullSurahLoading ? null : _toggleFullSurahPlay,
+                                      child: Center(
+                                        child: _fullSurahLoading
+                                            ? const SizedBox(
+                                                width: 16, height: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                                              )
+                                            : Icon(
+                                                (_fullSurahPlaying && !_fullSurahPaused) ? Icons.pause : Icons.play_arrow,
+                                                color: AppTheme.gold,
+                                                size: 20,
+                                              ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.fast_forward, size: 20),
-                                color: (_fullSurahPlaying || _fullSurahPaused)
-                                    ? AppTheme.gold
-                                    : AppTheme.textSecondary.withOpacity(0.4),
-                                tooltip: isBn ? 'পরের আয়াত' : 'Next verse',
-                                onPressed: (_fullSurahPlaying || _fullSurahPaused) ? _playNextAya : null,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                              ),
-                            ],
+                                IconButton(
+                                  icon: const Icon(Icons.fast_forward, size: 20),
+                                  color: AppTheme.gold,
+                                  tooltip: isBn ? 'পরের আয়াত' : 'Next verse',
+                                  onPressed: _playNextAya,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                ),
+                              ] else
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.gold.withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    shape: const CircleBorder(),
+                                    child: InkWell(
+                                      customBorder: const CircleBorder(),
+                                      onTap: _fullSurahLoading ? null : _toggleFullSurahPlay,
+                                      child: Center(
+                                        child: _fullSurahLoading
+                                            ? const SizedBox(
+                                                width: 16, height: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                                              )
+                                            : const Icon(
+                                                Icons.play_arrow,
+                                                color: AppTheme.gold,
+                                                size: 20,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                           ],
                         ),
                       ],

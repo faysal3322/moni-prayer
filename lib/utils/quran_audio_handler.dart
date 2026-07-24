@@ -67,7 +67,9 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   Future<void> _loadAndPlay(String filePath, Duration startPosition) async {
     await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
     await player.seek(startPosition);
-    await player.play();
+    // await করা যাবে না — just_audio-তে play()-এর future audio শেষ না হওয়া
+    // পর্যন্ত resolve হয় না, ফলে এই ফাংশন কখনো রিটার্ন করত না।
+    unawaited(player.play());
   }
 
   /// Plays a single ayah by seeking into the surah's gapless mp3 and
@@ -145,7 +147,13 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
     }
     await player.seek(Duration(milliseconds: segments[safeStart]['timestamp_from_ms'] as int));
-    await player.play();
+    // গুরুত্বপূর্ণ: player.play() কে await করা যাবে না। just_audio-তে play()-এর
+    // future ততক্ষণ resolve হয় না যতক্ষণ না পুরো audio শেষ হয়/থামানো হয় —
+    // অর্থাৎ await করলে এই পুরো playFullSurah() ফাংশনটাই পুরো সূরা শেষ না
+    // হওয়া পর্যন্ত আটকে থাকত। ফলে caller-এর finally ব্লক (_fullSurahLoading
+    // false করা) কখনো চলত না — Play বাটন চাপার পর spinner চিরকাল ঘুরতে
+    // থাকত এবং বাটন disabled থেকে যেত (Pause/Stop কাজ করত না)।
+    unawaited(player.play());
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
     enterIndex(safeStart);
 
@@ -183,7 +191,9 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
     final myToken = _sequenceToken; // same session, no token bump needed
     await player.seek(Duration(milliseconds: segments[index]['timestamp_from_ms'] as int));
-    if (!player.playing) await player.play();
+    // এখানেও await player.play() ব্যবহার করা যাবে না, একই কারণে —
+    // audio শেষ না হওয়া পর্যন্ত future resolve হয় না।
+    if (!player.playing) unawaited(player.play());
     if (myToken != _sequenceToken) return;
 
     _currentAyaIndex = index;
@@ -212,7 +222,14 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> play() => player.play();
+  Future<void> play() async {
+    // await করা যাবে না — একই কারণে (just_audio play() future audio শেষ
+    // না হওয়া পর্যন্ত resolve হয় না)। এটাই resume()-এর মূল কল, তাই এটা
+    // await করলে Pause থেকে Resume চাপলেও সেই একই "বাটন আটকে যাওয়া"
+    // সমস্যা হতো (আগে শুধু একটা timeout দিয়ে ৫ সেকেন্ড পর জোর করে এগিয়ে
+    // যাওয়া হতো — এখন root cause ঠিক হওয়ায় সাথে সাথেই রেসপন্স করবে)।
+    unawaited(player.play());
+  }
 
   @override
   Future<void> pause() => player.pause();

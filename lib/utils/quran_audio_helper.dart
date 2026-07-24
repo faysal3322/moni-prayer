@@ -102,11 +102,18 @@ class QuranAudioHelper {
 
   /// Downloads the surah's audio from the CDN and saves it locally.
   /// Does nothing if the file already exists.
+  ///
+  /// A timeout is applied to the network call: without one, a slow/stalled
+  /// connection (e.g. right after auto-continuing into the next surah) can
+  /// leave this await hanging forever, which was leaving playback silently
+  /// stuck — the loading spinner never resolved and nothing ever played.
   static Future<void> downloadSurah(int sura, String audioUrl) async {
     final file = await _localSurahFile(sura);
     if (await file.exists()) return;
 
-    final response = await http.get(Uri.parse(audioUrl));
+    final response = await http
+        .get(Uri.parse(audioUrl))
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       await file.writeAsBytes(response.bodyBytes, flush: true);
     } else {

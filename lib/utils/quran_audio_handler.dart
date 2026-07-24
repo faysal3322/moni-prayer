@@ -23,6 +23,13 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // new playFullSurah/playAya call) happens, the token no longer matches, so
   // any in-flight step silently no-ops instead of fighting with whatever
   // plays next.
+  // just_audio-র positionStream মাঝেমধ্যে actual শোনা যাওয়া audio-র চেয়ে
+  // সামান্য এগিয়ে position রিপোর্ট করে (buffering/platform latency-র
+  // কারণে), যার ফলে হাইলাইট পরের আয়াতে চলে যায় কিন্তু কানে তখনও আগের
+  // আয়াতই শোনা যাচ্ছে থাকে। এই অফসেটটা ব্যবহার করে হাইলাইট পরিবর্তনটা
+  // ইচ্ছাকৃতভাবে সামান্য দেরিতে করা হয়, যাতে এটা audio-র সাথে মিলে যায়।
+  static const int _highlightDelayMs = 350;
+
   int _sequenceToken = 0;
 
   // পরে prev/next বাটনে দ্রুত সিক করার জন্য বর্তমান সেশনের ফাইল/সেগমেন্ট/
@@ -165,7 +172,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       }
       final ms = pos.inMilliseconds;
       while (currentIndex + 1 < segments.length &&
-          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int)) {
+          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int) + _highlightDelayMs) {
         enterIndex(currentIndex + 1);
       }
     });
@@ -212,7 +219,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       }
       final ms = pos.inMilliseconds;
       while (currentIndex + 1 < segments.length &&
-          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int)) {
+          ms >= (segments[currentIndex + 1]['timestamp_from_ms'] as int) + _highlightDelayMs) {
         currentIndex++;
         _currentAyaIndex = currentIndex;
         final num = segments[currentIndex]['aya'] as int;

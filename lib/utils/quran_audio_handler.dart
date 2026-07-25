@@ -105,7 +105,17 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     await _loadAndPlay(filePath, Duration(milliseconds: startMs));
 
     _positionSub = player.positionStream.listen((pos) {
-      if (_currentStopAtMs != null && pos.inMilliseconds >= _currentStopAtMs!) {
+      final ms = pos.inMilliseconds;
+      // startMs-এর আগের (stale/pre-seek) position event উপেক্ষা করা হয়।
+      // setAudioSource()/seek()-এর পরও positionStream থেকে সাথে সাথেই
+      // নতুন (seek-করা) position আসার নিশ্চয়তা নেই — মাঝেমধ্যে আগের
+      // অবস্থানের একটা event ফাঁকতালে চলে আসে, যেটা কাকতালীয়ভাবে
+      // endMs-এর সমান/বেশি হলে আয়াত সময়ের অনেক আগেই থেমে যেত (যেমন
+      // আয়াত ৫ প্লে করলে অর্ধেক বলেই থেমে যাওয়া)। startMs-এর নিচের
+      // যেকোনো event উপেক্ষা করলে শুধু আসল, seek-পরবর্তী progress-ই
+      // boundary চেক করবে।
+      if (ms < startMs) return;
+      if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
         player.pause();
         _positionSub?.cancel();
         _positionSub = null;
@@ -174,6 +184,15 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     }
 
     if (!sameFileAlreadyLoaded) {
+      // আগের সূরা 'completed' state-এ থামার পরপরই (auto-continue চেইনে)
+      // নতুন audio source লোড করা হলে, just_audio-র কিছু ভার্সনে player
+      // ঠিকভাবে নতুন করে চালু না-ও হতে পারে যদি আগে থেকে completed state
+      // পরিষ্কার করা না হয়। তাই নতুন source লোডের আগে player-কে reset
+      // করে নেওয়া হচ্ছে — এটাই সম্ভবত "এক সূরা শেষে পরের সূরায় গিয়ে
+      // থেমে থাকা" সমস্যার কারণ ছিল।
+      if (player.processingState == ProcessingState.completed) {
+        await player.stop();
+      }
       await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
     }
     // এখানে raw timestamp_from_ms দিয়েই seek হয় — অডিও ঠিক রেকর্ড করা

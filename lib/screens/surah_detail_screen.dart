@@ -369,8 +369,14 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         onAyaStart: (ayaIndex, ayaNumber) {
           if (!mounted) return;
           setState(() => _fullSurahAyaIndex = ayaIndex);
-          _resumeFromIndex = ayaIndex; // পরের বার Play চাপলে এখান থেকেই শুরু হবে
-          _scrollToVerse(ayaIndex);
+          // ayaIndex == -1 মানে এখন বিসমিল্লাহ পড়া হচ্ছে (এখনো প্রকৃত
+          // কোনো আয়াত শুরু হয়নি) — এই অবস্থায় _resumeFromIndex আপডেট
+          // করা হয় না, কারণ এটা একটা বৈধ আয়াত-ইনডেক্স হিসেবেই থাকা
+          // দরকার (পরে Play চাপলে আবার সঠিক জায়গা থেকে শুরু হওয়ার জন্য)।
+          if (ayaIndex >= 0) {
+            _resumeFromIndex = ayaIndex; // পরের বার Play চাপলে এখান থেকেই শুরু হবে
+            _scrollToVerse(ayaIndex);
+          }
         },
         onSequenceComplete: () {
           if (!mounted) return;
@@ -417,7 +423,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   /// আগের আয়াত থেকে আবার চালানো (◀◀ বাটন) — দ্রুত সিক, রিলোড ছাড়াই।
   Future<void> _playPreviousAya() async {
     if (_ayat.isEmpty || (!_fullSurahPlaying && !_fullSurahPaused)) return;
-    final current = _fullSurahAyaIndex ?? _resumeFromIndex;
+    final highlighted = _fullSurahAyaIndex;
+    final current = (highlighted != null && highlighted >= 0) ? highlighted : _resumeFromIndex;
     final target = (current - 1).clamp(0, _ayat.length - 1);
     _resumeFromIndex = target;
     await QuranAudioHelper.seekToIndex(target);
@@ -432,7 +439,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   /// পরের আয়াত থেকে চালানো (▶▶ বাটন) — দ্রুত সিক, রিলোড ছাড়াই।
   Future<void> _playNextAya() async {
     if (_ayat.isEmpty || (!_fullSurahPlaying && !_fullSurahPaused)) return;
-    final current = _fullSurahAyaIndex ?? _resumeFromIndex;
+    final highlighted = _fullSurahAyaIndex;
+    final current = (highlighted != null && highlighted >= 0) ? highlighted : _resumeFromIndex;
     final target = (current + 1).clamp(0, _ayat.length - 1);
     _resumeFromIndex = target;
     await QuranAudioHelper.seekToIndex(target);
@@ -653,13 +661,23 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                           padding: const EdgeInsets.all(14),
                           children: [
                             if (showBismillah)
-                              Container(
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withOpacity(0.15),
+                                  // বিসমিল্লাহ তেলাওয়াত চলাকালীন (_fullSurahAyaIndex == -1)
+                                  // এই লাইনটাও ঠিক আয়াতের মতোই হাইলাইট হয় — সূরা
+                                  // আল-ফাতিহায় যেমন ১ নং আয়াত হিসেবে বিসমিল্লাহ
+                                  // হাইলাইট হয়, বাকি সূরাতেও একই অনুভূতি দিতে।
+                                  color: _fullSurahAyaIndex == -1
+                                      ? AppTheme.primary.withOpacity(0.28)
+                                      : AppTheme.primary.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(12),
+                                  border: _fullSurahAyaIndex == -1
+                                      ? Border.all(color: AppTheme.gold, width: 1.6)
+                                      : null,
                                 ),
                                 child: Text(
                                   'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
@@ -1125,6 +1143,11 @@ class _MushafPageView extends StatelessWidget {
                     color: AppTheme.gold,
                     fontFamily: 'ScheherazadeNew',
                     height: 1.8,
+                    // বিসমিল্লাহ তেলাওয়াত চলাকালীন (currentAyaIndex == -1)
+                    // এখানেও ঠিক আয়াতের মতোই ব্যাকগ্রাউন্ড হাইলাইট হয়।
+                    backgroundColor: currentAyaIndex == -1
+                        ? AppTheme.primary.withOpacity(0.35)
+                        : null,
                   ),
                 ),
               ),

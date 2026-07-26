@@ -83,11 +83,18 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
   /// Plays a single ayah by seeking into the surah's gapless mp3 and
   /// stopping automatically once the ayah's end timestamp is reached.
+  ///
+  /// [onDiagnostic] is a temporary debug hook: it reports the actual player
+  /// position right after seeking (to check whether the seek itself landed
+  /// in the wrong spot) and again at the stop point (to check whether the
+  /// cutoff is early/late relative to what was requested). This lets us see
+  /// the real numbers from the phone without needing logcat access.
   Future<void> playAya({
     required String filePath,
     required int startMs,
     required int endMs,
     void Function()? onComplete,
+    void Function(String message)? onDiagnostic,
   }) async {
     _sequenceToken++; // invalidate any in-flight full-surah sequence
     await _positionSub?.cancel();
@@ -96,6 +103,15 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _currentStopAtMs = endMs;
 
     await _loadAndPlay(filePath, Duration(milliseconds: startMs));
+
+    // seek()-এর ঠিক পরে actual position কী রিপোর্ট হচ্ছে তা দেখা — যদি এটা
+    // requestedStartMs থেকে অনেক দূরে হয়, তাহলে বুঝা যাবে সমস্যাটা seek
+    // নিজেই ভুল জায়গায় যাচ্ছে (audio file-এর সীমাবদ্ধতা), boundary-check
+    // লজিকে না।
+    final afterSeekPos = player.position.inMilliseconds;
+    onDiagnostic?.call(
+      'Seek: requested=${startMs}ms actual=${afterSeekPos}ms diff=${afterSeekPos - startMs}ms',
+    );
 
     _positionSub = player.positionStream.listen((pos) {
       final ms = pos.inMilliseconds;
@@ -109,14 +125,9 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       // boundary চেক করবে।
       if (ms < startMs) return;
       if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
-        // ডায়াগনস্টিক লগ — কনসোল/logcat-এ দেখা যাবে ঠিক কোন position-এ
-        // থামানো হলো বনাম আসল endMs কত ছিল। যদি এই দুটো সংখ্যা কাছাকাছি
-        // থাকে (যেমন ৫০-১০০ms পার্থক্য), তাহলে বাউন্ডারি-লজিক ঠিক আছে এবং
-        // সমস্যাটা actual audio playback position-এই (যেমন VBR mp3-তে
-        // ভুল seek) — timestamp_from_ms-এ যতটা মিলিসেকেন্ড বলা হচ্ছে,
-        // audio hardware সেখানে নাও থাকতে পারে। এই লগ পরে সরিয়ে দেওয়া যাবে।
-        // ignore: avoid_print
-        print('[QuranAudio] ayah stop: reportedPos=${ms}ms requestedEndMs=${_currentStopAtMs}ms diff=${ms - _currentStopAtMs!}ms');
+        onDiagnostic?.call(
+          'Stop: reportedPos=${ms}ms requestedEndMs=${_currentStopAtMs}ms diff=${ms - _currentStopAtMs!}ms',
+        );
         player.pause();
         _positionSub?.cancel();
         _positionSub = null;

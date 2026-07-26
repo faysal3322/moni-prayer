@@ -22,21 +22,14 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // Each call to playFullSurah gets a fresh session token. If stop() (or a
   // new playFullSurah/playAya call) happens, the token no longer matches, so
   // any in-flight step silently no-ops instead of fighting with whatever
-  // plays next.
-  // just_audio-র positionStream মাঝেমধ্যে actual শোনা যাওয়া audio-র চেয়ে
-  // সামান্য এগিয়ে position রিপোর্ট করে (buffering/platform latency-র
-  // কারণে), যার ফলে হাইলাইট পরের আয়াতে চলে যায় কিন্তু কানে তখনও আগের
-  // আয়াতই শোনা যাচ্ছে থাকে। এই অফসেটটা ব্যবহার করে হাইলাইট পরিবর্তনটা
-  // ইচ্ছাকৃতভাবে সামান্য দেরিতে করা হয়, যাতে এটা audio-র সাথে মিলে যায়।
-  static const int _highlightDelayMs = 350;
-
   // সূরা আল-ফাতিহা ছাড়া বাকি সব সূরার ১ নং আয়াতের অডিওতে শুরুতেই
   // "বিসমিল্লাহির রহমানির রহিম" তেলাওয়াতও থাকে, কিন্তু ডেটাবেজে এটা আলাদা
   // সেগমেন্ট হিসেবে চিহ্নিত না — পুরোটাই আয়াত ১-এর timestamp থেকে ধরা।
   // এই কনস্ট্যান্টটা শুধু হাইলাইট কখন বদলাবে তা ঠিক করতে ব্যবহার হয় —
   // কখনোই audio seek/position-এর জন্য না, তাহলে বিসমিল্লাহর অডিওটাই
-  // স্কিপ হয়ে যাবে (আগে এই ভুলটাই হয়েছিল)। এই ৫ সেকেন্ড অতিক্রম হওয়ার
+  // স্কিপ হয়ে যাবে (আগে এই ভুলটাই হয়েছিল)। এই সময় অতিক্রম হওয়ার
   // পরই হাইলাইট আয়াত ১-এ যাবে, কিন্তু audio ঠিক শুরু (0ms) থেকেই বাজবে।
+  // বাস্তব Basmalah দৈর্ঘ্যের সাথে না মিললে এই মান পরিবর্তন করে ঠিক করা যায়।
   static const int _basmalahDurationMs = 5000;
 
   int _sequenceToken = 0;
@@ -116,6 +109,14 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       // boundary চেক করবে।
       if (ms < startMs) return;
       if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
+        // ডায়াগনস্টিক লগ — কনসোল/logcat-এ দেখা যাবে ঠিক কোন position-এ
+        // থামানো হলো বনাম আসল endMs কত ছিল। যদি এই দুটো সংখ্যা কাছাকাছি
+        // থাকে (যেমন ৫০-১০০ms পার্থক্য), তাহলে বাউন্ডারি-লজিক ঠিক আছে এবং
+        // সমস্যাটা actual audio playback position-এই (যেমন VBR mp3-তে
+        // ভুল seek) — timestamp_from_ms-এ যতটা মিলিসেকেন্ড বলা হচ্ছে,
+        // audio hardware সেখানে নাও থাকতে পারে। এই লগ পরে সরিয়ে দেওয়া যাবে।
+        // ignore: avoid_print
+        print('[QuranAudio] ayah stop: reportedPos=${ms}ms requestedEndMs=${_currentStopAtMs}ms diff=${ms - _currentStopAtMs!}ms');
         player.pause();
         _positionSub?.cancel();
         _positionSub = null;
@@ -180,7 +181,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       final sura = segments[i]['sura'] as int?;
       final aya = segments[i]['aya'] as int?;
       final isBasmalahAya = aya == 1 && sura != 1;
-      return base + _highlightDelayMs + (isBasmalahAya ? _basmalahDurationMs : 0);
+      return base + (isBasmalahAya ? _basmalahDurationMs : 0);
     }
 
     if (!sameFileAlreadyLoaded) {
@@ -280,7 +281,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         final next = segments[currentIndex + 1];
         final nextBase = next['timestamp_from_ms'] as int;
         final nextIsBasmalahAya = next['aya'] == 1 && next['sura'] != 1;
-        final threshold = nextBase + _highlightDelayMs + (nextIsBasmalahAya ? _basmalahDurationMs : 0);
+        final threshold = nextBase + (nextIsBasmalahAya ? _basmalahDurationMs : 0);
         if (ms < threshold) break;
         currentIndex++;
         _currentAyaIndex = currentIndex;

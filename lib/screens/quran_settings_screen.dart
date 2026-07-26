@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_prefs.dart';
+import '../utils/quran_audio_helper.dart';
 
 class QuranSettingsScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -194,6 +195,68 @@ class _QuranSettingsScreenState extends State<QuranSettingsScreen> {
                           backgroundColor: AppTheme.cardBg,
                         ),
                       );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.25)),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: const Icon(Icons.cleaning_services_outlined, color: AppTheme.gold),
+                    title: Text(
+                      isBn ? 'অডিও ক্যাশ পরিষ্কার করুন' : 'Clear audio cache',
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      isBn
+                          ? 'অডিও থেমে যাওয়া বা কাটা কাটা লাগলে ব্যবহার করুন — সব ডাউনলোড করা তেলাওয়াত মুছে আবার নতুন করে ডাউনলোড হবে'
+                          : 'Use if audio cuts off or sounds wrong — deletes downloaded recitations so they re-download fresh',
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          backgroundColor: AppTheme.cardBg,
+                          title: Text(
+                            isBn ? 'অডিও ক্যাশ পরিষ্কার করবেন?' : 'Clear audio cache?',
+                            style: const TextStyle(color: AppTheme.textPrimary),
+                          ),
+                          content: Text(
+                            isBn
+                                ? 'ডাউনলোড করা সব সূরার তেলাওয়াত মুছে ফেলা হবে। পরের বার প্লে করার সময় ইন্টারনেট থেকে আবার ডাউনলোড হবে।'
+                                : 'All downloaded surah recitations will be deleted. They will re-download from the internet next time you play them.',
+                            style: const TextStyle(color: AppTheme.textSecondary),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext, false),
+                              child: Text(isBn ? 'বাতিল' : 'Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext, true),
+                              child: Text(isBn ? 'পরিষ্কার করুন' : 'Clear'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await QuranAudioHelper.clearAllDownloadedAudio();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(isBn ? 'অডিও ক্যাশ পরিষ্কার হয়েছে' : 'Audio cache cleared'),
+                            backgroundColor: AppTheme.cardBg,
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),

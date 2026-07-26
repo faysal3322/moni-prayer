@@ -276,8 +276,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     if (ctx != null) {
       Scrollable.ensureVisible(
         ctx,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.linear,
         alignment: 0.35,
       );
       return;
@@ -317,8 +317,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         if (ctx != null) {
           Scrollable.ensureVisible(
             ctx,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.linear,
             alignment: 0.35,
           );
         }

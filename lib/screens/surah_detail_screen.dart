@@ -1283,6 +1283,20 @@ class _AyaCardState extends State<_AyaCard> {
         onComplete: () {
           if (mounted) setState(() => _playing = false);
         },
+        // সাময়িক ডায়াগনস্টিক — actual seek/stop position দেখানোর জন্য।
+        // সমস্যা নিশ্চিত হয়ে গেলে এই onDiagnostic এবং সংশ্লিষ্ট প্যারামিটার
+        // পুরোপুরি সরিয়ে ফেলা যাবে।
+        onDiagnostic: (message) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                duration: const Duration(seconds: 6),
+                backgroundColor: Colors.deepPurple,
+              ),
+            );
+          }
+        },
       );
     } catch (e) {
       if (mounted) {

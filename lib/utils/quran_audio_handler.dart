@@ -228,6 +228,15 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     final skipImmediateEnter = firstAya == 1 && firstSura != 1;
     if (!skipImmediateEnter) {
       enterIndex(safeStart);
+    } else {
+      // বিসমিল্লাহ তেলাওয়াত শুরু হয়েছে (ডেটাবেজে আলাদা সেগমেন্ট নেই)।
+      // -1 ইনডেক্স দিয়ে UI-কে জানানো হচ্ছে যে এখন বিসমিল্লাহ চলছে, যাতে
+      // UI বিসমিল্লাহ লাইনটাকেই হাইলাইট করতে পারে — ঠিক যেমন সূরা
+      // আল-ফাতিহায় ১ নং আয়াত হিসেবে বিসমিল্লাহ হাইলাইট হয়। currentIndex
+      // ইতিমধ্যেই -1 (উপরে সেট করা), তাই enterIndex(-1) কল করলে
+      // onAyaStart কল হবে না (i == currentIndex চেক ব্যর্থ হবে বলে) —
+      // তাই সরাসরি কলব্যাক কল করা হচ্ছে।
+      onAyaStart(-1, 0);
     }
     // skipImmediateEnter হলে currentIndex ইতিমধ্যেই -1 আছে (উপরে সেট করা),
     // তাই নিচের position-stream লুপ segments[safeStart]-এর (বিসমিল্লাহসহ)

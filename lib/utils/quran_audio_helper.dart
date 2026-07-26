@@ -100,25 +100,80 @@ class QuranAudioHelper {
     return File('${dir.path}/${_filenameForSura(sura)}');
   }
 
+  /// আগের একটা bug-এর কারণে (fixed now) কোনো সূরার ফাইল আংশিক/করাপ্টেড
+  /// অবস্থায় ডিস্কে থেকে যেতে পারত এবং কখনো re-download হতো না। এই
+  /// ফাংশনটা একটা নির্দিষ্ট সূরার লোকাল ফাইল মুছে দেয়, যাতে পরের বার
+  /// play করার সময় সেটা নতুন করে সম্পূর্ণভাবে ডাউনলোড হয়।
+  static Future<void> redownloadSurah(int sura) async {
+    final file = await _localSurahFile(sura);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
+  /// পুরো Recitations ফোল্ডার (সব ডাউনলোড করা সূরার mp3) মুছে দেয়। এটা
+  /// একটা "ক্যাশ পরিষ্কার করুন" অপশন হিসেবে সেটিংসে দেখানো যেতে পারে —
+  /// পুরনো, সম্ভাব্য-করাপ্টেড ডাউনলোডগুলো থেকে মুক্তি পেতে সবচেয়ে
+  /// নিশ্চিত উপায়। পরবর্তী প্লে-এর সময় প্রতিটা সূরা আবার নতুন করে
+  /// ডাউনলোড হবে।
+  static Future<void> clearAllDownloadedAudio() async {
+    final dir = await _getAudioDir();
+    if (await dir.exists()) {
+      final entries = await dir.list().toList();
+      for (final entry in entries) {
+        if (entry is File) {
+          await entry.delete();
+        }
+      }
+    }
+  }
+
   /// Downloads the surah's audio from the CDN and saves it locally.
-  /// Does nothing if the file already exists.
+  /// Does nothing if a complete file already exists.
   ///
   /// A timeout is applied to the network call: without one, a slow/stalled
   /// connection (e.g. right after auto-continuing into the next surah) can
   /// leave this await hanging forever, which was leaving playback silently
   /// stuck — the loading spinner never resolved and nothing ever played.
+  ///
+  /// গুরুত্বপূর্ণ: শুধু `file.exists()` চেক করাই যথেষ্ট না। আগে যদি কোনো
+  /// ডাউনলোড মাঝপথে বিচ্ছিন্ন হয়ে থাকে (নেটওয়ার্ক ড্রপ, অ্যাপ ব্যাকগ্রাউন্ডে
+  /// চলে যাওয়া, ইত্যাদি), তাহলে একটা আংশিক/ছোট mp3 ফাইল ডিস্কে থেকে যেত,
+  /// এবং `file.exists()` সবসময় true রিটার্ন করত বলে সেটা আর কখনো নতুন করে
+  /// ডাউনলোড হতো না। ফলে প্রতিটা আয়াতের জন্য ডেটাবেজের (পূর্ণ ফাইলের
+  /// জন্য বানানো) timestamp সেই ছোট ফাইলের সাথে মিলত না — ফাইলের প্রকৃত
+  /// দৈর্ঘ্যের চেয়ে timestamp বেশি হয়ে যেত, তাই প্রতিটা আয়াত (ধারাবাহিকভাবে,
+  /// সব সূরাতেই) সময়ের অনেক আগে কেটে যাচ্ছিল/থেমে যাচ্ছিল। এখন ডাউনলোড
+  /// হওয়া বাইট সংখ্যা সার্ভারের ঘোষিত Content-Length-এর সাথে মিলিয়ে
+  /// দেখা হয়; না মিললে ফাইলটা রাখা হয় না এবং exception ছোড়া হয়, যাতে
+  /// পরের বার আবার নতুন করে সম্পূর্ণ ডাউনলোডের চেষ্টা হয়।
   static Future<void> downloadSurah(int sura, String audioUrl) async {
     final file = await _localSurahFile(sura);
-    if (await file.exists()) return;
+    if (await file.exists()) {
+      final existingLength = await file.length();
+      if (existingLength > 0) return; // already have a non-empty file
+      await file.delete(); // zero-byte leftover from a previous failure
+    }
 
     final response = await http
         .get(Uri.parse(audioUrl))
         .timeout(const Duration(seconds: 30));
-    if (response.statusCode == 200) {
-      await file.writeAsBytes(response.bodyBytes, flush: true);
-    } else {
+    if (response.statusCode != 200) {
       throw Exception('Download failed (${response.statusCode})');
     }
+
+    final expectedLength = response.contentLength;
+    final actualLength = response.bodyBytes.length;
+    if (expectedLength != null && expectedLength > 0 && actualLength != expectedLength) {
+      // অসম্পূর্ণ ডাউনলোড — ফাইলটা সেভ না করে exception ছোড়া হচ্ছে, যাতে
+      // ভাঙা ফাইল কখনো ডিস্কে থেকে না যায় (এবং পরের চেষ্টায় আবার পুরো
+      // ফাইল নতুন করে ডাউনলোড হওয়ার সুযোগ পায়)।
+      throw Exception(
+        'Incomplete download for surah $sura: expected ${expectedLength}B, got ${actualLength}B',
+      );
+    }
+
+    await file.writeAsBytes(response.bodyBytes, flush: true);
   }
 
   /// Plays a single ayah by seeking into the surah's gapless mp3 and

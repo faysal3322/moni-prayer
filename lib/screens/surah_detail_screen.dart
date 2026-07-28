@@ -9,6 +9,13 @@ import '../utils/quran_audio_helper.dart';
 import '../utils/quran_bookmarks_helper.dart';
 import 'quran_settings_screen.dart';
 
+/// এই স্ক্রিনে নেভিগেট করার সময় MaterialPageRoute-এর settings.name হিসেবে
+/// ব্যবহার করার জন্য একটা কনস্ট্যান্ট — main.dart-এর route observer এটা
+/// দেখে বুঝতে পারে কুরআন সূরা-বিস্তারিত স্ক্রিন এখন টপ-এ আছে কিনা, যাতে
+/// persistent "এখন তেলাওয়াত হচ্ছে" ব্যানার তখন লুকিয়ে রাখা যায় (নাহলে
+/// এই স্ক্রিনের নিজস্ব প্লে-বার ব্যানারে ঢাকা পড়ে যেত)।
+const String kSurahDetailRouteName = '/quran/surah-detail';
+
 class SurahDetailScreen extends StatefulWidget {
   final AppLanguage lang;
   final int sura;
@@ -265,9 +272,14 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         final targetIndex = _ayat.indexWhere((a) => a['aya'] == widget.jumpToAyaNumber);
         if (targetIndex >= 0) {
           // প্রথম ফ্রেম আঁকা শেষ হওয়ার পরই স্ক্রল করা দরকার, তা না হলে
-          // GlobalKey-গুলো এখনো কোনো RenderBox-এর সাথে যুক্ত হয়নি।
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _scrollToVerse(targetIndex);
+          // GlobalKey-গুলো এখনো কোনো RenderBox-এর সাথে যুক্ত হয়নি। এটা
+          // একটা নতুন push-করা স্ক্রিন হওয়ায় (persistent ব্যানার থেকে
+          // এসে) সামান্য বাড়তি বিলম্বও দেওয়া হচ্ছে, যাতে পেজ/লিস্ট পুরো
+          // লেআউট করার সময় পায় — নাহলে প্রথম স্ক্রল-চেষ্টা ব্যর্থ হয়ে
+          // "ব্যানারে চাপলে সঠিক আয়াতে যায় না" মনে হতে পারে।
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future.delayed(const Duration(milliseconds: 150));
+            if (mounted) _scrollToVerse(targetIndex, attemptsLeft: 8);
           });
         }
       }
@@ -350,22 +362,32 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
   /// Play/Pause বাটনের মূল লজিক। চলমান অবস্থায় চাপলে stop না করে pause করে
   /// (যাতে "রিজিউম" সম্ভব হয়) — pause অবস্থায় চাপলে ঠিক সেখান থেকেই আবার চালু হয়।
-  Future<void> _toggleFullSurahPlay() async {
-    if (_fullSurahPlaying && !_fullSurahPaused) {
-      // চলমান থেকে পজ করা
-      await QuranAudioHelper.pause();
-      if (mounted) setState(() => _fullSurahPaused = true);
-      return;
-    }
+  ///
+  /// [explicitStartIndex] দেওয়া থাকলে (কোনো নির্দিষ্ট আয়াত কার্ডের প্লে
+  /// বাটন থেকে চাপা হলে), সেই আয়াত থেকেই ধারাবাহিক প্লেব্যাক শুরু হয় —
+  /// pause/resume অবস্থা উপেক্ষা করে সবসময় নতুন করে শুরু হয়, যাতে "যেকোনো
+  /// আয়াতে চাপলে সেখান থেকেই চলতে থাকুক" আচরণ পাওয়া যায়।
+  Future<void> _toggleFullSurahPlay({int? explicitStartIndex}) async {
+    if (explicitStartIndex == null) {
+      if (_fullSurahPlaying && !_fullSurahPaused) {
+        // চলমান থেকে পজ করা
+        await QuranAudioHelper.pause();
+        if (mounted) setState(() => _fullSurahPaused = true);
+        return;
+      }
 
-    if (_fullSurahPaused) {
-      // পজ থেকে আবার চালু করা — নতুন সিকোয়েন্স শুরু না করে সরাসরি resume
-      await QuranAudioHelper.resume();
-      if (mounted) setState(() => _fullSurahPaused = false);
-      return;
+      if (_fullSurahPaused) {
+        // পজ থেকে আবার চালু করা — নতুন সিকোয়েন্স শুরু না করে সরাসরি resume
+        await QuranAudioHelper.resume();
+        if (mounted) setState(() => _fullSurahPaused = false);
+        return;
+      }
     }
 
     if (_fullSurahLoading || _ayat.isEmpty) return;
+    if (explicitStartIndex != null) {
+      _resumeFromIndex = explicitStartIndex;
+    }
     setState(() => _fullSurahLoading = true);
     try {
       final surahAudio = await QuranDatabaseHelper.getSurahAudio(widget.sura);
@@ -741,15 +763,9 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                 showBangla: _showBangla,
                                 showTransliteration: _showTransliteration,
                                 fontSize: _fontSize,
-                                onWillPlay: _fullSurahPlaying
-                                    ? () => setState(() {
-                                          _fullSurahPlaying = false;
-                                          _fullSurahPaused = false;
-                                          _fullSurahAyaIndex = null;
-                                          QuranAudioHelper.nowPlaying.value = null;
-                                        })
-                                    : null,
-                                isCurrentlyPlaying: _fullSurahAyaIndex == i,
+                                onPlayFromHere: () => _toggleFullSurahPlay(explicitStartIndex: i),
+                                isThisCardPlaying: _fullSurahPlaying && _fullSurahAyaIndex == i,
+                                isThisCardLoading: _fullSurahLoading && _resumeFromIndex == i,
                               ),
                             const SizedBox(height: 20),
                           ],
@@ -1259,14 +1275,16 @@ class _AyaCard extends StatefulWidget {
   final bool showBangla;
   final bool showTransliteration;
   final double fontSize;
-  /// Called right before this card starts playing its own audio, so the
-  /// parent screen can stop a full-surah playback session if one is running
-  /// (avoids two audio sessions fighting over the same player).
-  final VoidCallback? onWillPlay;
-  /// True when this ayah is the one currently being read aloud during a
-  /// full-surah playback session (independent of this card's own single-ayah
-  /// play button) — used to highlight the card.
-  final bool isCurrentlyPlaying;
+  /// এই আয়াতের প্লে বাটনে চাপলে কল হয় — parent screen-এ এই আয়াত থেকে
+  /// শুরু করে ধারাবাহিক (continuous) প্লেব্যাক চালু করে, শুধু এই একটা
+  /// আয়াত বাজিয়ে থেমে যায় না। সূরা শেষ হলে পরের সূরাতেও chain হবে,
+  /// ঠিক উপরের Play বাটনের মতোই — পার্থক্য শুধু শুরুর আয়াত কোনটা তাতে।
+  final VoidCallback? onPlayFromHere;
+  /// True when this specific card is the one currently being read aloud.
+  final bool isThisCardPlaying;
+  /// True while this card's play request is being set up (loading audio),
+  /// so its button can show a small spinner instead of the play icon.
+  final bool isThisCardLoading;
 
   const _AyaCard({
     super.key,
@@ -1280,8 +1298,9 @@ class _AyaCard extends StatefulWidget {
     required this.showBangla,
     required this.showTransliteration,
     required this.fontSize,
-    this.onWillPlay,
-    this.isCurrentlyPlaying = false,
+    this.onPlayFromHere,
+    this.isThisCardPlaying = false,
+    this.isThisCardLoading = false,
   });
 
   @override
@@ -1290,8 +1309,6 @@ class _AyaCard extends StatefulWidget {
 
 class _AyaCardState extends State<_AyaCard> {
   bool _expanded = false;
-  bool _loadingAudio = false;
-  bool _playing = false;
   bool _bookmarked = false;
 
   @override
@@ -1314,50 +1331,6 @@ class _AyaCardState extends State<_AyaCard> {
     if (mounted) setState(() => _bookmarked = !_bookmarked);
   }
 
-  Future<void> _playAudio() async {
-    if (_loadingAudio) return;
-    widget.onWillPlay?.call();
-    setState(() {
-      _loadingAudio = true;
-      _playing = false;
-    });
-    try {
-      final surahAudio = await QuranDatabaseHelper.getSurahAudio(widget.sura);
-      final segment = await QuranDatabaseHelper.getAyaSegment(widget.sura, widget.ayaNumber);
-      if (surahAudio == null || segment == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(widget.lang.isBn ? 'অডিও পাওয়া যায়নি' : 'Audio not available')),
-          );
-        }
-        return;
-      }
-      setState(() => _playing = true);
-      await QuranAudioHelper.playAya(
-        sura: widget.sura,
-        surahAudioUrl: surahAudio['audio_url'] as String,
-        startMs: segment['timestamp_from_ms'] as int,
-        endMs: segment['timestamp_to_ms'] as int,
-        onComplete: () {
-          if (mounted) setState(() => _playing = false);
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.lang.isBn ? 'ব্যর্থ হয়েছে: $e' : 'Failed: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loadingAudio = false);
-    }
-  }
-
-  Future<void> _stopAudio() async {
-    await QuranAudioHelper.stop();
-    if (mounted) setState(() => _playing = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final isBn = widget.lang.isBn;
@@ -1371,15 +1344,15 @@ class _AyaCardState extends State<_AyaCard> {
           // পুরো সূরা প্লে চলাকালীন যেই আয়াতটা এখন পড়া হচ্ছে সেটার
           // ব্যাকগ্রাউন্ড হালকা সবুজ হাইলাইট হয়, স্ক্রিনশটে দেখানো
           // অন্য অ্যাপের মতো।
-          color: widget.isCurrentlyPlaying
+          color: widget.isThisCardPlaying
               ? AppTheme.primary.withOpacity(0.28)
               : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: widget.isCurrentlyPlaying
+            color: widget.isThisCardPlaying
                 ? AppTheme.gold
                 : (_expanded ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25)),
-            width: widget.isCurrentlyPlaying ? 1.6 : 1.0,
+            width: widget.isThisCardPlaying ? 1.6 : 1.0,
           ),
         ),
         child: Column(
@@ -1392,18 +1365,21 @@ class _AyaCardState extends State<_AyaCard> {
                   Row(
                     children: [
                       IconButton(
-                        icon: _loadingAudio
+                        icon: widget.isThisCardLoading
                             ? const SizedBox(
                                 width: 18, height: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
                               )
                             : Icon(
-                                _playing ? Icons.stop_circle : Icons.play_circle_fill,
+                                widget.isThisCardPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
                                 color: AppTheme.gold,
                                 size: 28,
                               ),
-                        onPressed: _playing ? _stopAudio : _playAudio,
-                        tooltip: isBn ? 'আয়াত শুনুন' : 'Play verse',
+                        // এই আয়াত থেকে ধারাবাহিক তেলাওয়াত শুরু হয় — শুধু এই
+                        // আয়াতটাই বাজিয়ে থেমে যায় না, পুরো সূরা জুড়ে চলতে
+                        // থাকে এবং সূরা শেষ হলে পরের সূরাতেও chain হয়।
+                        onPressed: widget.onPlayFromHere,
+                        tooltip: isBn ? 'এখান থেকে শুনুন' : 'Play from here',
                       ),
                       IconButton(
                         icon: Icon(

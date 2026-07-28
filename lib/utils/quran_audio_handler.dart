@@ -83,18 +83,11 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
   /// Plays a single ayah by seeking into the surah's gapless mp3 and
   /// stopping automatically once the ayah's end timestamp is reached.
-  ///
-  /// [onDiagnostic] is a temporary debug hook: it reports the actual player
-  /// position right after seeking (to check whether the seek itself landed
-  /// in the wrong spot) and again at the stop point (to check whether the
-  /// cutoff is early/late relative to what was requested). This lets us see
-  /// the real numbers from the phone without needing logcat access.
   Future<void> playAya({
     required String filePath,
     required int startMs,
     required int endMs,
     void Function()? onComplete,
-    void Function(String message)? onDiagnostic,
   }) async {
     _sequenceToken++; // invalidate any in-flight full-surah sequence
     await _positionSub?.cancel();
@@ -104,30 +97,17 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
     await _loadAndPlay(filePath, Duration(milliseconds: startMs));
 
-    // seek()-এর ঠিক পরে actual position কী রিপোর্ট হচ্ছে তা দেখা — যদি এটা
-    // requestedStartMs থেকে অনেক দূরে হয়, তাহলে বুঝা যাবে সমস্যাটা seek
-    // নিজেই ভুল জায়গায় যাচ্ছে (audio file-এর সীমাবদ্ধতা), boundary-check
-    // লজিকে না।
-    final afterSeekPos = player.position.inMilliseconds;
-    onDiagnostic?.call(
-      'Seek: requested=${startMs}ms actual=${afterSeekPos}ms diff=${afterSeekPos - startMs}ms',
-    );
-
     _positionSub = player.positionStream.listen((pos) {
       final ms = pos.inMilliseconds;
       // startMs-এর আগের (stale/pre-seek) position event উপেক্ষা করা হয়।
       // setAudioSource()/seek()-এর পরও positionStream থেকে সাথে সাথেই
       // নতুন (seek-করা) position আসার নিশ্চয়তা নেই — মাঝেমধ্যে আগের
       // অবস্থানের একটা event ফাঁকতালে চলে আসে, যেটা কাকতালীয়ভাবে
-      // endMs-এর সমান/বেশি হলে আয়াত সময়ের অনেক আগেই থেমে যেত (যেমন
-      // আয়াত ৫ প্লে করলে অর্ধেক বলেই থেমে যাওয়া)। startMs-এর নিচের
-      // যেকোনো event উপেক্ষা করলে শুধু আসল, seek-পরবর্তী progress-ই
+      // endMs-এর সমান/বেশি হলে আয়াত সময়ের অনেক আগেই থেমে যেত। startMs-এর
+      // নিচের যেকোনো event উপেক্ষা করলে শুধু আসল, seek-পরবর্তী progress-ই
       // boundary চেক করবে।
       if (ms < startMs) return;
       if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
-        onDiagnostic?.call(
-          'Stop: reportedPos=${ms}ms requestedEndMs=${_currentStopAtMs}ms diff=${ms - _currentStopAtMs!}ms',
-        );
         player.pause();
         _positionSub?.cancel();
         _positionSub = null;

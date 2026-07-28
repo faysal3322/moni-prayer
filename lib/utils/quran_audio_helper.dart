@@ -1,9 +1,32 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'quran_audio_handler.dart';
+
+/// Describes what's currently playing, for the persistent "now playing"
+/// banner shown across the whole app (not just inside the Quran screen).
+class QuranNowPlaying {
+  final int sura;
+  final String suraName;
+  final int? ayaNumber; // null while Bismillah is being recited
+  final bool isPaused;
+  const QuranNowPlaying({
+    required this.sura,
+    required this.suraName,
+    required this.ayaNumber,
+    this.isPaused = false,
+  });
+
+  QuranNowPlaying copyWith({int? ayaNumber, bool? isPaused}) => QuranNowPlaying(
+        sura: sura,
+        suraName: suraName,
+        ayaNumber: ayaNumber ?? this.ayaNumber,
+        isPaused: isPaused ?? this.isPaused,
+      );
+}
 
 /// Manages Saad al-Ghamdi recitation audio, stored as one gapless mp3 per
 /// surah (matches the well-known MuslimPro-style layout, so files placed
@@ -28,6 +51,13 @@ class QuranAudioHelper {
 
   static QuranPlaybackHandler? _handler;
   static Future<QuranPlaybackHandler>? _initFuture;
+
+  /// অ্যাপের যেকোনো স্ক্রিন থেকে শোনা যায় এমন গ্লোবাল "এখন কী তেলাওয়াত
+  /// হচ্ছে" স্টেট। কুরআন স্ক্রিনের বাইরে থাকা অবস্থাতেও একটা ছোট
+  /// ব্যানার/মিনি-প্লেয়ার দেখানোর জন্য এটা ব্যবহার হয়, যেটাতে চাপলে সরাসরি
+  /// সেই চলমান আয়াতে ফিরে যাওয়া যাবে। প্লেব্যাক বন্ধ/থেমে গেলে এটা `null`
+  /// হয়ে যায়, তখন ব্যানারটাও লুকিয়ে যাবে।
+  static final ValueNotifier<QuranNowPlaying?> nowPlaying = ValueNotifier(null);
 
   /// Initializes the audio_service session (once, lazily) and returns the
   /// running handler. Must be awaited before any playback call.
@@ -243,6 +273,7 @@ class QuranAudioHelper {
       // Timed out or failed — nothing more we can safely do here; the UI
       // layer's setState still runs so the Play/Pause button stays usable.
     }
+    nowPlaying.value = null;
   }
 
   static Future<void> pause() async {
@@ -251,6 +282,9 @@ class QuranAudioHelper {
       await _handler!.pause().timeout(const Duration(seconds: 5));
     } catch (_) {
       // Same reasoning as stop(): never let this hang the UI.
+    }
+    if (nowPlaying.value != null) {
+      nowPlaying.value = nowPlaying.value!.copyWith(isPaused: true);
     }
   }
 
@@ -262,6 +296,9 @@ class QuranAudioHelper {
       await _handler!.play().timeout(const Duration(seconds: 5));
     } catch (_) {
       // Same reasoning as stop(): never let this hang the UI.
+    }
+    if (nowPlaying.value != null) {
+      nowPlaying.value = nowPlaying.value!.copyWith(isPaused: false);
     }
   }
 

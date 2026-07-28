@@ -752,6 +752,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               child: _MarqueeText(
                                 text: (_fullSurahPlaying &&
                                         _fullSurahAyaIndex != null &&
+                                        _fullSurahAyaIndex! >= 0 &&
                                         _fullSurahAyaIndex! < _ayat.length)
                                     ? '$nameTranslit  -  ${isBn ? 'আয়াত' : 'Aya'} ${_ayat[_fullSurahAyaIndex!]['aya']}'
                                     : (nameTranslit.isNotEmpty ? nameTranslit : (isBn ? 'কোরআন' : 'Quran')),
@@ -1305,20 +1306,6 @@ class _AyaCardState extends State<_AyaCard> {
         endMs: segment['timestamp_to_ms'] as int,
         onComplete: () {
           if (mounted) setState(() => _playing = false);
-        },
-        // সাময়িক ডায়াগনস্টিক — actual seek/stop position দেখানোর জন্য।
-        // সমস্যা নিশ্চিত হয়ে গেলে এই onDiagnostic এবং সংশ্লিষ্ট প্যারামিটার
-        // পুরোপুরি সরিয়ে ফেলা যাবে।
-        onDiagnostic: (message) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                duration: const Duration(seconds: 6),
-                backgroundColor: Colors.deepPurple,
-              ),
-            );
-          }
         },
       );
     } catch (e) {

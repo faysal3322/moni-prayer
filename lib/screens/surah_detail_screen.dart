@@ -12,7 +12,14 @@ import 'quran_settings_screen.dart';
 class SurahDetailScreen extends StatefulWidget {
   final AppLanguage lang;
   final int sura;
-  const SurahDetailScreen({super.key, required this.lang, required this.sura});
+  /// দেওয়া থাকলে, এই সূরার পেজ খোলার পর সরাসরি এই আয়াতে স্ক্রল করে দেখায়।
+  final int? jumpToAyaNumber;
+  const SurahDetailScreen({
+    super.key,
+    required this.lang,
+    required this.sura,
+    this.jumpToAyaNumber,
+  });
 
   @override
   State<SurahDetailScreen> createState() => _SurahDetailScreenState();
@@ -101,6 +108,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
             sura: suraNumber,
             autoPlayOnStart: shouldAutoPlay,
             onRequestNextSurah: () => _goToNextSurahAndAutoPlay(suraNumber + 1),
+            jumpToAyaNumber: suraNumber == widget.sura ? widget.jumpToAyaNumber : null,
           );
         },
       ),
@@ -119,6 +127,10 @@ class _SurahPage extends StatefulWidget {
   /// এই সূরার প্লেব্যাক শেষ হলে parent (PageView holder)-কে জানায় যাতে
   /// পরের সূরার পেজে move করে সেখানে অটো-প্লে চালু করা যায়।
   final VoidCallback? onRequestNextSurah;
+  /// দেওয়া থাকলে, পেজ লোড হওয়ার পরপরই এই আয়াত নম্বরে স্ক্রল করে দেখায় —
+  /// persistent "এখন তেলাওয়াত হচ্ছে" ব্যানারে চাপলে সরাসরি চলমান আয়াতে
+  /// ফিরে যাওয়ার জন্য ব্যবহৃত হয়।
+  final int? jumpToAyaNumber;
 
   const _SurahPage({
     super.key,
@@ -126,6 +138,7 @@ class _SurahPage extends StatefulWidget {
     required this.sura,
     this.autoPlayOnStart = false,
     this.onRequestNextSurah,
+    this.jumpToAyaNumber,
   });
 
   @override
@@ -248,6 +261,15 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       });
       if (widget.autoPlayOnStart && _ayat.isNotEmpty) {
         _toggleFullSurahPlay();
+      } else if (widget.jumpToAyaNumber != null && _ayat.isNotEmpty) {
+        final targetIndex = _ayat.indexWhere((a) => a['aya'] == widget.jumpToAyaNumber);
+        if (targetIndex >= 0) {
+          // প্রথম ফ্রেম আঁকা শেষ হওয়ার পরই স্ক্রল করা দরকার, তা না হলে
+          // GlobalKey-গুলো এখনো কোনো RenderBox-এর সাথে যুক্ত হয়নি।
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _scrollToVerse(targetIndex);
+          });
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -377,6 +399,14 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
             _resumeFromIndex = ayaIndex; // পরের বার Play চাপলে এখান থেকেই শুরু হবে
             _scrollToVerse(ayaIndex);
           }
+          // গ্লোবাল "এখন কী চলছে" স্টেট আপডেট — অ্যাপের অন্য যেকোনো
+          // স্ক্রিনে থাকা অবস্থায় persistent ব্যানারে দেখানোর জন্য।
+          final name = _chapter?['name_transliteration'] as String? ?? 'Surah ${widget.sura}';
+          QuranAudioHelper.nowPlaying.value = QuranNowPlaying(
+            sura: widget.sura,
+            suraName: name,
+            ayaNumber: ayaIndex >= 0 ? ayaNumber : null,
+          );
         },
         onSequenceComplete: () {
           if (!mounted) return;
@@ -390,6 +420,9 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
           // সূরা ১১৪ (আন-নাস)-এর পরে আর কোনো সূরা নেই, তাই chain করা হবে না।
           if (widget.sura < 114) {
             widget.onRequestNextSurah?.call();
+          } else {
+            // একদম শেষ সূরা শেষ হয়ে গেছে — persistent ব্যানারও লুকিয়ে ফেলা হচ্ছে।
+            QuranAudioHelper.nowPlaying.value = null;
           }
         },
       );
@@ -713,6 +746,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                                           _fullSurahPlaying = false;
                                           _fullSurahPaused = false;
                                           _fullSurahAyaIndex = null;
+                                          QuranAudioHelper.nowPlaying.value = null;
                                         })
                                     : null,
                                 isCurrentlyPlaying: _fullSurahAyaIndex == i,

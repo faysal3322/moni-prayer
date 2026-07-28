@@ -259,6 +259,7 @@ class _SuraTabState extends State<_SuraTab> {
                                 ),
                                 onTap: () {
                                   Navigator.push(context, MaterialPageRoute(
+                                    settings: const RouteSettings(name: kSurahDetailRouteName),
                                     builder: (_) => SurahDetailScreen(lang: widget.lang, sura: suraNum),
                                   ));
                                 },

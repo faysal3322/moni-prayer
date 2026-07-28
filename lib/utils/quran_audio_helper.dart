@@ -59,6 +59,16 @@ class QuranAudioHelper {
   /// হয়ে যায়, তখন ব্যানারটাও লুকিয়ে যাবে।
   static final ValueNotifier<QuranNowPlaying?> nowPlaying = ValueNotifier(null);
 
+  /// বিস্তারিত মিনি-প্লেয়ার (progress bar দেখানোর জন্য) থেকে ব্যবহারের
+  /// জন্য — বর্তমান audio position/duration স্ট্রিম। হ্যান্ডলার এখনো
+  /// initialize না হলে null রিটার্ন করে (তখন progress bar খালি দেখাবে)।
+  static Stream<Duration>? get positionStream => _handler?.player.positionStream;
+  static Duration? get currentDuration => _handler?.player.duration;
+  static Duration get currentPosition => _handler?.player.position ?? Duration.zero;
+  static Future<void> seekTo(Duration position) async {
+    await _handler?.player.seek(position);
+  }
+
   /// Initializes the audio_service session (once, lazily) and returns the
   /// running handler. Must be awaited before any playback call.
   ///

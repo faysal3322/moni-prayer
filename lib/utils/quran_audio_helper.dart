@@ -185,7 +185,6 @@ class QuranAudioHelper {
     required int startMs,
     required int endMs,
     void Function()? onComplete,
-    void Function(String message)? onDiagnostic,
   }) async {
     final handler = await _ensureHandler();
     final file = await _localSurahFile(sura);
@@ -197,7 +196,6 @@ class QuranAudioHelper {
       startMs: startMs,
       endMs: endMs,
       onComplete: onComplete,
-      onDiagnostic: onDiagnostic,
     );
   }
 

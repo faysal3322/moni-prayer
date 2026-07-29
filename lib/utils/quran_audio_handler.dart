@@ -42,6 +42,31 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   void Function()? _currentOnSequenceComplete;
   int _currentAyaIndex = -1;
 
+  // নোটিফিকেশনে "সূরার নাম + Verse N" দেখানোর জন্য বর্তমান সূরার নাম/নম্বর
+  // মনে রাখা হয় — [_publishMediaItem] প্রতিটা আয়াত পরিবর্তনের সময় এটা
+  // ব্যবহার করে audio_service-এর mediaItem স্ট্রিমে নতুন তথ্য পাঠায়।
+  int? _currentSuraNumber;
+  String _currentSuraName = '';
+
+  /// audio_service-কে জানায় এখন কোন সূরা/আয়াত চলছে, যা থেকে সিস্টেম
+  /// নোটিফিকেশন (এবং lock screen media control) তার টাইটেল/সাবটাইটেল
+  /// বানায় — অন্য অনেক কুরআন অ্যাপে যেমন দেখা যায় ("Al-Baqara — Verse 2"
+  /// লেখা, পাশে play/pause/rewind/close বাটন)। আগে [mediaItem] কখনো
+  /// আপডেট করা হতো না, তাই নোটিফিকেশনে কোনো সূরা/আয়াত তথ্যই দেখাত না।
+  void _publishMediaItem(int ayaIndex, int ayaNumber) {
+    if (_currentSuraNumber == null) return;
+    final subtitle = ayaIndex >= 0 ? 'Verse $ayaNumber' : 'Bismillah';
+    mediaItem.add(MediaItem(
+      // id-তে সূরা+আয়াত রাখা হচ্ছে যাতে প্রতিটা আয়াতের জন্য আলাদা id হয় —
+      // কিছু লঞ্চার/ওয়াচ media-item-কে id দিয়ে ক্যাশ করে, তাই id একই
+      // থাকলে title/subtitle বদলালেও UI আপডেট নাও দেখাতে পারে।
+      id: 'quran_${_currentSuraNumber}_$ayaNumber',
+      title: _currentSuraName,
+      artist: subtitle,
+      album: 'Al-Quran',
+    ));
+  }
+
   QuranPlaybackHandler() {
     // Surface just_audio's playing/processing state to audio_service so the
     // notification's play/pause icon and lock-screen controls stay in sync.
@@ -122,12 +147,16 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   /// quran_audio_segments for this surah, ordered by aya ASC.
   Future<void> playFullSurah({
     required String filePath,
+    required int suraNumber,
+    required String suraName,
     required List<Map<String, dynamic>> segments,
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
     void Function()? onSequenceComplete,
     int startIndex = 0,
   }) async {
     if (segments.isEmpty) return;
+    _currentSuraNumber = suraNumber;
+    _currentSuraName = suraName;
     // নেগেটিভ বা রেঞ্জের বাইরের ইনডেক্স হলে নিরাপদে শুরু থেকে চালানো হবে।
     final safeStart = (startIndex < 0 || startIndex >= segments.length) ? 0 : startIndex;
     final myToken = ++_sequenceToken;
@@ -158,6 +187,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       currentIndex = i;
       _currentAyaIndex = i;
       final ayaNumber = segments[i]['aya'] as int;
+      _publishMediaItem(i, ayaNumber);
       onAyaStart(i, ayaNumber);
     }
 
@@ -216,6 +246,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       // ইতিমধ্যেই -1 (উপরে সেট করা), তাই enterIndex(-1) কল করলে
       // onAyaStart কল হবে না (i == currentIndex চেক ব্যর্থ হবে বলে) —
       // তাই সরাসরি কলব্যাক কল করা হচ্ছে।
+      _publishMediaItem(-1, 0);
       onAyaStart(-1, 0);
     }
     // skipImmediateEnter হলে currentIndex ইতিমধ্যেই -1 আছে (উপরে সেট করা),
@@ -264,6 +295,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
     _currentAyaIndex = index;
     final ayaNumber = segments[index]['aya'] as int;
+    _publishMediaItem(index, ayaNumber);
     onAyaStart(index, ayaNumber);
 
     // পুরনো position listener বন্ধ করে নতুন index থেকে আবার শুরু করা হয়,
@@ -286,6 +318,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         currentIndex++;
         _currentAyaIndex = currentIndex;
         final num = segments[currentIndex]['aya'] as int;
+        _publishMediaItem(currentIndex, num);
         onAyaStart(currentIndex, num);
       }
     });
@@ -315,6 +348,9 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _positionSub = null;
     _currentStopAtMs = null;
     _onAyaComplete = null;
+    _currentSuraNumber = null;
+    _currentSuraName = '';
+    mediaItem.add(null);
     await player.stop();
     await super.stop();
   }

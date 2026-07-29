@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'quran_audio_handler.dart';
+import 'quran_prefs.dart';
 
 /// Describes what's currently playing, for the persistent "now playing"
 /// banner shown across the whole app (not just inside the Quran screen).
@@ -117,6 +118,19 @@ class QuranAudioHelper {
     await _handler?.player.seek(position);
   }
 
+  /// বর্তমান তেলাওয়াতের গতি (1.0 = স্বাভাবিক, 0.75 = স্লো, ইত্যাদি)।
+  /// হ্যান্ডলার এখনো initialize না হলে 1.0 রিটার্ন করে।
+  static double get currentSpeed => _handler?.player.speed ?? 1.0;
+
+  /// তেলাওয়াতের গতি বদলায় এবং QuranPrefs-এ সেভ করে রাখে, যাতে পরের বার
+  /// অ্যাপ খুললেও একই গতি মনে থাকে। হ্যান্ডলার এখনো শুরু না হয়ে থাকলে
+  /// (যেমন প্লে করার আগেই স্পিড বদলানো হলো) শুধু prefs-এ সেভ হয়ে যায়,
+  /// পরের বার প্লে শুরু হওয়ার সময় [playFullSurah]/[playAya] সেটা প্রয়োগ করে।
+  static Future<void> setSpeed(double speed) async {
+    await _handler?.player.setSpeed(speed);
+    await QuranPrefs.setPlaybackSpeed(speed);
+  }
+
   /// Initializes the audio_service session (once, lazily) and returns the
   /// running handler. Must be awaited before any playback call.
   ///
@@ -175,7 +189,7 @@ class QuranAudioHelper {
   ///
   /// এখন ইচ্ছাকৃতভাবে **পাবলিক** স্টোরেজে (app-specific
   /// /Android/data/<package>/... ফোল্ডারে না) রাখা হচ্ছে —
-  /// /storage/emulated/0/Download/Recitations/saad-al-ghamdi — কারণ
+  /// /storage/emulated/0/Music/Recitations/saad-al-ghamdi — কারণ
   /// app-specific ফোল্ডার Android নিজেই অ্যাপ আনইনস্টল করার সময়
   /// স্বয়ংক্রিয়ভাবে মুছে দেয় (এটা অ্যাপের কোনো কোড দিয়ে আটকানো সম্ভব
   /// না), কিন্তু পাবলিক ফোল্ডার আনইনস্টলে অক্ষত থাকে। এর জন্য
@@ -192,7 +206,7 @@ class QuranAudioHelper {
     if (Platform.isAndroid) {
       try {
         final publicDir = Directory(
-          '/storage/emulated/0/Download/Recitations/$_reciterFolder',
+          '/storage/emulated/0/Music/Recitations/$_reciterFolder',
         );
         if (!await publicDir.exists()) {
           await publicDir.create(recursive: true);
@@ -279,28 +293,45 @@ class QuranAudioHelper {
     if (!newDir.path.startsWith('/storage/emulated/0/')) return;
 
     try {
+      // পুরনো app-specific ফোল্ডার থেকে মাইগ্রেশন (আগে থেকেই ছিল)
       final base = await getExternalStorageDirectory();
-      if (base == null) return;
-      final oldDir = Directory('${base.path}/Download/Recitations/$_reciterFolder');
-      if (!await oldDir.exists()) return;
-
-      await for (final entity in oldDir.list()) {
-        if (entity is! File || !entity.path.endsWith('.mp3')) continue;
-        final filename = entity.uri.pathSegments.last;
-        final newFile = File('${newDir.path}/$filename');
-        if (await newFile.exists() && await newFile.length() > 0) continue;
-        try {
-          await entity.copy(newFile.path);
-        } catch (_) {
-          // এই একটা ফাইল কপি ব্যর্থ হলেও বাকিগুলো চেষ্টা চালিয়ে যাওয়া হয়;
-          // ব্যর্থ হওয়া ফাইলগুলো পরে প্রয়োজন হলে স্বাভাবিকভাবেই আবার
-          // ডাউনলোড হয়ে যাবে।
-        }
+      if (base != null) {
+        final oldAppDir = Directory('${base.path}/Download/Recitations/$_reciterFolder');
+        await _copyMp3sIfMissing(oldAppDir, newDir);
       }
+
+      // পুরনো পাবলিক Download ফোল্ডার থেকে মাইগ্রেশন (এই আপডেটে যোগ হলো) —
+      // আগে অডিও পাবলিক Download/Recitations/... ফোল্ডারে সেভ হতো, এখন
+      // থেকে পাবলিক Music/Recitations/... ফোল্ডারে হচ্ছে। আগে যেসব সূরা
+      // Download ফোল্ডারে ডাউনলোড করা ছিল, সেগুলো যেন আবার নতুন করে
+      // ডাউনলোড করতে না হয়, তাই এখানে কপি করে আনা হচ্ছে।
+      final oldPublicDir = Directory(
+        '/storage/emulated/0/Download/Recitations/$_reciterFolder',
+      );
+      await _copyMp3sIfMissing(oldPublicDir, newDir);
     } catch (_) {
       // মাইগ্রেশন সম্পূর্ণ ঐচ্ছিক একটা সুবিধা — ব্যর্থ হলেও অ্যাপ
       // স্বাভাবিকভাবে চলবে, শুধু আগের ডাউনলোডগুলো আবার নতুন করে
       // ডাউনলোড হবে।
+    }
+  }
+
+  /// [oldDir]-এ থাকা mp3 ফাইলগুলো, যেগুলো এখনো [newDir]-এ নেই (বা ফাঁকা),
+  /// সেগুলো কপি করে। একটা ফাইল কপি ব্যর্থ হলেও বাকিগুলোর চেষ্টা চলতে থাকে।
+  static Future<void> _copyMp3sIfMissing(Directory oldDir, Directory newDir) async {
+    if (!await oldDir.exists()) return;
+    await for (final entity in oldDir.list()) {
+      if (entity is! File || !entity.path.endsWith('.mp3')) continue;
+      final filename = entity.uri.pathSegments.last;
+      final newFile = File('${newDir.path}/$filename');
+      if (await newFile.exists() && await newFile.length() > 0) continue;
+      try {
+        await entity.copy(newFile.path);
+      } catch (_) {
+        // এই একটা ফাইল কপি ব্যর্থ হলেও বাকিগুলো চেষ্টা চালিয়ে যাওয়া হয়;
+        // ব্যর্থ হওয়া ফাইলগুলো পরে প্রয়োজন হলে স্বাভাবিকভাবেই আবার
+        // ডাউনলোড হয়ে যাবে।
+      }
     }
   }
 
@@ -406,6 +437,9 @@ class QuranAudioHelper {
     void Function()? onComplete,
   }) async {
     final handler = await _ensureHandler();
+    // আগে সেভ করা স্পিড (যদি 1.0 না হয়) প্রয়োগ করা হচ্ছে, যাতে ব্যবহারকারী
+    // একবার স্পিড বদলালে তা পরবর্তী প্রতিটা প্লে-তেও বজায় থাকে।
+    await handler.player.setSpeed(await QuranPrefs.getPlaybackSpeed());
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {
       await downloadSurah(sura, surahAudioUrl);
@@ -446,6 +480,9 @@ class QuranAudioHelper {
     int startIndex = 0,
   }) async {
     final handler = await _ensureHandler();
+    // আগে সেভ করা স্পিড (যদি 1.0 না হয়) প্রয়োগ করা হচ্ছে, যাতে ব্যবহারকারী
+    // একবার স্পিড বদলালে তা পরবর্তী প্রতিটা প্লে-তেও বজায় থাকে।
+    await handler.player.setSpeed(await QuranPrefs.getPlaybackSpeed());
     if (segments.isEmpty) return;
     final file = await _localSurahFile(sura);
     if (!await file.exists()) {

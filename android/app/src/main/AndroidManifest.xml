@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.moni_prayer">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -6,6 +7,20 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Android 11+ (API 30+) এ app-specific ফোল্ডারের বাইরে (পাবলিক
+         Download/... এর মতো জায়গায়) ফাইল লেখার জন্য এই পারমিশন লাগে।
+         এটা দিয়েই কোরআনের mp3 ফাইলগুলো এমন একটা পাবলিক পাথে রাখা হচ্ছে
+         যেটা অ্যাপ আনইনস্টল করলেও মুছে যায় না — app-specific
+         /Android/data/<package>/... পাথ আনইনস্টলে স্বয়ংক্রিয়ভাবে মুছে
+         যায় (এটা Android নিজেই করে, কোনো অ্যাপ কোড দিয়ে আটকানো যায়
+         না), কিন্তু পাবলিক পাথ মুছে যায় না।
+         নোট: Google Play policy অনুযায়ী এই পারমিশনের জন্য পাবলিশ করার
+         সময় বিশেষ justification লাগে — এই অ্যাপ এখন শুধু ব্যক্তিগত
+         ব্যবহারের (সাইডলোড) জন্য, তাই এটা ব্যবহার করা হচ্ছে। Play
+         Store-এ পাবলিশ করার সময় এটা MediaStore-ভিত্তিক পদ্ধতিতে পরিবর্তন
+         করা উচিত। -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />

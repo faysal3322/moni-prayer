@@ -24,6 +24,8 @@ dependencies:
   path_provider: ^2.1.2
   permission_handler: ^11.3.0
   flutter_tts: ^4.0.2
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
   audioplayers: ^6.0.0
   just_audio: ^0.9.40
   audio_service: ^0.18.15

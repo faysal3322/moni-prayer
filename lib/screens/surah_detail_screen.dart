@@ -162,7 +162,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
   bool _showArabic = true;
   bool _showBangla = false;
-  bool _showTransliteration = true;
+  bool _showTransliteration = false;
   double _fontSize = 24.0;
   String _viewMode = 'list';
 
@@ -461,24 +461,16 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       });
       await QuranAudioHelper.playFullSurah(
         sura: widget.sura,
+        suraName: _chapter?['name_transliteration'] as String? ?? 'Surah ${widget.sura}',
         surahAudioUrl: surahAudio['audio_url'] as String,
         segments: segments,
         startIndex: _resumeFromIndex,
         onAyaStart: (ayaIndex, ayaNumber) {
-          if (!mounted) return;
-          // স্ক্রল/হাইলাইট/_resumeFromIndex আপডেট করার কাজ এখন
-          // _syncWithActiveSession-এ কেন্দ্রীভূত (QuranAudioHelper.
-          // playFullSurah নিজেই activeSession আপডেট করে, আর এই widget
-          // সেটা শোনে) — তাই এখানে আলাদা করে আর করার দরকার নেই, একই
-          // কাজ দুইবার হওয়া এড়াতে। এখানে শুধু persistent ব্যানারের
-          // জন্য প্রয়োজনীয় "সূরার নাম"সহ nowPlaying আপডেট করা হচ্ছে,
-          // যেটা activeSession বহন করে না।
-          final name = _chapter?['name_transliteration'] as String? ?? 'Surah ${widget.sura}';
-          QuranAudioHelper.nowPlaying.value = QuranNowPlaying(
-            sura: widget.sura,
-            suraName: name,
-            ayaNumber: ayaIndex >= 0 ? ayaNumber : null,
-          );
+          // স্ক্রল/হাইলাইট/_resumeFromIndex আপডেট (_syncWithActiveSession
+          // দিয়ে, activeSession শুনে) এবং persistent ব্যানারের nowPlaying
+          // আপডেট — দুটোই এখন QuranAudioHelper.playFullSurah নিজে করে,
+          // এই widget বেঁচে আছে কিনা তার উপর নির্ভর না করেই। তাই এখানে
+          // সত্যিকারের কিছু করার দরকার নেই।
         },
         onSequenceComplete: () {
           if (!mounted) return;

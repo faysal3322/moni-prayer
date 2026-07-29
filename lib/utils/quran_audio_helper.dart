@@ -152,6 +152,15 @@ class QuranAudioHelper {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.example.moni_prayer.quran_audio',
         androidNotificationChannelName: 'Quran Recitation',
+        // ক্র্যাশ ফিক্স: আগে এই লাইনটা ছিল না, তাই audio_service ডিফল্টভাবে
+        // mipmap/ic_launcher খুঁজত — কিন্তু প্রজেক্টে mipmap ফোল্ডারই ছিল
+        // না (কোনো app icon বসানো হয়নি)। ফলে notification বানানোর সময়
+        // Android "no valid small icon" ধরে IllegalArgumentException ছুঁড়ে
+        // পুরো অ্যাপ ক্র্যাশ করত — এটাই "বিসমিল্লাহ" বলে বন্ধ হয়ে যাওয়ার
+        // আসল কারণ (সূরা প্লে শুরু করা মাত্র এই notification তৈরির চেষ্টা
+        // হতো)। এখন app icon বসানো হয়েছে বলে এই রেফারেন্স ঠিকভাবে resolve
+        // হবে।
+        androidNotificationIcon: 'mipmap/ic_launcher',
         androidNotificationOngoing: false,
         // false রাখা জরুরি: true থাকলে pause করার সাথে সাথে Android
         // foreground service বন্ধ হয়ে যায়, এরপর আবার Play/Pause চাপলে

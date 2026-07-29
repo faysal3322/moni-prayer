@@ -9,7 +9,9 @@ class QuranPrefs {
   static const _keyFontSize = 'quran_font_size';
   static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
 
-  // Default: Arabic + English transliteration on (Bangla text not available yet)
+  // Default: Arabic on, English transliteration off, Bangla text off
+  // (ব্যবহারকারীর অনুরোধে ইংরেজি উচ্চারণ এখন ডিফল্টে বন্ধ থাকে — আগে
+  // এটা ভুলবশত ডিফল্টে চালু ছিল)।
   static Future<bool> getShowArabic() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyShowArabic) ?? true;
@@ -32,7 +34,7 @@ class QuranPrefs {
 
   static Future<bool> getShowTransliteration() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyShowTransliteration) ?? true;
+    return prefs.getBool(_keyShowTransliteration) ?? false;
   }
 
   static Future<void> setShowTransliteration(bool value) async {

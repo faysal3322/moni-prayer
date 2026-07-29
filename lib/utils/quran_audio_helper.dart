@@ -124,9 +124,14 @@ class QuranAudioHelper {
   /// service that keeps audio playing in the background needs to show a
   /// notification, and without POST_NOTIFICATIONS granted that can prevent
   /// the service (and therefore playback) from starting correctly.
+  ///
+  /// Also requests "all files access" (MANAGE_EXTERNAL_STORAGE) here, since
+  /// that's what lets [_getAudioDir] write to a public folder instead of the
+  /// app-specific one that Android deletes automatically on uninstall.
   static Future<QuranPlaybackHandler> _ensureHandler() async {
     if (Platform.isAndroid) {
       await Permission.notification.request();
+      await _ensureManageExternalStoragePermission();
     }
     return _initFuture ??= AudioService.init(
       builder: () => QuranPlaybackHandler(),
@@ -144,14 +149,77 @@ class QuranAudioHelper {
     ).then((handler) => _handler = handler);
   }
 
+  static bool _manageStorageRequested = false;
+
+  /// "সব ফাইলে অ্যাক্সেস" (MANAGE_EXTERNAL_STORAGE) পারমিশন চায় — এই
+  /// পারমিশন ছাড়া Android 11+ এ app-specific ফোল্ডারের বাইরে (যেমন
+  /// পাবলিক Download/... ) কিছু লেখা যায় না। এই পারমিশনের জন্য একটা
+  /// সিস্টেম সেটিংস পেজ খোলে (সাধারণ রানটাইম ডায়ালগ না), তাই একবার
+  /// চাওয়ার পর বারবার না চেয়ে মনে রাখা হচ্ছে।
+  static Future<void> _ensureManageExternalStoragePermission() async {
+    if (_manageStorageRequested) return;
+    _manageStorageRequested = true;
+    try {
+      final status = await Permission.manageExternalStorage.status;
+      if (!status.isGranted) {
+        await Permission.manageExternalStorage.request();
+      }
+    } catch (_) {
+      // পুরনো Android ভার্সনে (যেখানে এই পারমিশনের দরকারই নেই) বা কোনো
+      // কারণে request ব্যর্থ হলেও অ্যাপ চলতে থাকবে — _getAudioDir-এর
+      // নিজস্ব fallback (app-specific ফোল্ডার) তখন ব্যবহার হবে।
+    }
+  }
+
   /// Returns (and creates if needed) the Recitations/saad-al-ghamdi folder.
+  ///
+  /// এখন ইচ্ছাকৃতভাবে **পাবলিক** স্টোরেজে (app-specific
+  /// /Android/data/<package>/... ফোল্ডারে না) রাখা হচ্ছে —
+  /// /storage/emulated/0/Download/Recitations/saad-al-ghamdi — কারণ
+  /// app-specific ফোল্ডার Android নিজেই অ্যাপ আনইনস্টল করার সময়
+  /// স্বয়ংক্রিয়ভাবে মুছে দেয় (এটা অ্যাপের কোনো কোড দিয়ে আটকানো সম্ভব
+  /// না), কিন্তু পাবলিক ফোল্ডার আনইনস্টলে অক্ষত থাকে। এর জন্য
+  /// MANAGE_EXTERNAL_STORAGE পারমিশন প্রয়োজন (Android 11+), যেটা
+  /// [_ensureManageExternalStoragePermission] চেয়ে নেয়। পারমিশন না
+  /// পাওয়া গেলে (বা পুরনো Android-এ প্রয়োজন না হলেও লেখা ব্যর্থ হলে)
+  /// নিরাপদে আগের app-specific ফোল্ডারেই ফিরে যাওয়া হয়, যাতে audio
+  /// চালানো অন্তত বন্ধ না হয়ে যায় — শুধু তখন আনইনস্টলে সেই কপি মুছে
+  /// যাবে, যেমনটা আগে হতো।
   static Future<Directory> _getAudioDir() async {
     if (_cachedDir != null) return _cachedDir!;
-    final base = await getExternalStorageDirectory(); // .../Android/data/<pkg>/files
-    final dir = Directory('${base!.path}/Download/Recitations/$_reciterFolder');
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+
+    Directory? dir;
+    if (Platform.isAndroid) {
+      try {
+        final publicDir = Directory(
+          '/storage/emulated/0/Download/Recitations/$_reciterFolder',
+        );
+        if (!await publicDir.exists()) {
+          await publicDir.create(recursive: true);
+        }
+        // লেখা সত্যিই সম্ভব কিনা যাচাই করা হচ্ছে (পারমিশন না থাকলে
+        // create() নিজেই ব্যর্থ হতে পারে, বা কিছু ডিভাইসে সাইলেন্টলি
+        // ব্যর্থ হয়) — ব্যর্থ হলে exception ধরে নিচের fallback-এ যাওয়া হয়।
+        final probe = File('${publicDir.path}/.write_test');
+        await probe.writeAsBytes(const [0]);
+        await probe.delete();
+        dir = publicDir;
+      } catch (_) {
+        dir = null; // পারমিশন নেই বা লেখা ব্যর্থ — নিচে fallback ব্যবহার হবে
+      }
     }
+
+    if (dir == null) {
+      // Fallback: app-specific external storage (আগের আচরণ) — এটা
+      // permission ছাড়াই সবসময় লেখা যায়, কিন্তু অ্যাপ আনইনস্টল করলে
+      // এখানকার ফাইল মুছে যাবে।
+      final base = await getExternalStorageDirectory(); // .../Android/data/<pkg>/files
+      dir = Directory('${base!.path}/Download/Recitations/$_reciterFolder');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+    }
+
     _cachedDir = dir;
     return dir;
   }
@@ -161,15 +229,78 @@ class QuranAudioHelper {
   /// downloads any audio. This lets the user manually copy recitation files
   /// into it via a file manager right after installing the app.
   ///
+  /// Also migrates any surah files already downloaded into the *old*
+  /// app-specific folder (from before this update) into the new public
+  /// folder, so previously-downloaded surahs don't need re-downloading —
+  /// this only runs once per app run and is safe to call multiple times.
+  ///
+  /// Requests the "all files access" permission first (not lazily inside
+  /// [_ensureHandler] anymore) — if that request happened only when
+  /// playback started, the very first [_getAudioDir] call (this one, at
+  /// app startup) would run before permission was granted, silently fall
+  /// back to the app-specific folder, and cache that choice for the rest
+  /// of the app's lifetime — so later playback would never actually use
+  /// the public, uninstall-safe folder even after the user granted the
+  /// permission.
+  ///
   /// Safe to call multiple times and safe to ignore failures — folder
   /// creation is a convenience, not something that should block app startup.
   static Future<void> ensureAudioDirExists() async {
     try {
+      if (Platform.isAndroid) {
+        await _ensureManageExternalStoragePermission();
+      }
       await _getAudioDir();
+      await _migrateOldDownloadsIfNeeded();
     } catch (_) {
       // Ignore: e.g. storage not ready yet on some devices at first launch.
       // The folder will still be created lazily the first time playback
       // or download is attempted.
+    }
+  }
+
+  static bool _migrationAttempted = false;
+
+  /// পুরনো app-specific ফোল্ডার (/Android/data/<package>/files/...) থেকে
+  /// আগে ডাউনলোড হওয়া সূরার mp3 ফাইলগুলো নতুন পাবলিক ফোল্ডারে কপি করে —
+  /// যাতে এই আপডেটের আগে যেসব সূরা ডাউনলোড করা হয়েছিল, সেগুলো আবার নতুন
+  /// করে ডাউনলোড করতে না হয়। শুধু তখনই কিছু করে যখন নতুন পাবলিক
+  /// ফোল্ডার আসলে ব্যবহার হচ্ছে (অর্থাৎ পারমিশন পাওয়া গেছে) এবং পুরনো
+  /// ফোল্ডারে ফাইল আছে যা নতুন ফোল্ডারে এখনো নেই।
+  static Future<void> _migrateOldDownloadsIfNeeded() async {
+    if (_migrationAttempted) return;
+    _migrationAttempted = true;
+    if (!Platform.isAndroid) return;
+
+    final newDir = _cachedDir;
+    if (newDir == null) return;
+    // নতুন ফোল্ডার আসলে পাবলিক পাথে আছে কিনা যাচাই — না থাকলে (যেমন
+    // পারমিশন না পাওয়ায় fallback ব্যবহার হচ্ছে) মাইগ্রেট করার কিছু নেই।
+    if (!newDir.path.startsWith('/storage/emulated/0/')) return;
+
+    try {
+      final base = await getExternalStorageDirectory();
+      if (base == null) return;
+      final oldDir = Directory('${base.path}/Download/Recitations/$_reciterFolder');
+      if (!await oldDir.exists()) return;
+
+      await for (final entity in oldDir.list()) {
+        if (entity is! File || !entity.path.endsWith('.mp3')) continue;
+        final filename = entity.uri.pathSegments.last;
+        final newFile = File('${newDir.path}/$filename');
+        if (await newFile.exists() && await newFile.length() > 0) continue;
+        try {
+          await entity.copy(newFile.path);
+        } catch (_) {
+          // এই একটা ফাইল কপি ব্যর্থ হলেও বাকিগুলো চেষ্টা চালিয়ে যাওয়া হয়;
+          // ব্যর্থ হওয়া ফাইলগুলো পরে প্রয়োজন হলে স্বাভাবিকভাবেই আবার
+          // ডাউনলোড হয়ে যাবে।
+        }
+      }
+    } catch (_) {
+      // মাইগ্রেশন সম্পূর্ণ ঐচ্ছিক একটা সুবিধা — ব্যর্থ হলেও অ্যাপ
+      // স্বাভাবিকভাবে চলবে, শুধু আগের ডাউনলোডগুলো আবার নতুন করে
+      // ডাউনলোড হবে।
     }
   }
 
@@ -294,8 +425,20 @@ class QuranAudioHelper {
   ///
   /// [segments] must be every row from quran_audio_segments for this surah,
   /// ordered by aya ASC (see QuranDatabaseHelper.getAllSegmentsForSura).
+  ///
+  /// [suraName] persistent ব্যানারে দেখানোর জন্য (যেমন "Al-Baqara") — এই
+  /// প্যারামিটারটা caller (SurahDetailScreen) থেকে একবারই দেওয়া হয়, আর
+  /// এই ফাংশন নিজেই তারপর থেকে প্রতিটা আয়াতে [nowPlaying] আপডেট করে
+  /// রাখে। আগে এই আপডেট SurahDetailScreen-এর নিজস্ব onAyaStart-এর ভেতরে
+  /// হতো — অর্থাৎ ব্যবহারকারী কোরআন স্ক্রিন থেকে অন্য কোথাও চলে গিয়ে
+  /// সেই স্ক্রিন dispose হয়ে গেলে (audio ব্যাকগ্রাউন্ডে চলতেই থাকত),
+  /// আর কেউ nowPlaying আপডেট করত না — ব্যানারে তাই শেষবার দেখা আয়াত
+  /// নম্বরই (যেমন ২) আটকে থাকত, যদিও প্রকৃতপক্ষে আরও অনেক দূর (যেমন ২০)
+  /// এগিয়ে গেছে। এখন এই আপডেট হ্যান্ডলার-স্তরে হওয়ায় স্ক্রিন খোলা থাকুক
+  /// বা না থাকুক, ব্যানার সবসময় প্রকৃত চলমান আয়াতই দেখাবে।
   static Future<void> playFullSurah({
     required int sura,
+    required String suraName,
     required String surahAudioUrl,
     required List<Map<String, dynamic>> segments,
     required void Function(int ayaIndex, int ayaNumber) onAyaStart,
@@ -312,16 +455,20 @@ class QuranAudioHelper {
       filePath: file.path,
       segments: segments,
       // caller-এর নিজস্ব onAyaStart (স্ক্রল/হাইলাইট করার জন্য) কল করার
-      // পাশাপাশি গ্লোবাল activeSession-ও আপডেট করা হচ্ছে, যাতে পরে অন্য
-      // কোনো স্ক্রিন (যেমন ব্যানার থেকে নতুন push হওয়া SurahDetailScreen)
-      // এই কলব্যাকের সাথে সরাসরি সম্পর্কিত না থেকেও জানতে পারে এখন
-      // আসলে কোন সূরার কোন আয়াত চলছে।
+      // পাশাপাশি গ্লোবাল activeSession ও nowPlaying দুটোই এখানে,
+      // হ্যান্ডলার-স্তরেই আপডেট করা হচ্ছে — কোনো নির্দিষ্ট স্ক্রিন বেঁচে
+      // আছে কিনা তার উপর নির্ভর না করে।
       onAyaStart: (ayaIndex, ayaNumber) {
         activeSession.value = QuranActiveSession(
           sura: sura,
           ayaIndex: ayaIndex,
           ayaNumber: ayaNumber,
           isPaused: false,
+        );
+        nowPlaying.value = QuranNowPlaying(
+          sura: sura,
+          suraName: suraName,
+          ayaNumber: ayaIndex >= 0 ? ayaNumber : null,
         );
         onAyaStart(ayaIndex, ayaNumber);
       },

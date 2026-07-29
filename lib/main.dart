@@ -113,24 +113,6 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
     ));
   }
 
-  /// ব্যানারের মূল অংশে চাপলে কল হয় — একটা বিস্তারিত মিনি-প্লেয়ার
-  /// bottom sheet খোলে (progress bar, play/pause), কুরআন টেক্সট পেজে না
-  /// গিয়েই। প্লেয়ার নিজেই "কুরআনে দেখুন" বাটন দিয়ে টেক্সট পেজেও যেতে দেয়।
-  void _openExpandedPlayer(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _ExpandedQuranPlayer(
-        isBn: _lang == 'bn',
-        onOpenInQuranScreen: (info) {
-          Navigator.pop(sheetContext);
-          _openNowPlayingInQuranScreen(info);
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -148,10 +130,19 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
       ],
       // প্রতিটা স্ক্রিনের উপরে একটা persistent "এখন তেলাওয়াত হচ্ছে" ব্যানার
       // overlay করা হচ্ছে — কুরআন স্ক্রিন থেকে অন্য কোথাও চলে গেলেও এটা
-      // দেখা যাবে। ব্যানারে চাপলে বিস্তারিত মিনি-প্লেয়ার খোলে, আর বই-আইকনে
-      // চাপলে সরাসরি চলমান আয়াতের টেক্সট পেজে চলে যায়। কুরআন
+      // দেখা যাবে। ব্যানারের যেকোনো জায়গায় (বই-আইকন সহ) চাপলে সরাসরি
+      // চলমান আয়াতের টেক্সট পেজে চলে যায় — আলাদা মিনি-প্লেয়ার শিট আর
+      // খোলা হয় না, কারণ সেটা একটা বাড়তি ধাপ তৈরি করছিল। কুরআন
       // সূরা-বিস্তারিত স্ক্রিন নিজেই খোলা থাকলে ব্যানার দেখানো হয় না,
       // কারণ ওই স্ক্রিনের নিজস্ব প্লে-বার এমনিতেই দেখা যায়।
+      //
+      // ব্যানারটা স্ক্রিনের একদম নিচে (Align bottomCenter) বসানো হতো
+      // আগে, যেটা প্রতিটা স্ক্রিনের নিজস্ব bottomNavigationBar-এর ওপর
+      // দিয়ে বসে গিয়ে সেটাকে ঢেকে ফেলছিল (bottomNavigationBar আসলে
+      // এই Stack-এর নিচে, HomeScreen-এর নিজস্ব Scaffold-এর অংশ, তাই
+      // top-level Stack-এ Align bottomCenter করলে সেটাই সবার উপরে
+      // বসে যায়)। এখন নিচে একটা fixed padding দিয়ে ব্যানারটাকে
+      // bottom nav bar-এর উচ্চতার (কমপক্ষে) উপরে তুলে দেওয়া হচ্ছে।
       builder: (context, child) {
         return Stack(
           children: [
@@ -164,15 +155,12 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
                   valueListenable: QuranAudioHelper.nowPlaying,
                   builder: (context, info, _) {
                     if (info == null) return const SizedBox.shrink();
-                    return Builder(
-                      builder: (bannerContext) => _NowPlayingBanner(
-                        info: info,
-                        isBn: _lang == 'bn',
-                        onTap: () => _openExpandedPlayer(bannerContext),
-                        onOpenInQuranScreen: () => _openNowPlayingInQuranScreen(info),
-                        onPause: () => QuranAudioHelper.pause(),
-                        onResume: () => QuranAudioHelper.resume(),
-                      ),
+                    return _NowPlayingBanner(
+                      info: info,
+                      isBn: _lang == 'bn',
+                      onTap: () => _openNowPlayingInQuranScreen(info),
+                      onPause: () => QuranAudioHelper.pause(),
+                      onResume: () => QuranAudioHelper.resume(),
                     );
                   },
                 );
@@ -187,13 +175,26 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
 }
 
 /// অ্যাপের যেকোনো স্ক্রিনের নিচে ভাসমান "এখন তেলাওয়াত হচ্ছে" ব্যানার।
-/// SafeArea-এর নিচে বসানো থাকে যাতে কোনো স্ক্রিনের নিজস্ব bottom bar/nav-এর
-/// সাথে ওভারল্যাপ না করে এবং সব ডিভাইসে দৃশ্যমান থাকে।
+///
+/// পুরো ব্যানারেই (প্লে/পজ বাটন ছাড়া) ট্যাপ করলে সরাসরি কুরআন টেক্সট
+/// পেজে, চলমান আয়াতে চলে যায় — [onTap] কল হয়।
+///
+/// প্রতিটা স্ক্রিনের নিজস্ব bottomNavigationBar (HomeScreen-এ NavigationBar)
+/// থাকে সেই স্ক্রিনের নিজের Scaffold-এর ভেতরে, কিন্তু এই ব্যানারটা
+/// top-level MaterialApp.builder-এর Stack-এ বসানো, যেটা সব Scaffold-এর
+/// উপরে থাকে। তাই আগে এটাকে স্ক্রিনের একদম নিচে (bottomCenter) বসালে
+/// সেটা bottomNavigationBar-এর উপর দিয়ে বসে সেটাকে ঢেকে ফেলছিল। এখন
+/// [kBottomNavBarHeight] পরিমাণ বাড়তি bottom padding দিয়ে ব্যানারটাকে
+/// bottom nav bar-এর উপরে তুলে দেওয়া হয়েছে, যাতে দুটোই একসাথে দেখা যায়।
 class _NowPlayingBanner extends StatelessWidget {
+  /// Material 3 এর ডিফল্ট NavigationBar-এর উচ্চতা (৮০) — HomeScreen-এর
+  /// bottomNavigationBar-এর সাথে মিলিয়ে রাখা হয়েছে, যাতে ব্যানারটা
+  /// ঠিক তার উপরেই বসে, না বেশি উঁচুতে না ওভারল্যাপ করে।
+  static const double kBottomNavBarHeight = 80;
+
   final QuranNowPlaying info;
   final bool isBn;
   final VoidCallback onTap;
-  final VoidCallback onOpenInQuranScreen;
   final VoidCallback onPause;
   final VoidCallback onResume;
 
@@ -201,7 +202,6 @@ class _NowPlayingBanner extends StatelessWidget {
     required this.info,
     required this.isBn,
     required this.onTap,
-    required this.onOpenInQuranScreen,
     required this.onPause,
     required this.onResume,
   });
@@ -214,8 +214,14 @@ class _NowPlayingBanner extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.only(
+            left: 12,
+            right: 12,
+            top: 8,
+            bottom: kBottomNavBarHeight + 8,
+          ),
           child: Material(
             color: AppTheme.primary,
             borderRadius: BorderRadius.circular(14),
@@ -227,20 +233,17 @@ class _NowPlayingBanner extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
-                    // বই-আইকনে আলাদাভাবে চাপলে সরাসরি কুরআন টেক্সট পেজে
-                    // (চলমান আয়াতে) চলে যায় — ব্যানারের বাকি অংশে চাপলে
-                    // বিস্তারিত মিনি-প্লেয়ার খোলে।
-                    InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onOpenInQuranScreen,
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.menu_book_rounded, color: Colors.white, size: 20),
-                      ),
+                    const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.menu_book_rounded, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
+                        // "key" না দিলেও Text স্বয়ংক্রিয়ভাবে rebuild হবে যখনই
+                        // ValueListenableBuilder নতুন QuranNowPlaying পাবে —
+                        // অর্থাৎ আয়াত নম্বর পাল্টালেই এই লেখা আপডেট হয়ে
+                        // যাবে (আয়াত ১ → ২ → ৩ ... একের পর এক)।
                         '${isBn ? 'তেলাওয়াত হচ্ছে' : 'Playing'}: ${info.suraName} — $subtitle',
                         style: const TextStyle(
                           color: Colors.white,
@@ -251,6 +254,9 @@ class _NowPlayingBanner extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
+                    // প্লে/পজ বাটনটা নিজস্ব InkWell দিয়ে ব্যানারের বাকি
+                    // অংশের ট্যাপ থেকে আলাদা রাখা হয়েছে, যাতে এতে চাপলে
+                    // পেজ পাল্টে না গিয়ে শুধু প্লে/পজ হয়।
                     InkWell(
                       customBorder: const CircleBorder(),
                       onTap: info.isPaused ? onResume : onPause,
@@ -274,193 +280,6 @@ class _NowPlayingBanner extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// পূর্ণাঙ্গ, বিস্তারিত মিনি-প্লেয়ার — ব্যানারে চাপলে bottom sheet হিসেবে
-/// খোলে। progress bar, play/pause, এবং কুরআন টেক্সট পেজে যাওয়ার শর্টকাট
-/// দেখায়। Previous/Next/Sleep-timer-এর মতো আয়াত-নির্ভর নিয়ন্ত্রণ এখানে
-/// রাখা হয়নি, কারণ সেগুলোর জন্য কুরআন টেক্সট স্ক্রিনের নিজস্ব অবস্থা
-/// (কোন আয়াত, কোন সূরা তালিকা) দরকার — সেটা এখান থেকে নিরাপদে দখল করা
-/// সম্ভব না; বদলে "কুরআনে দেখুন" বাটন দিয়ে সরাসরি সেখানে পাঠানো হয়।
-class _ExpandedQuranPlayer extends StatefulWidget {
-  final bool isBn;
-  final void Function(QuranNowPlaying info) onOpenInQuranScreen;
-  const _ExpandedQuranPlayer({required this.isBn, required this.onOpenInQuranScreen});
-
-  @override
-  State<_ExpandedQuranPlayer> createState() => _ExpandedQuranPlayerState();
-}
-
-class _ExpandedQuranPlayerState extends State<_ExpandedQuranPlayer> {
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Material(
-          color: AppTheme.cardBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: ValueListenableBuilder<QuranNowPlaying?>(
-              valueListenable: QuranAudioHelper.nowPlaying,
-              builder: (context, info, _) {
-                if (info == null) {
-                  // প্লেব্যাক ইতিমধ্যে থেমে গেছে (উদাহরণ: শেষ সূরা শেষ হয়ে
-                  // গেছে) — শিট বন্ধ করে দেওয়া হচ্ছে।
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (Navigator.canPop(context)) Navigator.pop(context);
-                  });
-                  return const SizedBox(height: 100);
-                }
-                final subtitle = info.ayaNumber != null
-                    ? '${widget.isBn ? 'আয়াত' : 'Aya'} ${info.ayaNumber}'
-                    : (widget.isBn ? 'বিসমিল্লাহ' : 'Bismillah');
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 18),
-                      decoration: BoxDecoration(
-                        color: AppTheme.textSecondary.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const Icon(Icons.menu_book_rounded, color: AppTheme.gold, size: 48),
-                    const SizedBox(height: 14),
-                    Text(
-                      info.suraName,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    _PlayerProgressBar(),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.gold.withOpacity(0.15),
-                            border: Border.all(color: AppTheme.gold, width: 1.6),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: info.isPaused
-                                  ? () => QuranAudioHelper.resume()
-                                  : () => QuranAudioHelper.pause(),
-                              child: Icon(
-                                info.isPaused ? Icons.play_arrow : Icons.pause,
-                                color: AppTheme.gold,
-                                size: 34,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => widget.onOpenInQuranScreen(info),
-                        icon: const Icon(Icons.menu_book_outlined, color: AppTheme.gold),
-                        label: Text(
-                          widget.isBn ? 'কুরআনে দেখুন' : 'Open in Quran',
-                          style: const TextStyle(color: AppTheme.gold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppTheme.gold),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// audio_service প্লেয়ারের positionStream শুনে একটা লাইভ progress bar
-/// দেখায় — সময়ও (mm:ss / mm:ss) দেখায়।
-class _PlayerProgressBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final stream = QuranAudioHelper.positionStream;
-    if (stream == null) {
-      return const SizedBox(height: 24);
-    }
-    return StreamBuilder<Duration>(
-      stream: stream,
-      builder: (context, snapshot) {
-        final position = snapshot.data ?? Duration.zero;
-        final duration = QuranAudioHelper.currentDuration ?? Duration.zero;
-        final total = duration.inMilliseconds > 0 ? duration.inMilliseconds : 1;
-        final progress = (position.inMilliseconds / total).clamp(0.0, 1.0);
-        String fmt(Duration d) {
-          final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-          final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-          return '$m:$s';
-        }
-
-        return Column(
-          children: [
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                activeTrackColor: AppTheme.gold,
-                inactiveTrackColor: AppTheme.gold.withOpacity(0.2),
-                thumbColor: AppTheme.gold,
-              ),
-              child: Slider(
-                value: progress,
-                onChanged: duration.inMilliseconds > 0
-                    ? (v) {
-                        QuranAudioHelper.seekTo(
-                          Duration(milliseconds: (v * total).round()),
-                        );
-                      }
-                    : null,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(fmt(position), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                  Text(fmt(duration), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

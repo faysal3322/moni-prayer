@@ -8,6 +8,7 @@ import 'screens/surah_detail_screen.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_language.dart';
 import 'utils/quran_audio_helper.dart';
+import 'utils/notification_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,19 @@ void main() async {
   // uninstall — that request may show a one-time system settings screen.
   // Runs in the background; doesn't block app startup if it's slow.
   QuranAudioHelper.ensureAudioDirExists();
+
+  // দিনের সব গুরুত্বপূর্ণ ওয়াক্ত/মুহূর্তের (৫ ওয়াক্ত নামাজ, ৩টা নিষিদ্ধ
+  // সময়ের শুরু/শেষ, সেহরি সতর্কতা ও শেষ, ইফতার, তাহাজ্জুদ শুরু)
+  // notification চালু করা হচ্ছে — আগে NotificationHelper ফাইলটা থাকলেও
+  // কোথাও কল হতো না, তাই কোনো notification-ই আসত না। এখন অ্যাপ প্রতিবার
+  // চালু হওয়ার সময় init + পারমিশন চাওয়া + আজ ও কালকের জন্য notification
+  // শিডিউল হয়। প্রতিদিনের সময় (আসর, সূর্যোদয় ইত্যাদি) পাল্টায় বলেই
+  // schedulePrayerNotifications প্রতিবার আগেরগুলো বাতিল করে নতুন করে বসায়।
+  // ব্যাকগ্রাউন্ডে চলে যাতে অ্যাপ চালু হতে দেরি না হয়।
+  NotificationHelper.init().then((_) async {
+    await NotificationHelper.requestPermission();
+    await NotificationHelper.schedulePrayerNotifications();
+  });
 
   runApp(MoniPrayerApp(initialLang: lang, userName: userName));
 }

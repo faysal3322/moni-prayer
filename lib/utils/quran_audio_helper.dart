@@ -28,6 +28,44 @@ class QuranNowPlaying {
       );
 }
 
+/// চলমান full-surah playback সেশনের ধারাবাহিক ইনডেক্স/আয়াত তথ্য —
+/// [QuranAudioHelper.activeSession] এর ভ্যালু হিসেবে ব্যবহৃত হয়।
+///
+/// আগে প্রতিটা SurahDetailScreen নিজের একটা লোকাল `onAyaStart` কলব্যাক
+/// দিয়ে playFullSurah শুরু করত, আর সেই কলব্যাকই স্ক্রল/হাইলাইট/ব্যানার
+/// সব আপডেট করত। কিন্তু persistent ব্যানারে ট্যাপ করে যখন একটা *নতুন*
+/// SurahDetailScreen push হতো (আসল প্লেব্যাক তখনো আগের সেশনেই চলছিল,
+/// নতুন playFullSurah কল হতো না), তখন হ্যান্ডলারের `_currentOnAyaStart`
+/// এখনো পুরনো (এখন dispose হওয়া) স্ক্রিনের callback-কেই ধরে থাকত —
+/// ফলে নতুন স্ক্রিনে স্ক্রল/হাইলাইট কখনো আপডেট হতো না, এবং Play/Pause
+/// বাটনে চাপলে নতুন স্ক্রিন ভাবত playback শুরুই হয়নি, তাই ১ নং আয়াত
+/// থেকে আবার নতুন সেশন শুরু করে দিত।
+///
+/// সমাধান: হ্যান্ডলার নিজেই তার "এখন কোন সূরা, কোন ইনডেক্সে আছে" তথ্য
+/// একটা গ্লোবাল ValueNotifier-এ রাখে (screen-নির্ভর না করে), প্রতিটা
+/// SurahDetailScreen এটা শুনে নিজে থেকেই স্ক্রল/হাইলাইট মেলায়, আর
+/// Play/Pause বাটন এই স্টেট দেখেই বোঝে চলমান সেশন resume করতে হবে
+/// নাকি নতুন করে শুরু করতে হবে।
+class QuranActiveSession {
+  final int sura;
+  final int ayaIndex; // -1 মানে বিসমিল্লাহ চলছে
+  final int ayaNumber; // ayaIndex == -1 হলে অর্থহীন (0)
+  final bool isPaused;
+  const QuranActiveSession({
+    required this.sura,
+    required this.ayaIndex,
+    required this.ayaNumber,
+    required this.isPaused,
+  });
+
+  QuranActiveSession copyWith({bool? isPaused}) => QuranActiveSession(
+        sura: sura,
+        ayaIndex: ayaIndex,
+        ayaNumber: ayaNumber,
+        isPaused: isPaused ?? this.isPaused,
+      );
+}
+
 /// Manages Saad al-Ghamdi recitation audio, stored as one gapless mp3 per
 /// surah (matches the well-known MuslimPro-style layout, so files placed
 /// there manually by the user are recognized automatically):
@@ -58,6 +96,16 @@ class QuranAudioHelper {
   /// সেই চলমান আয়াতে ফিরে যাওয়া যাবে। প্লেব্যাক বন্ধ/থেমে গেলে এটা `null`
   /// হয়ে যায়, তখন ব্যানারটাও লুকিয়ে যাবে।
   static final ValueNotifier<QuranNowPlaying?> nowPlaying = ValueNotifier(null);
+
+  /// হ্যান্ডলার-লেভেলের গ্লোবাল "এখন কোন সূরা, কোন আয়াত ইনডেক্সে চলছে"
+  /// তথ্য — কোনো নির্দিষ্ট SurahDetailScreen-এর callback-এর উপর নির্ভর
+  /// করে না, তাই সেই স্ক্রিন dispose হয়ে গেলেও বা persistent ব্যানার
+  /// থেকে একটা নতুন SurahDetailScreen push হলেও এই ভ্যালু নির্ভরযোগ্যভাবে
+  /// আপডেট থাকে। নতুন করে push হওয়া SurahDetailScreen নিজে থেকেই এটা
+  /// শুনে (ValueListenableBuilder দিয়ে) সঠিক আয়াতে স্ক্রল/হাইলাইট করে,
+  /// এবং Play/Pause বাটন বুঝতে পারে চলমান সেশন resume করা উচিত নাকি
+  /// নতুন সেশন শুরু করা উচিত।
+  static final ValueNotifier<QuranActiveSession?> activeSession = ValueNotifier(null);
 
   /// বিস্তারিত মিনি-প্লেয়ার (progress bar দেখানোর জন্য) থেকে ব্যবহারের
   /// জন্য — বর্তমান audio position/duration স্ট্রিম। হ্যান্ডলার এখনো
@@ -263,11 +311,34 @@ class QuranAudioHelper {
     await handler.playFullSurah(
       filePath: file.path,
       segments: segments,
-      onAyaStart: onAyaStart,
-      onSequenceComplete: onSequenceComplete,
+      // caller-এর নিজস্ব onAyaStart (স্ক্রল/হাইলাইট করার জন্য) কল করার
+      // পাশাপাশি গ্লোবাল activeSession-ও আপডেট করা হচ্ছে, যাতে পরে অন্য
+      // কোনো স্ক্রিন (যেমন ব্যানার থেকে নতুন push হওয়া SurahDetailScreen)
+      // এই কলব্যাকের সাথে সরাসরি সম্পর্কিত না থেকেও জানতে পারে এখন
+      // আসলে কোন সূরার কোন আয়াত চলছে।
+      onAyaStart: (ayaIndex, ayaNumber) {
+        activeSession.value = QuranActiveSession(
+          sura: sura,
+          ayaIndex: ayaIndex,
+          ayaNumber: ayaNumber,
+          isPaused: false,
+        );
+        onAyaStart(ayaIndex, ayaNumber);
+      },
+      onSequenceComplete: () {
+        activeSession.value = null;
+        onSequenceComplete?.call();
+      },
       startIndex: startIndex,
     );
   }
+
+  /// [sura] এর জন্য এখন সত্যিই একটা full-surah playback সেশন চলমান/পজড
+  /// আছে কিনা — screen-নির্ভর কোনো লোকাল ফ্ল্যাগের বদলে হ্যান্ডলারের
+  /// প্রকৃত অবস্থা থেকে সরাসরি জানা যায়। ব্যানার থেকে নতুন push হওয়া
+  /// SurahDetailScreen এটা দিয়ে বুঝে নেয় Play বাটনে চাপলে নতুন সেশন
+  /// শুরু করতে হবে, নাকি চলমান সেশনকেই resume/pause করতে হবে।
+  static bool isSessionActiveFor(int sura) => activeSession.value?.sura == sura;
 
   /// Stops playback and cancels any pending auto-stop watcher.
   ///
@@ -284,6 +355,7 @@ class QuranAudioHelper {
       // layer's setState still runs so the Play/Pause button stays usable.
     }
     nowPlaying.value = null;
+    activeSession.value = null;
   }
 
   static Future<void> pause() async {
@@ -295,6 +367,9 @@ class QuranAudioHelper {
     }
     if (nowPlaying.value != null) {
       nowPlaying.value = nowPlaying.value!.copyWith(isPaused: true);
+    }
+    if (activeSession.value != null) {
+      activeSession.value = activeSession.value!.copyWith(isPaused: true);
     }
   }
 
@@ -310,10 +385,16 @@ class QuranAudioHelper {
     if (nowPlaying.value != null) {
       nowPlaying.value = nowPlaying.value!.copyWith(isPaused: false);
     }
+    if (activeSession.value != null) {
+      activeSession.value = activeSession.value!.copyWith(isPaused: false);
+    }
   }
 
   /// Prev/Next বাটনের জন্য — চলমান সেশনেই দ্রুত নির্দিষ্ট আয়াতে সিক করে,
   /// পুরো audio source আবার লোড করে না বলে প্রায় সাথে সাথে কাজ করে।
+  /// হ্যান্ডলার ভেতরে ভেতরে সেই একই (playFullSurah-এ wrap করা) onAyaStart
+  /// কলব্যাক আবার কল করে, যা activeSession-ও আপডেট করে দেয় — তাই এখানে
+  /// আলাদা করে কিছু করার দরকার নেই।
   static Future<void> seekToIndex(int index) async {
     if (_handler == null) return;
     await _handler!.seekToIndex(index);

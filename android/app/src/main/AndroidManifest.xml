@@ -27,6 +27,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- ফোন রিস্টার্ট হলে flutter_local_notifications-এর শিডিউল করা
+         exact alarm গুলো (নামাজের সময়/নিষিদ্ধ সময়/সেহরি ইত্যাদি
+         notification) মুছে যায় — এই পারমিশন + প্যাকেজের নিজস্ব
+         boot receiver দিয়ে রিস্টার্টের পর সেগুলো আবার সক্রিয় হয়। -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="MONI PRAYER"
@@ -84,5 +89,21 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/prayer_widget_info" />
         </receiver>
+
+        <!-- ══ flutter_local_notifications: ফোন রিস্টার্ট হলে শিডিউল করা
+             notification গুলো (নামাজের ওয়াক্ত/নিষিদ্ধ সময়/সেহরি ইত্যাদি)
+             আবার সক্রিয় করে, এবং notification-এর একশন বাটন হ্যান্ডল করে ══ -->
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
     </application>
 </manifest>

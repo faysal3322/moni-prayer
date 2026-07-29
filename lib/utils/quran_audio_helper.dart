@@ -453,6 +453,8 @@ class QuranAudioHelper {
     }
     await handler.playFullSurah(
       filePath: file.path,
+      suraNumber: sura,
+      suraName: suraName,
       segments: segments,
       // caller-এর নিজস্ব onAyaStart (স্ক্রল/হাইলাইট করার জন্য) কল করার
       // পাশাপাশি গ্লোবাল activeSession ও nowPlaying দুটোই এখানে,

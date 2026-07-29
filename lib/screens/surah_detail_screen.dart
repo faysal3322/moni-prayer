@@ -165,6 +165,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   bool _showTransliteration = false;
   double _fontSize = 24.0;
   String _viewMode = 'list';
+  double _playbackSpeed = 1.0;
 
   bool _fullSurahLoading = false;
   bool _fullSurahPlaying = false;
@@ -260,6 +261,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     final translit = await QuranPrefs.getShowTransliteration();
     final fontSize = await QuranPrefs.getFontSize();
     final viewMode = await QuranPrefs.getViewMode();
+    final speed = await QuranPrefs.getPlaybackSpeed();
     if (!mounted) return;
     setState(() {
       _showArabic = arabic;
@@ -267,7 +269,125 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       _showTransliteration = translit;
       _fontSize = fontSize;
       _viewMode = viewMode;
+      _playbackSpeed = speed;
     });
+  }
+
+  /// স্পিড মানকে পরিষ্কারভাবে দেখায় — অহেতুক ট্রেইলিং শূন্য ছাড়া
+  /// (যেমন 1.0 → "1", 0.85 → "0.85", 1.20 → "1.2")।
+  String _formatSpeed(double speed) {
+    String s = speed.toStringAsFixed(2);
+    if (s.endsWith('0')) s = s.substring(0, s.length - 1);
+    if (s.endsWith('.')) s = s.substring(0, s.length - 1);
+    if (s.endsWith('.0')) s = s.substring(0, s.length - 2);
+    return s;
+  }
+
+  /// স্পিড বদলানোর ডায়ালগ খোলে — এখানে ব্যবহারকারী নিজে ইচ্ছেমতো যেকোনো
+  /// সংখ্যা (যেমন 0.7, 1.15, 1.5, 2.0) লিখে বসাতে পারে, কোনো লিমিটেড
+  /// তালিকা থেকে বেছে নেওয়ার বাধ্যবাধকতা নেই। +/- বাটন দুটো শুধু
+  /// সুবিধার জন্য (০.০৫ করে বাড়ায়/কমায়), না চাইলে সরাসরি টাইপও করা যায়।
+  Future<void> _showSpeedPicker() async {
+    final isBn = widget.lang.isBn;
+    final controller = TextEditingController(
+      text: _playbackSpeed.toStringAsFixed(2),
+    );
+    String? errorText;
+
+    final selected = await showDialog<double>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            void adjust(double delta) {
+              final current = double.tryParse(controller.text) ?? _playbackSpeed;
+              final next = (current + delta).clamp(0.25, 3.0);
+              controller.text = next.toStringAsFixed(2);
+              setDialogState(() => errorText = null);
+            }
+
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBg,
+              title: Text(
+                isBn ? 'তেলাওয়াতের গতি' : 'Recitation speed',
+                style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isBn
+                        ? 'যেকোনো মান লিখুন (যেমন 0.75, 1.2, 1.5)। ১ = স্বাভাবিক গতি।'
+                        : 'Type any value (e.g. 0.75, 1.2, 1.5). 1 = normal speed.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline, color: AppTheme.gold),
+                        onPressed: () => adjust(-0.05),
+                        tooltip: isBn ? 'কমাও' : 'Decrease',
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          autofocus: true,
+                          textAlign: TextAlign.center,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          decoration: InputDecoration(
+                            suffixText: 'x',
+                            suffixStyle: const TextStyle(color: AppTheme.gold),
+                            errorText: errorText,
+                            enabledBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: AppTheme.gold),
+                            ),
+                            focusedBorder: const UnderlineInputBorder(
+                              borderSide: BorderSide(color: AppTheme.gold, width: 2),
+                            ),
+                          ),
+                          onChanged: (_) => setDialogState(() => errorText = null),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline, color: AppTheme.gold),
+                        onPressed: () => adjust(0.05),
+                        tooltip: isBn ? 'বাড়াও' : 'Increase',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(isBn ? 'বাতিল' : 'Cancel', style: const TextStyle(color: Colors.white70)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final value = double.tryParse(controller.text.trim());
+                    if (value == null || value < 0.25 || value > 3.0) {
+                      setDialogState(() {
+                        errorText = isBn
+                            ? '0.25 থেকে 3.0-এর মধ্যে একটা সংখ্যা লিখুন'
+                            : 'Enter a value between 0.25 and 3.0';
+                      });
+                      return;
+                    }
+                    Navigator.pop(ctx, value);
+                  },
+                  child: Text(isBn ? 'ঠিক আছে' : 'OK', style: const TextStyle(color: AppTheme.gold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (selected == null || selected == _playbackSpeed) return;
+    setState(() => _playbackSpeed = selected);
+    await QuranAudioHelper.setSpeed(selected);
   }
 
   Future<void> _setViewMode(String mode) async {
@@ -877,6 +997,29 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               canDecrease: _fontSize > _minFontSize,
                               canIncrease: _fontSize < _maxFontSize,
                               compact: true,
+                            ),
+                            const SizedBox(width: 6),
+                            // তেলাওয়াতের স্পিড বদলানোর বাটন — চাপলে
+                            // বটমশিটে 1.0x/0.90x/0.85x/0.80x অপশন দেখায়।
+                            InkWell(
+                              onTap: _showSpeedPicker,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.gold.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1),
+                                ),
+                                child: Text(
+                                  '${_formatSpeed(_playbackSpeed)}x',
+                                  style: const TextStyle(
+                                    color: AppTheme.gold,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 6),
                             // চলমান/পজড অবস্থায়: ◀◀ (আগের আয়াত) ⏸/▶ (প্লে-পজ) ▶▶ (পরের আয়াত) — ৩টা বাটন

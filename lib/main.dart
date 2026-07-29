@@ -20,7 +20,10 @@ void main() async {
   // Create the Recitations folder right away so it exists on the device
   // as soon as the app is installed and opened — even before the user
   // plays or downloads any Quran audio. This lets the user manually copy
-  // recitation files into it via a file manager.
+  // recitation files into it via a file manager. This also requests the
+  // "all files access" permission needed to use a PUBLIC folder (survives
+  // app uninstall) instead of the app-specific one Android deletes on
+  // uninstall — that request may show a one-time system settings screen.
   // Runs in the background; doesn't block app startup if it's slow.
   QuranAudioHelper.ensureAudioDirExists();
 

@@ -8,6 +8,7 @@ class QuranPrefs {
   static const _keyShowTransliteration = 'quran_show_transliteration';
   static const _keyFontSize = 'quran_font_size';
   static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
+  static const _keyPlaybackSpeed = 'quran_playback_speed';
 
   // Default: Arabic on, English transliteration off, Bangla text off
   // (ব্যবহারকারীর অনুরোধে ইংরেজি উচ্চারণ এখন ডিফল্টে বন্ধ থাকে — আগে
@@ -63,5 +64,16 @@ class QuranPrefs {
   static Future<void> setViewMode(String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyViewMode, value);
+  }
+
+  /// তেলাওয়াতের গতি (1.0 = স্বাভাবিক)। ডিফল্ট 1.0।
+  static Future<double> getPlaybackSpeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_keyPlaybackSpeed) ?? 1.0;
+  }
+
+  static Future<void> setPlaybackSpeed(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyPlaybackSpeed, value);
   }
 }

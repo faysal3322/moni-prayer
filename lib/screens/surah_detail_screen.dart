@@ -186,12 +186,48 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    QuranAudioHelper.activeSession.addListener(_onActiveSessionChanged);
     _load();
+  }
+
+  /// [QuranAudioHelper.activeSession] বদলালেই কল হয় — অন্য কোনো স্ক্রিন
+  /// (বা এই স্ক্রিন নিজেই) playFullSurah/seekToIndex চালালে হ্যান্ডলার
+  /// এই ভ্যালু আপডেট করে, আর এই স্ক্রিন সেটা শুনে নিজের স্ক্রল/হাইলাইট
+  /// মিলিয়ে নেয় — পড়তে পড়তে যত দূরেই আয়াত এগিয়ে যাক না কেন।
+  void _onActiveSessionChanged() {
+    _syncWithActiveSession(QuranAudioHelper.activeSession.value);
+  }
+
+  void _syncWithActiveSession(QuranActiveSession? session) {
+    if (!mounted) return;
+    if (session == null || session.sura != widget.sura) {
+      // এই সূরার জন্য কোনো সক্রিয় সেশন নেই (অন্য সূরা চলছে, বা কিছুই
+      // চলছে না) — লোকাল প্লেয়িং স্টেট থাকলে সেটা মুছে ফেলা হচ্ছে, তবে
+      // হাইলাইট (_fullSurahAyaIndex) রেখে দেওয়া হচ্ছে যাতে স্ক্রিন হঠাৎ
+      // "কিছুই হাইলাইট নেই" অবস্থায় ঝাঁকি না খায়।
+      if (_fullSurahPlaying) {
+        setState(() {
+          _fullSurahPlaying = false;
+          _fullSurahPaused = false;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _fullSurahPlaying = true;
+      _fullSurahPaused = session.isPaused;
+      _fullSurahAyaIndex = session.ayaIndex;
+    });
+    if (session.ayaIndex >= 0) {
+      _resumeFromIndex = session.ayaIndex;
+      _scrollToVerse(session.ayaIndex);
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    QuranAudioHelper.activeSession.removeListener(_onActiveSessionChanged);
     _scrollController.dispose();
     // স্ক্রিন থেকে বের হলেও সূরা প্লে ব্যাকগ্রাউন্ডে চলতে থাকবে (lock screen
     // এও যেমন চলে) — তাই এখানে ইচ্ছাকৃতভাবে audio বন্ধ করা হয় না।
@@ -268,20 +304,38 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       });
       if (widget.autoPlayOnStart && _ayat.isNotEmpty) {
         _toggleFullSurahPlay();
-      } else if (widget.jumpToAyaNumber != null && _ayat.isNotEmpty) {
-        final targetIndex = _ayat.indexWhere((a) => a['aya'] == widget.jumpToAyaNumber);
-        if (targetIndex >= 0) {
-          // প্রথম ফ্রেম আঁকা শেষ হওয়ার পরই স্ক্রল করা দরকার, তা না হলে
-          // GlobalKey-গুলো এখনো কোনো RenderBox-এর সাথে যুক্ত হয়নি। এটা
-          // একটা নতুন push-করা স্ক্রিন হওয়ায় (persistent ব্যানার থেকে
-          // এসে) সামান্য বাড়তি বিলম্বও দেওয়া হচ্ছে, যাতে পেজ/লিস্ট পুরো
-          // লেআউট করার সময় পায় — নাহলে প্রথম স্ক্রল-চেষ্টা ব্যর্থ হয়ে
-          // "ব্যানারে চাপলে সঠিক আয়াতে যায় না" মনে হতে পারে।
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            await Future.delayed(const Duration(milliseconds: 150));
-            if (mounted) _scrollToVerse(targetIndex, attemptsLeft: 8);
-          });
-        }
+      } else {
+        // এই সূরার জন্য যদি ইতিমধ্যেই একটা প্লেব্যাক সেশন চলমান/পজড
+        // থাকে (persistent ব্যানারে চেপে এই স্ক্রিন খোলা হয়েছে), local
+        // state (_fullSurahPlaying/_fullSurahPaused/_resumeFromIndex)
+        // এখন সেই সেশনের সাথে মিলিয়ে নেওয়া হচ্ছে এবং একই আয়াতে স্ক্রল
+        // করা হচ্ছে — activeSession ব্যবহার করা হচ্ছে (widget.jumpToAyaNumber
+        // এর বদলে) কারণ এটা সবসময় হ্যান্ডলারের প্রকৃত/সবশেষ অবস্থান
+        // দেখায়, ব্যানারে চাপার সময়কার একটা পুরনো স্ন্যাপশট না — নাহলে
+        // এই নতুন স্ক্রিন playback শুরুই হয়নি ভেবে Play বাটনে চাপলে
+        // ১ নং আয়াত থেকে নতুন সেশন শুরু করে দিত, এবং কোরআন পড়তে পড়তে
+        // যত দূরেই এগিয়ে যাক, স্ক্রিন প্রথম জাম্প-করা আয়াতেই আটকে থাকত।
+        //
+        // প্রথম ফ্রেম আঁকা শেষ হওয়ার পরই স্ক্রল করা দরকার, তা না হলে
+        // GlobalKey-গুলো এখনো কোনো RenderBox-এর সাথে যুক্ত হয়নি। এটা
+        // একটা নতুন push-করা স্ক্রিন হওয়ায় (persistent ব্যানার থেকে
+        // এসে) সামান্য বাড়তি বিলম্বও দেওয়া হচ্ছে, যাতে পেজ/লিস্ট পুরো
+        // লেআউট করার সময় পায় — নাহলে প্রথম স্ক্রল-চেষ্টা ব্যর্থ হয়ে
+        // "ব্যানারে চাপলে সঠিক আয়াতে যায় না" মনে হতে পারে।
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(const Duration(milliseconds: 150));
+          if (!mounted) return;
+          final session = QuranAudioHelper.activeSession.value;
+          if (session != null && session.sura == widget.sura) {
+            _syncWithActiveSession(session);
+          } else if (widget.jumpToAyaNumber != null) {
+            // কোনো সক্রিয় সেশন খুঁজে পাওয়া গেল না (হয়তো এর মধ্যেই থেমে
+            // গেছে) — তবু ব্যানারে যে আয়াত নম্বর দেখানো হয়েছিল, ফলব্যাক
+            // হিসেবে সেখানেই স্ক্রল করে দেখানো হচ্ছে।
+            final targetIndex = _ayat.indexWhere((a) => a['aya'] == widget.jumpToAyaNumber);
+            if (targetIndex >= 0) _scrollToVerse(targetIndex, attemptsLeft: 8);
+          }
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -412,17 +466,13 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         startIndex: _resumeFromIndex,
         onAyaStart: (ayaIndex, ayaNumber) {
           if (!mounted) return;
-          setState(() => _fullSurahAyaIndex = ayaIndex);
-          // ayaIndex == -1 মানে এখন বিসমিল্লাহ পড়া হচ্ছে (এখনো প্রকৃত
-          // কোনো আয়াত শুরু হয়নি) — এই অবস্থায় _resumeFromIndex আপডেট
-          // করা হয় না, কারণ এটা একটা বৈধ আয়াত-ইনডেক্স হিসেবেই থাকা
-          // দরকার (পরে Play চাপলে আবার সঠিক জায়গা থেকে শুরু হওয়ার জন্য)।
-          if (ayaIndex >= 0) {
-            _resumeFromIndex = ayaIndex; // পরের বার Play চাপলে এখান থেকেই শুরু হবে
-            _scrollToVerse(ayaIndex);
-          }
-          // গ্লোবাল "এখন কী চলছে" স্টেট আপডেট — অ্যাপের অন্য যেকোনো
-          // স্ক্রিনে থাকা অবস্থায় persistent ব্যানারে দেখানোর জন্য।
+          // স্ক্রল/হাইলাইট/_resumeFromIndex আপডেট করার কাজ এখন
+          // _syncWithActiveSession-এ কেন্দ্রীভূত (QuranAudioHelper.
+          // playFullSurah নিজেই activeSession আপডেট করে, আর এই widget
+          // সেটা শোনে) — তাই এখানে আলাদা করে আর করার দরকার নেই, একই
+          // কাজ দুইবার হওয়া এড়াতে। এখানে শুধু persistent ব্যানারের
+          // জন্য প্রয়োজনীয় "সূরার নাম"সহ nowPlaying আপডেট করা হচ্ছে,
+          // যেটা activeSession বহন করে না।
           final name = _chapter?['name_transliteration'] as String? ?? 'Surah ${widget.sura}';
           QuranAudioHelper.nowPlaying.value = QuranNowPlaying(
             sura: widget.sura,

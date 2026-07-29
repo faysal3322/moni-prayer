@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- অ্যাপ লোগোর সবুজ ব্যাকগ্রাউন্ডের সাথে মিলিয়ে adaptive icon-এর
+         background color — Android 8+ এ এই রঙের উপর foreground লেয়ার
+         (ic_launcher_foreground.png) বসে। -->
+    <color name="ic_launcher_background">#378C3B</color>
+</resources>

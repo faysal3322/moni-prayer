@@ -18,19 +18,24 @@
     android:paddingBottom="8dp">
 
     <!-- সময় — center -->
+    <!-- ফিক্স: আগে এখানে autoSizeTextType/autoSizeMinTextSize/
+         autoSizeMaxTextSize attribute ছিল। এগুলো RemoteViews (App
+         Widget)-এ Android framework-এর সীমিত view set-এর বাইরে —
+         normal Activity-তে কাজ করলেও widget-এ কিছু ডিভাইসে (বিশেষত
+         Huawei/EMUI) inflate করার সময় unsupported attribute হিসেবে
+         ধরা পড়ে পুরো widget-ই লোড হতে ব্যর্থ হয়ে "Problem loading
+         widget" দেখাত। তাই এগুলো সরিয়ে একটা স্থির টেক্সট সাইজ রাখা
+         হয়েছে, যেটা সব ডিভাইসে নির্ভরযোগ্যভাবে কাজ করে। -->
     <TextView
         android:id="@+id/widget_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="--:--"
         android:textColor="#FFFFFF"
-        android:textSize="34sp"
+        android:textSize="30sp"
         android:textStyle="bold"
         android:includeFontPadding="false"
         android:maxLines="1"
-        android:autoSizeTextType="uniform"
-        android:autoSizeMinTextSize="18sp"
-        android:autoSizeMaxTextSize="34sp"
         android:gravity="center" />
 
     <!-- বার + আবহাওয়া পাশাপাশি -->

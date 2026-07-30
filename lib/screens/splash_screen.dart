@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/app_theme.dart';
+import '../utils/quran_audio_helper.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,6 +15,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    // ফিক্স: অ্যাপ ইন্সটল/প্রথম চালু করার সাথে সাথেই
+    // /storage/emulated/0/Music/Recitations/... ফোল্ডার তৈরি হওয়ার
+    // কথা ছিল, কিন্তু main()-এ (UI তৈরি হওয়ার আগে) কল করলে এর ভেতরের
+    // পারমিশন-রিকোয়েস্ট নিঃশব্দে ব্যর্থ হয়ে যেত। এখানে (splash screen
+    // দেখানোর সময়, UI ইতিমধ্যে প্রস্তুত) কল করলে পারমিশন ডায়ালগ/সেটিংস
+    // স্ক্রিন ঠিকভাবে খোলে ও কাজ করে।
+    QuranAudioHelper.ensureAudioDirExists();
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(

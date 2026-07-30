@@ -18,15 +18,16 @@ void main() async {
   final String lang = prefs.getString('language') ?? 'bn';
   final String userName = prefs.getString('user_name') ?? 'FAYSAL';
 
-  // Create the Recitations folder right away so it exists on the device
-  // as soon as the app is installed and opened — even before the user
-  // plays or downloads any Quran audio. This lets the user manually copy
-  // recitation files into it via a file manager. This also requests the
-  // "all files access" permission needed to use a PUBLIC folder (survives
-  // app uninstall) instead of the app-specific one Android deletes on
-  // uninstall — that request may show a one-time system settings screen.
-  // Runs in the background; doesn't block app startup if it's slow.
-  QuranAudioHelper.ensureAudioDirExists();
+  // বাগ ফিক্স: আগে এখানে (main() এর ভেতরে, runApp()-এর আগে)
+  // QuranAudioHelper.ensureAudioDirExists() কল করা হতো — কিন্তু এই
+  // মুহূর্তে অ্যাপের UI/Activity তখনো সম্পূর্ণ প্রস্তুত হয়নি, ফলে এর
+  // ভেতরের MANAGE_EXTERNAL_STORAGE পারমিশন-রিকোয়েস্ট (যেটা একটা সিস্টেম
+  // সেটিংস স্ক্রিন খোলে) নিঃশব্দে ব্যর্থ হয়ে যেত — এবং তার ফলে পাবলিক
+  // Music/Recitations ফোল্ডার তৈরি না হয়ে সাইলেন্টলি পুরনো app-specific
+  // ফোল্ডারে ফিরে যেত (যেটা আনইনস্টলে মুছে যায়)। এখন এই কলটা
+  // SplashScreen-এ সরানো হয়েছে (দেখুন splash_screen.dart), যেখানে UI
+  // ইতিমধ্যে রেন্ডার হয়ে গেছে এবং পারমিশন-রিকোয়েস্ট নির্ভরযোগ্যভাবে
+  // কাজ করে।
 
   // দিনের সব গুরুত্বপূর্ণ ওয়াক্ত/মুহূর্তের (৫ ওয়াক্ত নামাজ, ৩টা নিষিদ্ধ
   // সময়ের শুরু/শেষ, সেহরি সতর্কতা ও শেষ, ইফতার, তাহাজ্জুদ শুরু)

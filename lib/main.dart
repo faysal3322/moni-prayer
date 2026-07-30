@@ -178,6 +178,15 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
                       onTap: () => _openNowPlayingInQuranScreen(info),
                       onPause: () => QuranAudioHelper.pause(),
                       onResume: () => QuranAudioHelper.resume(),
+                      // ফিক্স: আগে ব্যানার বন্ধ করার কোনো উপায়ই ছিল না —
+                      // pause করলেও এটা স্থায়ীভাবে থেকে যেত এবং নিচের
+                      // ব্যাক/নেভিগেশন বাটন ঢেকে ফেলত। এখন ✕ বাটনে চাপলে
+                      // বা ব্যানারটা swipe করে সরালে তেলাওয়াত সম্পূর্ণ
+                      // থেমে যায় এবং ব্যানারও মিলিয়ে যায় (minimize)। আবার
+                      // নতুন করে কোনো আয়াত/সূরা প্লে করলে ব্যানার আবার
+                      // দেখা যাবে — এটা শুধু "এখনকার মতো লুকিয়ে ফেলা", কোনো
+                      // ডেটা মুছে যায় না।
+                      onDismiss: () => QuranAudioHelper.stop(),
                     );
                   },
                 );
@@ -214,6 +223,7 @@ class _NowPlayingBanner extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onPause;
   final VoidCallback onResume;
+  final VoidCallback onDismiss;
 
   const _NowPlayingBanner({
     required this.info,
@@ -221,6 +231,7 @@ class _NowPlayingBanner extends StatelessWidget {
     required this.onTap,
     required this.onPause,
     required this.onResume,
+    required this.onDismiss,
   });
 
   @override
@@ -239,7 +250,11 @@ class _NowPlayingBanner extends StatelessWidget {
             top: 8,
             bottom: kBottomNavBarHeight + 8,
           ),
-          child: Material(
+          child: Dismissible(
+            key: ValueKey('now_playing_banner_${info.sura}'),
+            direction: DismissDirection.horizontal,
+            onDismissed: (_) => onDismiss(),
+            child: Material(
             color: AppTheme.primary,
             borderRadius: BorderRadius.circular(14),
             elevation: 6,
@@ -270,7 +285,7 @@ class _NowPlayingBanner extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     // প্লে/পজ বাটনটা নিজস্ব InkWell দিয়ে ব্যানারের বাকি
                     // অংশের ট্যাপ থেকে আলাদা রাখা হয়েছে, যাতে এতে চাপলে
                     // পেজ পাল্টে না গিয়ে শুধু প্লে/পজ হয়।
@@ -290,9 +305,23 @@ class _NowPlayingBanner extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    // ফিক্স: ব্যানার বন্ধ (minimize) করার জন্য নতুন ✕ বাটন —
+                    // চাপলে তেলাওয়াত থেমে যাবে এবং ব্যানারও সরে যাবে।
+                    // ব্যানারটা ডানে/বামে swipe করলেও একই কাজ হবে
+                    // (উপরের Dismissible দ্রষ্টব্য)।
+                    InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: onDismiss,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.close, color: Colors.white70, size: 18),
+                      ),
+                    ),
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),

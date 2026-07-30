@@ -492,10 +492,32 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     if (ctx != null) {
       Scrollable.ensureVisible(
         ctx,
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.linear,
-        alignment: 0.35,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        alignment: 0.3,
       );
+      // বাগ ফিক্স: bottom sheet বন্ধ হওয়ার transition বা অন্য কোনো
+      // চলমান animation/rebuild-এর মাঝে ensureVisible কল হলে ভুল বা
+      // পুরনো geometry দিয়ে হিসাব হয়ে সম্পূর্ণ ভুল আয়াতে চলে যেতে
+      // পারত। তাই scroll শুরুর কিছুক্ষণ পরে (animation শেষ হওয়ার মতো
+      // সময় দিয়ে) আরেকবার একই টার্গেটে ensureVisible কল করা হচ্ছে —
+      // যদি প্রথমবারেই সঠিক জায়গায় পৌঁছে থাকে তাহলে এই দ্বিতীয় কলে
+      // কোনো নড়াচড়া হবে না (already visible at alignment), কিন্তু
+      // যদি প্রথমবার ভুল geometry দিয়ে ভুল জায়গায় গিয়ে থাকে, এই
+      // দ্বিতীয় কল সঠিক (এতক্ষণে স্থির হওয়া) geometry দিয়ে ঠিক
+      // জায়গায় সংশোধন করে দেবে।
+      Future.delayed(const Duration(milliseconds: 320), () {
+        if (!mounted) return;
+        final ctx2 = _ayaKeys[ayaIndex].currentContext;
+        if (ctx2 != null) {
+          Scrollable.ensureVisible(
+            ctx2,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: 0.3,
+          );
+        }
+      });
       return;
     }
     if (attemptsLeft <= 0) {
@@ -896,6 +918,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               fontSize: _fontSize,
                               lang: widget.lang,
                               currentAyaIndex: _fullSurahAyaIndex,
+                              onAyaTap: (i) => _toggleFullSurahPlay(explicitStartIndex: i),
                             )
                           : ListView(
                           controller: _scrollController,
@@ -1345,6 +1368,9 @@ class _MushafPageView extends StatelessWidget {
   /// full-surah playback, or null if nothing is playing. Used to highlight
   /// that ayah's text in the flowing mushaf-style layout.
   final int? currentAyaIndex;
+  /// আয়াত নাম্বার-মার্কারে ট্যাপ করলে কল হয় — সেই আয়াত থেকে তেলাওয়াত
+  /// শুরু করার জন্য। index হলো [ayat] লিস্টে ওই আয়াতের ইনডেক্স।
+  final void Function(int index)? onAyaTap;
 
   const _MushafPageView({
     required this.scrollController,
@@ -1355,6 +1381,7 @@ class _MushafPageView extends StatelessWidget {
     required this.fontSize,
     required this.lang,
     this.currentAyaIndex,
+    this.onAyaTap,
   });
 
   @override
@@ -1436,24 +1463,33 @@ class _MushafPageView extends StatelessWidget {
                         alignment: PlaceholderAlignment.middle,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: Container(
-                            key: ayaKeys.length > i ? ayaKeys[i] : null,
-                            width: fontSize * 1.1,
-                            height: fontSize * 1.1,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: currentAyaIndex == i
-                                  ? AppTheme.gold.withOpacity(0.85)
-                                  : null,
-                              border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1.2),
-                            ),
-                            child: Text(
-                              lang.toLocalNum(ayat[i]['aya'] as int),
-                              style: TextStyle(
-                                color: currentAyaIndex == i ? AppTheme.cardBg : AppTheme.gold,
-                                fontSize: fontSize * 0.48,
-                                fontWeight: FontWeight.bold,
+                          child: GestureDetector(
+                            // ফিক্স: আগে page (মুশাফ) ভিউতে আয়াত নাম্বার
+                            // মার্কারে ট্যাপ করার কোনো ব্যবস্থাই ছিল না,
+                            // তাই কোনো নির্দিষ্ট আয়াত থেকে প্লে শুরু করার
+                            // উপায় ছিল না — এখন ট্যাপ করলে ঠিক এই আয়াত
+                            // থেকেই তেলাওয়াত শুরু হবে (list ভিউয়ের প্রতিটা
+                            // আয়াতের পাশে থাকা প্লে বাটনের মতোই কাজ করে)।
+                            onTap: onAyaTap == null ? null : () => onAyaTap!(i),
+                            child: Container(
+                              key: ayaKeys.length > i ? ayaKeys[i] : null,
+                              width: fontSize * 1.1,
+                              height: fontSize * 1.1,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: currentAyaIndex == i
+                                    ? AppTheme.gold.withOpacity(0.85)
+                                    : null,
+                                border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1.2),
+                              ),
+                              child: Text(
+                                lang.toLocalNum(ayat[i]['aya'] as int),
+                                style: TextStyle(
+                                  color: currentAyaIndex == i ? AppTheme.cardBg : AppTheme.gold,
+                                  fontSize: fontSize * 0.48,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),

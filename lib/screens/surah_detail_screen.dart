@@ -422,11 +422,19 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         _ayaKeys.addAll(List.generate(ayat.length, (_) => GlobalKey()));
         _loading = false;
       });
-      if (widget.autoPlayOnStart && _ayat.isNotEmpty) {
-        _toggleFullSurahPlay();
-      } else {
+      // বাগ ফিক্স: আগে widget.autoPlayOnStart true হলে এখানে
+      // _toggleFullSurahPlay() কল করে একটা নতুন playFullSurah সেশন শুরু
+      // করা হতো। কিন্তু এখন QuranAudioHelper নিজেই (হ্যান্ডলার-স্তরে)
+      // আগের সূরা শেষ হলে পরের সূরা লোড করে অটো-প্লে চালিয়ে দেয় — তাই
+      // এখানে আবার নতুন করে প্লে শুরু করলে একই সূরা দুইবার/দুই সেশনে
+      // বাজতে শুরু করত (এবং প্রথম আয়াত থেকে আবার শুরু হয়ে হ্যান্ডলারের
+      // প্রকৃত chain-করা অবস্থানের সাথে সাংঘর্ষিক হতো)। তাই এখন সবসময়
+      // else ব্রাঞ্চ ব্যবহার হয় — যেটা activeSession থেকে হ্যান্ডলারের
+      // প্রকৃত/সবশেষ অবস্থান পড়ে local UI state মিলিয়ে নেয় (স্ক্রল সহ)।
+      {
         // এই সূরার জন্য যদি ইতিমধ্যেই একটা প্লেব্যাক সেশন চলমান/পজড
-        // থাকে (persistent ব্যানারে চেপে এই স্ক্রিন খোলা হয়েছে), local
+        // থাকে (persistent ব্যানারে চেপে এই স্ক্রিন খোলা হয়েছে, বা
+        // আগের সূরা শেষ হয়ে এখানে chain হয়ে এসেছে), local
         // state (_fullSurahPlaying/_fullSurahPaused/_resumeFromIndex)
         // এখন সেই সেশনের সাথে মিলিয়ে নেওয়া হচ্ছে এবং একই আয়াতে স্ক্রল
         // করা হচ্ছে — activeSession ব্যবহার করা হচ্ছে (widget.jumpToAyaNumber
@@ -495,8 +503,10 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       return;
     }
     // Context not ready yet (widget not laid out on screen) — retry next frame.
+    // বড় সূরায় (যেমন সূরা বাকারা) বিশাল Text.rich layout সম্পূর্ণ হতে বেশি
+    // সময় লাগতে পারে বলে ব্যবধানও একটু বাড়ানো হয়েছে (১০০ms → ১৫০ms)।
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 150), () {
         _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
       });
     });
@@ -593,20 +603,24 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
           // সত্যিকারের কিছু করার দরকার নেই।
         },
         onSequenceComplete: () {
-          if (!mounted) return;
-          setState(() {
-            _fullSurahPlaying = false;
-            _fullSurahPaused = false;
-            _fullSurahAyaIndex = null;
-          });
-          // সূরা শেষ হয়ে গেলে পরের বার প্লে করলে আবার প্রথম থেকে শুরু হবে।
-          _resumeFromIndex = 0;
-          // সূরা ১১৪ (আন-নাস)-এর পরে আর কোনো সূরা নেই, তাই chain করা হবে না।
-          if (widget.sura < 114) {
-            widget.onRequestNextSurah?.call();
-          } else {
-            // একদম শেষ সূরা শেষ হয়ে গেছে — persistent ব্যানারও লুকিয়ে ফেলা হচ্ছে।
-            QuranAudioHelper.nowPlaying.value = null;
+          // বাগ ফিক্স: প্রকৃত অডিও chain (পরের সূরা লোড করে অটো-প্লে করা)
+          // এখন QuranAudioHelper.playFullSurah নিজেই হ্যান্ডলার-স্তরে করে
+          // (দেখুন quran_audio_helper.dart-এর _playNextSurahInChain) —
+          // কারণ স্ক্রিন ব্যাকগ্রাউন্ডে dispose হয়ে গেলে (mounted false)
+          // আগে এই কলব্যাকই chain শুরু করত এবং সেটা কখনো ট্রিগার হতো না।
+          // তাই এখানে UI-এর কাজ শুধু: স্ক্রিন এখনও খোলা থাকলে PageView-কে
+          // পরের সূরার পেজে সরিয়ে দেখানো (audio আবার নতুন করে চালু করা
+          // নয়, তাহলে দুইবার প্লে শুরু হয়ে যেত)।
+          if (mounted) {
+            setState(() {
+              _fullSurahPlaying = false;
+              _fullSurahPaused = false;
+              _fullSurahAyaIndex = null;
+            });
+            _resumeFromIndex = 0;
+            if (widget.sura < 114) {
+              widget.onRequestNextSurah?.call();
+            }
           }
         },
       );
@@ -676,9 +690,19 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // default modal transition is ~300ms; giving it a bit more margin makes
     // this reliable on slower devices), then retry-scroll until the target
     // verse's context becomes available.
+    //
+    // বাগ ফিক্স: আগে ডিফল্ট attemptsLeft (৫ বার, প্রতিটার মাঝে ১০০ms, মোট
+    // মাত্র ৫০০ms) ব্যবহার হতো। এটা ছোট সূরায় ঠিক থাকলেও সূরা বাকারার
+    // (২৮৬ আয়াত) মতো বড় সূরায়, বিশেষত শেষের দিকের আয়াতে (যেমন ২৮০, ২৮৬),
+    // "page" (মুশাফ) ভিউ মোডে পুরো সূরাটা একটাই বিশাল Text.rich হিসেবে
+    // রেন্ডার হয় — এত বড় প্যারাগ্রাফের layout সম্পূর্ণ হতে ৫০০ms-এর
+    // বেশি সময় লাগতে পারে, ফলে GlobalKey-এর context কখনো রেডি না হয়েই
+    // রিট্রাই ফুরিয়ে যেত এবং কম-নির্ভরযোগ্য আনুমানিক fallback scroll-এ
+    // চলে যেত। এখন বেশি রিট্রাই ও কিছুটা বেশি বিলম্ব দেওয়া হচ্ছে, যাতে
+    // বড় সূরাতেও আসল (আনুমানিক নয়) scroll-টাই কাজ করার সুযোগ পায়।
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
-      _scrollToVerse(ayaIndex);
+      _scrollToVerse(ayaIndex, attemptsLeft: 20);
     });
   }
 

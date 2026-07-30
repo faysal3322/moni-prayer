@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ফিক্স: আগে widget_time ও তার নিচের বার/আবহাওয়া সারিতে বড়
+     নেগেটিভ মার্জিন (-20dp, -23dp) ব্যবহার করা হতো, যা কিছু ডিভাইসে/
+     লঞ্চারে widget-কে দেওয়া প্রকৃত height কম হলে কনটেন্টকে widget-এর
+     উপরের সীমানার বাইরে ঠেলে দিত — ফলে সময়/বার/তারিখের প্রথম অংশ কেটে
+     (clip হয়ে) যেত (স্ক্রিনশটে ঠিক এই সমস্যাটাই দেখা গেছে)। এখন সব
+     নেগেটিভ মার্জিন সরিয়ে স্বাভাবিক প্রবাহে (স্বাভাবিক পজিটিভ/শূন্য
+     মার্জিন দিয়ে) রাখা হয়েছে, যাতে বিভিন্ন স্ক্রিন সাইজ/ডেনসিটি/
+     লঞ্চারেও উপরের অংশ সবসময় সম্পূর্ণ দেখা যায়। -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp"
-    android:paddingTop="0dp"
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp"
+    android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
     <!-- সময় — center -->
@@ -14,19 +22,22 @@
         android:id="@+id/widget_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="-20dp"
         android:text="--:--"
         android:textColor="#FFFFFF"
-        android:textSize="50sp"
+        android:textSize="34sp"
         android:textStyle="bold"
         android:includeFontPadding="false"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="18sp"
+        android:autoSizeMaxTextSize="34sp"
         android:gravity="center" />
 
     <!-- বার + আবহাওয়া পাশাপাশি -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="-23dp"
+        android:layout_marginTop="2dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -37,7 +48,7 @@
             android:layout_weight="3"
             android:text=""
             android:textColor="#FFFFFF"
-            android:textSize="25sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:singleLine="true"
@@ -50,7 +61,7 @@
             android:layout_weight="4"
             android:text=""
             android:textColor="#80DEEA"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:gravity="end"
             android:singleLine="true"
@@ -62,7 +73,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="-4dp"
+        android:layout_marginTop="4dp"
         android:orientation="horizontal">
 
         <!-- বাম: তারিখ -->
@@ -78,28 +89,34 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/widget_hijri"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-1dp"
+                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/widget_bangla_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-1dp"
+                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#80DEEA"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
 
         </LinearLayout>
 
@@ -116,38 +133,42 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
 
             <TextView
                 android:id="@+id/widget_sunset"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-1dp"
+                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
 
             <TextView
                 android:id="@+id/widget_sehri"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="4dp"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
 
             <TextView
                 android:id="@+id/widget_iftar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-1dp"
+                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
 
         </LinearLayout>
     </LinearLayout>
@@ -157,7 +178,7 @@
         android:id="@+id/widget_alert"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="-3dp"
+        android:layout_marginTop="4dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         android:paddingStart="4dp"
@@ -165,10 +186,10 @@
         android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:gravity="start"
-        android:maxLines="10"
+        android:maxLines="8"
         android:ellipsize="end" />
 
 </LinearLayout>

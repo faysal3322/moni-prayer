@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'quran_audio_handler.dart';
 import 'quran_prefs.dart';
+import 'quran_database_helper.dart';
 
 /// Describes what's currently playing, for the persistent "now playing"
 /// banner shown across the whole app (not just inside the Quran screen).
@@ -523,9 +524,54 @@ class QuranAudioHelper {
       onSequenceComplete: () {
         activeSession.value = null;
         onSequenceComplete?.call();
+        // মূল ফিক্স: আগে পরের সূরায় chain করার একমাত্র উপায় ছিল UI
+        // screen-এর (SurahDetailScreen) নিজস্ব কলব্যাক, যেটা `mounted`
+        // চেক করত। কিন্তু ব্যাকগ্রাউন্ডে সূরা চলতে থাকা অবস্থায় (স্ক্রিন
+        // থেকে বেরিয়ে গেলে) সেই widget dispose হয়ে যেত, ফলে "mounted"
+        // false থাকায় পরের সূরায় কখনো যেত না — এক সূরা শেষে অডিও চুপচাপ
+        // থেমে যেত, ব্যানারেও শেষ আয়াতই দেখাতে থাকত। এখন এখানে,
+        // হ্যান্ডলার-স্তরেই (কোনো UI screen বেঁচে আছে কিনা তার উপর
+        // নির্ভর না করে) নিজে থেকে পরের সূরা লোড করে চালানো হচ্ছে।
+        if (sura < 114) {
+          // মাইক্রোটাস্ক শেষে চালানো হচ্ছে যাতে এই কলব্যাকের বাকি অংশ
+          // (এবং caller-এর নিজস্ব onSequenceComplete, উপরে) আগে সম্পূর্ণ
+          // হয়ে যায়।
+          Future.microtask(() => _playNextSurahInChain(sura + 1));
+        } else {
+          // সূরা ১১৪ (আন-নাস) শেষ — chain করার আর কিছু নেই।
+          nowPlaying.value = null;
+        }
       },
       startIndex: startIndex,
     );
+  }
+
+  /// একটা সূরা শেষ হওয়ার পর, কোনো UI screen বেঁচে আছে কিনা তার ওপর
+  /// নির্ভর না করেই পরের সূরা লোড করে অটো-প্লে করে — এটাই ব্যাকগ্রাউন্ড
+  /// প্লেব্যাকে chain কাজ করার আসল ভিত্তি। ব্যর্থ হলে (যেমন ডাটাবেজ/অডিও
+  /// ফাইল সমস্যা) নিঃশব্দে থেমে যায়, পুরো অ্যাপ ক্র্যাশ করে না।
+  static Future<void> _playNextSurahInChain(int nextSura) async {
+    try {
+      final chapter = await QuranDatabaseHelper.getChapter(nextSura);
+      final surahAudio = await QuranDatabaseHelper.getSurahAudio(nextSura);
+      final segments = await QuranDatabaseHelper.getAllSegmentsForSura(nextSura);
+      if (chapter == null || surahAudio == null || segments.isEmpty) return;
+      final suraName = chapter['name_transliteration'] as String? ?? 'Surah $nextSura';
+      await playFullSurah(
+        sura: nextSura,
+        suraName: suraName,
+        surahAudioUrl: surahAudio['audio_url'] as String,
+        segments: segments,
+        // এখানে কোনো নির্দিষ্ট UI callback নেই (হাইলাইট/স্ক্রল আপডেট করার
+        // মতো কোনো স্ক্রিন এই মুহূর্তে সক্রিয় নাও থাকতে পারে) — তবে
+        // activeSession ও nowPlaying তো playFullSurah নিজেই ওপরে
+        // আপডেট করবে, তাই ব্যানার ও পরবর্তীতে খোলা যেকোনো স্ক্রিন ঠিকই
+        // সিঙ্ক হয়ে যাবে।
+        onAyaStart: (_, __) {},
+      );
+    } catch (_) {
+      // chain থেমে যাক, কিন্তু অ্যাপ বা এই ফাংশনের caller প্রভাবিত না হোক।
+    }
   }
 
   /// [sura] এর জন্য এখন সত্যিই একটা full-surah playback সেশন চলমান/পজড

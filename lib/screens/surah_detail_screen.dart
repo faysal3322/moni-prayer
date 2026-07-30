@@ -1397,6 +1397,37 @@ class _MushafPageView extends StatelessWidget {
         ),
         child: Column(
           children: [
+            // ফিচার আবিষ্কারযোগ্যতা: page ভিউতে যেকোনো আয়াতের নাম্বার-
+            // সার্কেলে ট্যাপ করলে ঠিক ওই আয়াত থেকে তেলাওয়াত শুরু হয় —
+            // আগে এই কাজ করা গেলেও কোনো ইঙ্গিত না থাকায় ব্যবহারকারীরা
+            // বুঝতে পারতেন না। এখন উপরে একটা ছোট হিন্ট দেখানো হচ্ছে।
+            if (onAyaTap != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gold.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_circle_outline, color: AppTheme.gold, size: fontSize * 0.55),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          lang.isBn
+                              ? 'যেকোনো আয়াতের নাম্বারে চাপুন — সেখান থেকে তেলাওয়াত শুরু হবে'
+                              : 'Tap any verse number to start recitation from there',
+                          style: TextStyle(color: AppTheme.gold.withOpacity(0.9), fontSize: fontSize * 0.36),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // সূরার নাম ফ্রেমে
             if (nameArabic.isNotEmpty)
               Container(
@@ -1470,27 +1501,41 @@ class _MushafPageView extends StatelessWidget {
                             // উপায় ছিল না — এখন ট্যাপ করলে ঠিক এই আয়াত
                             // থেকেই তেলাওয়াত শুরু হবে (list ভিউয়ের প্রতিটা
                             // আয়াতের পাশে থাকা প্লে বাটনের মতোই কাজ করে)।
+                            // আগে থেকে কোড থাকলেও একটা প্লে-আইকন (▶) যোগ
+                            // করা হচ্ছে যাতে এই নাম্বার-সার্কেলে ট্যাপ করলে
+                            // যে প্লে হবে সেটা স্পষ্টভাবে বোঝা যায়।
                             onTap: onAyaTap == null ? null : () => onAyaTap!(i),
                             child: Container(
                               key: ayaKeys.length > i ? ayaKeys[i] : null,
-                              width: fontSize * 1.1,
-                              height: fontSize * 1.1,
+                              width: fontSize * 1.3,
+                              height: fontSize * 1.3,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: currentAyaIndex == i
                                     ? AppTheme.gold.withOpacity(0.85)
-                                    : null,
+                                    : AppTheme.gold.withOpacity(0.08),
                                 border: Border.all(color: AppTheme.gold.withOpacity(0.7), width: 1.2),
                               ),
-                              child: Text(
-                                lang.toLocalNum(ayat[i]['aya'] as int),
-                                style: TextStyle(
-                                  color: currentAyaIndex == i ? AppTheme.cardBg : AppTheme.gold,
-                                  fontSize: fontSize * 0.48,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: currentAyaIndex == i
+                                  ? Icon(
+                                      Icons.graphic_eq_rounded,
+                                      color: AppTheme.cardBg,
+                                      size: fontSize * 0.55,
+                                    )
+                                  : Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Text(
+                                          lang.toLocalNum(ayat[i]['aya'] as int),
+                                          style: TextStyle(
+                                            color: AppTheme.gold,
+                                            fontSize: fontSize * 0.42,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                             ),
                           ),
                         ),

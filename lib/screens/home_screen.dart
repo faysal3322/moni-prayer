@@ -1096,10 +1096,49 @@ class _HomeTabState extends State<_HomeTab> {
           : 'Before sleep:\n◆ Recite Surah Mulk — protection from grave (Amal 4)\n◆ Recite 3 Quls & blow on body 3x\n◆ Recite Ayatul Kursi\n◆ Recite Surah Kafirun & sleep on right side\n◆ Recite sleeping dua (Amal 16)\n◆ Do not stay up late\n◆ Sleep with good intentions for tomorrow', 'color': const Color(0xFF7C4DFF)});
     }
 
-    // ══ বিশেষ মুহূর্তের আমল (সারাদিন) ══
-    alerts.add({'icon': '💫', 'text': isBn
-        ? 'বিশেষ মুহূর্তের আমল:\n◆ প্রতি অজুর পর কালেমা — জান্নাতের ৮ দরজার যেকোনোটি খোলে (আমল ১)\n◆ অজুর আগে মিসওয়াক, শুরু-শেষে দোয়া (আমল ১৮)\n◆ বাথরুমে বাম পা দিয়ে ঢুকুন, ডান পা দিয়ে বের হন (আমল ১৭)\n◆ বাড়িতে সালাম দিয়ে প্রবেশ করুন (আমল ১০)\n◆ জামা-জুতা পরায় ডান দিক আগে, খোলায় বাম দিক আগে (আমল ২৪)\n◆ চন্দ্র/সূর্যগ্রহণে কুসুফ/খুসুফের নামাজ পড়ুন\n◆ অনাবৃষ্টিতে সালাতুল ইস্তিসকা পড়ুন\n◆ মন্দ কাজের পর ভালো কাজ করুন (আমল ৭০)\n◆ লোকদেখানো ইবাদত পরিহার করুন (আমল ৫৯)\n◆ হে আল্লাহ! কঠিন দুরবস্থা, দুর্ভাগ্যের নাগাল, মন্দ ভাগ্য ও দুশমনের হাসি থেকে আশ্রয় চাই (আমল ৫৫)'
-        : 'Special moment deeds:\n◆ Shahada after each wudhu — opens all 8 Jannah gates (Amal 1)\n◆ Miswak before wudhu, dua at start & end (Amal 18)\n◆ Left foot in bathroom, right foot out (Amal 17)\n◆ Salam entering home (Amal 10)\n◆ Right side first when dressing, left when undressing (Amal 24)\n◆ Pray kusoof/khusoof during eclipse\n◆ Pray Istiqa during drought\n◆ Follow bad with good (Amal 70)\n◆ Avoid showing off in worship (Amal 59)\n◆ O Allah! Refuge from hardship, bad fate, evil destiny & enemy gloating (Amal 55)', 'color': const Color(0xFF26A69A)});
+    // ══ প্রতি ওয়াক্ত নামাজের সময় শুরু হওয়ার থেকে ১০ মিনিট — অজু/বাথরুম-সংক্রান্ত আমল ══
+    // "বিশেষ মুহূর্তের আমল" — এই হেডলাইন সরিয়ে ফেলা হয়েছে (ব্যবহারকারীর
+    // অনুরোধ অনুযায়ী), তবে নিচের প্রতিটা আমলের বিষয়বস্তু অক্ষত রাখা হয়েছে,
+    // শুধু যার যার নির্দিষ্ট সময় অনুযায়ী আলাদা করে দেখানো হচ্ছে।
+    {
+      final prayerStarts = [pt.fajr, pt.dhuhr, pt.asr, pt.maghrib, pt.isha];
+      final withinTenMinOfPrayerStart = prayerStarts.any(
+        (t) => !now.isBefore(t) && now.isBefore(t.add(const Duration(minutes: 10))),
+      );
+      if (withinTenMinOfPrayerStart) {
+        alerts.add({'icon': '💫', 'text': isBn
+            ? '◆ প্রতি অজুর পর কালেমা — জান্নাতের ৮ দরজার যেকোনোটি খোলে (আমল ১)\n◆ অজুর আগে মিসওয়াক, শুরু-শেষে দোয়া (আমল ১৮)\n◆ বাথরুমে বাম পা দিয়ে ঢুকুন, ডান পা দিয়ে বের হন (আমল ১৭)'
+            : '◆ Shahada after each wudhu — opens all 8 Jannah gates (Amal 1)\n◆ Miswak before wudhu, dua at start & end (Amal 18)\n◆ Left foot in bathroom, right foot out (Amal 17)', 'color': const Color(0xFF26A69A)});
+      }
+    }
+
+    // ══ প্রতিদিন দুপুর ৩টা - ৫টা — বাড়িতে প্রবেশের আমল ══
+    if (now.hour >= 15 && now.hour < 17) {
+      alerts.add({'icon': '💫', 'text': isBn
+          ? '◆ বাড়িতে সালাম দিয়ে প্রবেশ করুন (আমল ১০)'
+          : '◆ Salam entering home (Amal 10)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতিদিন সকাল ৭টা - ৯টা — পোশাক পরিধানের আমল ══
+    if (now.hour >= 7 && now.hour < 9) {
+      alerts.add({'icon': '💫', 'text': isBn
+          ? '◆ জামা-জুতা পরায় ডান দিক আগে, খোলায় বাম দিক আগে (আমল ২৪)'
+          : '◆ Right side first when dressing, left when undressing (Amal 24)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতি শনিবার সকাল ১০টা - দুপুর ১২টা — কুসুফ/খুসুফ ও ইস্তিসকা ══
+    if (now.weekday == DateTime.saturday && now.hour >= 10 && now.hour < 12) {
+      alerts.add({'icon': '💫', 'text': isBn
+          ? '◆ চন্দ্র/সূর্যগ্রহণে কুসুফ/খুসুফের নামাজ পড়ুন\n◆ অনাবৃষ্টিতে সালাতুল ইস্তিসকা পড়ুন'
+          : '◆ Pray kusoof/khusoof during eclipse\n◆ Pray Istiqa during drought', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতিদিন সকাল ১০টা - দুপুর ১টা — চরিত্র সংশোধন ও আশ্রয়ের দোয়া ══
+    if (now.hour >= 10 && now.hour < 13) {
+      alerts.add({'icon': '💫', 'text': isBn
+          ? '◆ মন্দ কাজের পর ভালো কাজ করুন (আমল ৭০)\n◆ লোকদেখানো ইবাদত পরিহার করুন (আমল ৫৯)\n◆ হে আল্লাহ! কঠিন দুরবস্থা, দুর্ভাগ্যের নাগাল, মন্দ ভাগ্য ও দুশমনের হাসি থেকে আশ্রয় চাই (আমল ৫৫)'
+          : '◆ Follow bad with good (Amal 70)\n◆ Avoid showing off in worship (Amal 59)\n◆ O Allah! Refuge from hardship, bad fate, evil destiny & enemy gloating (Amal 55)', 'color': const Color(0xFF26A69A)});
+    }
 
     // ══ চরিত্র, ইলম ও সমাজ (সারাদিন) ══
     alerts.add({'icon': '🌿', 'text': isBn

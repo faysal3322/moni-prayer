@@ -343,14 +343,24 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       String prayerLine = '';
+      List<String> prayerLinesForRotation = [];
       if (strictForbidden.isNotEmpty) {
         final txt = (strictForbidden.first['text'] as String).split('\n').first;
         prayerLine = '${strictForbidden.first['icon']} $txt';
+        prayerLinesForRotation = [prayerLine];
       } else {
         final prayerAlerts = alertList.where((a) => isPrayerTimingAlert(a['text'] as String)).toList();
         if (prayerAlerts.isNotEmpty) {
-          final txt = (prayerAlerts.first['text'] as String).split('\n').first;
-          prayerLine = '${prayerAlerts.first['icon']} $txt';
+          // বাগ ফিক্স: আগে শুধু prayerAlerts.first (যেমন সেহরি) স্থায়ীভাবে
+          // ১ম লাইনে বসানো হতো, ফলে তাহাজ্জুদের মতো একই সময়ে সক্রিয় থাকা
+          // অন্য গুরুত্বপূর্ণ countdown alert widget-এ কখনো দেখানোই হতো না
+          // (রাত ৪টায় সেহরি ও তাহাজ্জুদ দুটোই সক্রিয় থাকলে শুধু সেহরিই
+          // দেখা যেত)। এখন সব সক্রিয় প্রাইমারি টাইমিং অ্যালার্ট (তাহাজ্জুদ,
+          // সেহরি, নামাজের ওয়াক্ত ইত্যাদি) rotation-এ পালাক্রমে দেখানো
+          // হচ্ছে, যাতে widget একটার জন্য অন্যটাকে চাপা না দেয়।
+          prayerLinesForRotation =
+              prayerAlerts.map((a) => '${a['icon']} ${(a['text'] as String).split('\n').first}').toList();
+          prayerLine = prayerLinesForRotation.first;
         }
       }
 
@@ -387,14 +397,31 @@ class _HomeTabState extends State<_HomeTab> {
         naflPages.addAll(chunkIntoPages(a['icon'] as String, a['text'] as String));
       }
 
-      // প্রতিটা rotation-page এর শুরুতে prayerLine জুড়ে দেওয়া হচ্ছে (fixed প্রথম লাইন)
+      // প্রতিটা rotation-page এর শুরুতে prayerLine জুড়ে দেওয়া হচ্ছে (fixed প্রথম লাইন)।
+      // বাগ ফিক্স: prayerLinesForRotation-এ একাধিক সক্রিয় টাইমিং অ্যালার্ট
+      // (যেমন তাহাজ্জুদ + সেহরি একসাথে সক্রিয়) থাকলে, প্রতিটাকেই নিজস্ব
+      // rotation page হিসেবে দেখানো হচ্ছে (শুধু .first-টাই স্থায়ীভাবে না)।
       final String alertText;
       if (naflPages.isEmpty) {
-        alertText = prayerLine;
-      } else if (prayerLine.isEmpty) {
-        alertText = naflPages.join('\u0001');
-      } else {
+        alertText = prayerLinesForRotation.isEmpty
+            ? prayerLine
+            : prayerLinesForRotation.join('\u0001');
+      } else if (prayerLinesForRotation.length <= 1) {
         alertText = naflPages.map((page) => '$prayerLine\n$page').join('\u0001');
+      } else {
+        // একাধিক primary timing line + একাধিক নফল page — দুটোকেই rotation-এ
+        // পালাক্রমে (round-robin) মিলিয়ে দেখানো হচ্ছে, যাতে প্রতিটা
+        // গুরুত্বপূর্ণ তথ্যই একটা না একটা সময় widget-এ দেখা যায়।
+        final combined = <String>[];
+        final maxLen = naflPages.length > prayerLinesForRotation.length
+            ? naflPages.length
+            : prayerLinesForRotation.length;
+        for (var i = 0; i < maxLen; i++) {
+          final line = prayerLinesForRotation[i % prayerLinesForRotation.length];
+          final page = naflPages[i % naflPages.length];
+          combined.add('$line\n$page');
+        }
+        alertText = combined.join('\u0001');
       }
       await HomeWidget.saveWidgetData('widget_alert', alertText);
     } catch (e) { debugPrint('WIDGET ERROR (alert): $e'); }
@@ -764,8 +791,8 @@ class _HomeTabState extends State<_HomeTab> {
           ? 'তাহাজ্জুদের ফজিলত:\n◆ আল্লাহ এ সময় নিচের আকাশে নেমে আসেন: "কে দোয়া করছে? আমি কবুল করব" (বুখারি: ১১৪৫)\n◆ এটি ফরজ ছাড়া সর্বোত্তম নামাজ (মুসলিম: ১১৬৩)\n◆ তাহাজ্জুদ আদায়কারীদের জন্য জান্নাতে বিশেষ মর্যাদা (সূরা সাজদাহ: ১৬-১৭)\n◆ দোয়া কবুলের সবচেয়ে উপযুক্ত সময়'
           : 'Tahajjud Virtues:\n◆ Allah descends to the lowest heaven now: "Who is asking? I will grant" (Bukhari: 1145)\n◆ Best prayer after the obligatory ones (Muslim: 1163)\n◆ Special rank in Jannah for those who pray it (Surah Sajdah: 16-17)\n◆ Most suitable time for dua acceptance', 'color': const Color(0xFF7C4DFF)});
       alerts.add({'icon': '📋', 'text': isBn
-          ? 'তাহাজ্জুদ পড়ার নির্দেশনা:\n◆ কমপক্ষে ২ রাকাত, সামর্থ্য অনুযায়ী বেশি পড়তে পারেন\n◆ প্রতি ২ রাকাত পর সালাম দিন\n◆ দীর্ঘ কিরাত ও ধীরে ধীরে পড়ুন\n◆ সিজদায় বেশি বেশি দোয়া করুন\n◆ "রাতের কিছু অংশে তাহাজ্জুদ পড়বে" (সূরা বনি ইসরাঈল: ৭৯)'
-          : 'How to pray Tahajjud:\n◆ At least 2 rakats, more if able\n◆ Give Salam after every 2 rakats\n◆ Recite slowly with long Qiraat\n◆ Make abundant dua in Sujood\n◆ "Pray Tahajjud at night" (Surah Bani Isra\'il: 79)', 'color': const Color(0xFF7C4DFF)});
+          ? 'তাহাজ্জুদ পড়ার নির্দেশনা:\n◆ কমপক্ষে ২ রাকাত, সামর্থ্য অনুযায়ী বেশি পড়তে পারেন\n◆ রাসূলুল্লাহ ﷺ দুই রাকাত দুই রাকাত করে আদায় করতেন — কখনো ৪, কখনো ৮, কখনো ১২ রাকাত পড়েছেন\n◆ প্রতি ২ রাকাত পর সালাম দিন\n◆ দীর্ঘ কিরাত ও ধীরে ধীরে পড়ুন\n◆ সিজদায় বেশি বেশি দোয়া করুন\n◆ "রাতের কিছু অংশে তাহাজ্জুদ পড়বে" (সূরা বনি ইসরাঈল: ৭৯)'
+          : 'How to pray Tahajjud:\n◆ At least 2 rakats, more if able\n◆ The Prophet ﷺ prayed in sets of 2 rakats — sometimes 4, sometimes 8, sometimes 12 rakats\n◆ Give Salam after every 2 rakats\n◆ Recite slowly with long Qiraat\n◆ Make abundant dua in Sujood\n◆ "Pray Tahajjud at night" (Surah Bani Isra\'il: 79)', 'color': const Color(0xFF7C4DFF)});
     }
 
     // ══ সেহরি / ইফতার countdown ══

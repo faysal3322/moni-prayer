@@ -225,8 +225,8 @@ class NotificationHelper {
       id: id++,
       title: isBn ? '🌙 তাহাজ্জুদের সময় শুরু' : '🌙 Tahajjud time has started',
       body: isBn
-          ? 'এখন রাতের শেষ তৃতীয়াংশ। তাহাজ্জুদ নামাজ পড়ুন — দোয়া কবুলের সর্বোত্তম সময়।'
-          : 'It is now the last third of the night. Pray Tahajjud — the best time for dua to be accepted.',
+          ? 'এখন তাহাজ্জুদের সময় চলছে — তাহাজ্জুদের সালাত আদায় করে নিন। রাসূলুল্লাহ ﷺ দুই রাকাত দুই রাকাত করে আদায় করতেন — কখনো ৪, কখনো ৮, কখনো ১২ রাকাত পড়েছেন। এটাই দোয়া কবুলের সর্বোত্তম সময়।'
+          : 'Tahajjud time has started — perform the Tahajjud prayer. The Prophet ﷺ prayed in sets of 2 rakats — sometimes 4, sometimes 8, sometimes 12. This is the best time for dua to be accepted.',
       scheduledTime: tahajjudStart,
     );
 

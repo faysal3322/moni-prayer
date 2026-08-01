@@ -1150,10 +1150,72 @@ class _HomeTabState extends State<_HomeTab> {
           : '◆ Meet everyone with a smile — it is sadaqah (Amal 65)\n◆ Visit sick Muslim — 70,000 angels make dua (Amal 62)\n◆ Make istighfar for yourself & all believers (Amal 50)\n◆ Give charity daily; care for orphans & widows (Amal 12)\n◆ Attend funerals, enjoin good, forbid evil\n◆ Maintain family ties — increases rizq & lifespan (Amal 29)\n◆ Fulfill rights of parents, spouse, children, relatives & neighbors\n◆ Help with household duties\n◆ Respect elders, honor scholars\n◆ Make dua for Muslims worldwide\n◆ Maintain good character — avoid what causes shame (Amal 66)\n◆ Learn some Quran & hadith daily; keep away from bidah\n◆ Go to mosque to learn/teach deen = full Hajj reward (Amal 36)\n◆ Be patient in hardship; keep heart connected to mosque\n◆ Avoid both miserliness & extravagance', 'color': const Color(0xFF26A69A)});
     }
 
-    // ══ মহৎ আমল (সারাদিন) ══
-    alerts.add({'icon': '🏆', 'text': isBn
-        ? 'মহৎ ফজিলতপূর্ণ আমল:\n◆ সুবহানাল্লাহি ওয়া বিহামদিহি, সুবহানাল্লাহিল আজিম — বলা সহজ, মিজানে ভারী (আমল ৫৬)\n◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে পড়ুন — আসমানের দরজা খোলে (আমল ৬৯)\n◆ সূরা ইখলাস — কুরআনের এক-তৃতীয়াংশের সমান (আমল ৪৯, ৫৮)\n◆ জামাআতে নামাজ — একাকীর চেয়ে ২৭ গুণ বেশি (আমল ৩১)\n◆ নফল নামাজ ঘরে পড়ুন — বেশি সওয়াব (আমল ৩৩)\n◆ সর্বশ্রেষ্ঠ দ্বীন হলো পরহেজগারী ও যা সহজে পালন করা যায়\n◆ আমলে বাড়াবাড়ি বা অবহেলা — দুটোই এড়িয়ে মধ্যপন্থা মেনে চলুন\n◆ নিয়ত ঠিক না হলে আমল মূল্যহীন (আমল ৬৩)\n◆ যৌন-পীড়ায় আক্রান্ত হলে রোজা রাখার মাধ্যমে উপশম খুঁজুন\n◆ খুব বেশি শক্তি-সামর্থ্য থাকলে দাউদী রোজা রাখুন (একদিন পর একদিন)'
-        : 'Most virtuous deeds:\n◆ SubhanAllahi wa bihamdih, SubhanAllahil Azim — easy, heavy in scales (Amal 56)\n◆ Say La ilaha illallah sincerely — heavens open (Amal 69)\n◆ Surah Ikhlas = 1/3 of Quran (Amal 49, 58)\n◆ Pray in congregation — 27x more than alone (Amal 31)\n◆ Pray nafl at home — more reward (Amal 33)\n◆ Best religion is piety & what is easy to maintain\n◆ Avoid extremes in worship — follow the middle path\n◆ Without sincere intention deeds are worthless (Amal 63)\n◆ Struggling with desire: seek relief through fasting\n◆ Dawudi fasting (alternate days) — try if strong enough', 'color': const Color(0xFF26A69A)});
+    // "মহৎ ফজিলতপূর্ণ আমল:" — এই হেডলাইন সরিয়ে ফেলা হয়েছে (ব্যবহারকারীর
+    // অনুরোধ অনুযায়ী), নিচের প্রতিটা আমলের বিষয়বস্তু অক্ষত রেখে
+    // যার যার নির্দিষ্ট সময় অনুযায়ী আলাদা করে দেখানো হচ্ছে।
+
+    // ══ ফজরের পর থেকে সকাল ৮টা, এবং মাগরিবের পর থেকে এশা পর্যন্ত ══
+    if ((now.isAfter(pt.fajr) && now.hour < 8) ||
+        (now.isAfter(pt.maghrib) && now.isBefore(pt.isha))) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ সুবহানাল্লাহি ওয়া বিহামদিহি, সুবহানাল্লাহিল আজিম — বলা সহজ, মিজানে ভারী (আমল ৫৬)'
+          : '◆ SubhanAllahi wa bihamdih, SubhanAllahil Azim — easy, heavy in scales (Amal 56)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ সকাল ১০টা থেকে দুপুর ১২টা ══
+    if (now.hour >= 10 && now.hour < 12) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ লা ইলাহা ইল্লাল্লাহ ইখলাসের সাথে পড়ুন — আসমানের দরজা খোলে (আমল ৬৯)'
+          : '◆ Say La ilaha illallah sincerely — heavens open (Amal 69)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ দুপুর ২টা থেকে বিকাল ৫টা ══
+    if (now.hour >= 14 && now.hour < 17) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ সূরা ইখলাস — কুরআনের এক-তৃতীয়াংশের সমান (আমল ৪৯, ৫৮)'
+          : '◆ Surah Ikhlas = 1/3 of Quran (Amal 49, 58)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতি ওয়াক্ত নামাজের সময় শুরু হওয়ার থেকে ১০ মিনিট ══
+    {
+      final prayerStartsFor31_33 = [pt.fajr, pt.dhuhr, pt.asr, pt.maghrib, pt.isha];
+      final withinTenMinOfPrayerStart31_33 = prayerStartsFor31_33.any(
+        (t) => !now.isBefore(t) && now.isBefore(t.add(const Duration(minutes: 10))),
+      );
+      if (withinTenMinOfPrayerStart31_33) {
+        alerts.add({'icon': '🏆', 'text': isBn
+            ? '◆ জামাআতে নামাজ — একাকীর চেয়ে ২৭ গুণ বেশি (আমল ৩১)\n◆ নফল নামাজ ঘরে পড়ুন — বেশি সওয়াব (আমল ৩৩)'
+            : '◆ Pray in congregation — 27x more than alone (Amal 31)\n◆ Pray nafl at home — more reward (Amal 33)', 'color': const Color(0xFF26A69A)});
+      }
+    }
+
+    // ══ প্রতিদিন সকাল ৯টা থেকে সকাল ১১টা ══
+    if (now.hour >= 9 && now.hour < 11) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ সর্বশ্রেষ্ঠ দ্বীন হলো পরহেজগারী ও যা সহজে পালন করা যায়'
+          : '◆ Best religion is piety & what is easy to maintain', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতিদিন সকাল ৯টা থেকে সকাল ১১:৪৫টা ══
+    if (now.hour >= 9 && (now.hour < 11 || (now.hour == 11 && now.minute < 45))) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ আমলে বাড়াবাড়ি বা অবহেলা — দুটোই এড়িয়ে মধ্যপন্থা মেনে চলুন\n◆ নিয়ত ঠিক না হলে আমল মূল্যহীন (আমল ৬৩)'
+          : '◆ Avoid extremes in worship — follow the middle path\n◆ Without sincere intention deeds are worthless (Amal 63)', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতি সপ্তাহের শনিবার, ফজরের ওয়াক্ত থেকে দুপুর ১২টা পর্যন্ত ══
+    if (now.weekday == DateTime.saturday && now.isAfter(pt.fajr) && now.hour < 12) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ যৌন-পীড়ায় আক্রান্ত হলে রোজা রাখার মাধ্যমে উপশম খুঁজুন'
+          : '◆ Struggling with desire: seek relief through fasting', 'color': const Color(0xFF26A69A)});
+    }
+
+    // ══ প্রতিদিন সকাল ১০টা থেকে দুপুর ১২টা ══
+    if (now.hour >= 10 && now.hour < 12) {
+      alerts.add({'icon': '🏆', 'text': isBn
+          ? '◆ খুব বেশি শক্তি-সামর্থ্য থাকলে দাউদী রোজা রাখুন (একদিন পর একদিন)'
+          : '◆ Dawudi fasting (alternate days) — try if strong enough', 'color': const Color(0xFF26A69A)});
+    }
 
     // ══════════════════════════════════════════════════
     // বাৎসরিক / হিজরি মাস-ভিত্তিক আমল — শুধু প্রাসঙ্গিক মাসে দেখাবে

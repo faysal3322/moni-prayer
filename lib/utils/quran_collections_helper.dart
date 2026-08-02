@@ -99,6 +99,40 @@ class QuranCollectionsHelper {
     });
   }
 
+  /// একটা সম্পূর্ণ সূরার [ayasCount] সংখ্যক আয়াত (১ থেকে [ayasCount]
+  /// পর্যন্ত) একসাথে একটা কালেকশনে যোগ করে — একটা করে addItem কল করার
+  /// বদলে একটাই batch transaction ব্যবহার করা হয়, যাতে বড় সূরাতেও
+  /// (যেমন সূরা বাকারা, ২৮৬ আয়াত) দ্রুত ও নির্ভরযোগ্যভাবে যোগ হয়।
+  /// আগে থেকে যোগ করা আয়াত থাকলে সেগুলো ডুপ্লিকেট না করে বাদ দেওয়া হয়।
+  static Future<void> addFullSurah(int collectionId, int sura, int ayasCount) async {
+    final db = await database;
+    final existingRows = await db.query(
+      'collection_items',
+      columns: ['aya'],
+      where: 'collection_id = ? AND sura = ?',
+      whereArgs: [collectionId, sura],
+    );
+    final existingAyas = existingRows.map((r) => r['aya'] as int).toSet();
+
+    final maxOrderResult = await db.rawQuery(
+      'SELECT MAX(sort_order) as maxOrder FROM collection_items WHERE collection_id = ?',
+      [collectionId],
+    );
+    var nextOrder = ((maxOrderResult.first['maxOrder'] as int?) ?? -1) + 1;
+
+    final batch = db.batch();
+    for (var aya = 1; aya <= ayasCount; aya++) {
+      if (existingAyas.contains(aya)) continue; // ডুপ্লিকেট এড়ানো
+      batch.insert('collection_items', {
+        'collection_id': collectionId,
+        'sura': sura,
+        'aya': aya,
+        'sort_order': nextOrder++,
+      });
+    }
+    await batch.commit(noResult: true);
+  }
+
   static Future<void> removeItem(int itemId) async {
     final db = await database;
     await db.delete('collection_items', where: 'id = ?', whereArgs: [itemId]);

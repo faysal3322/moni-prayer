@@ -297,7 +297,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 left: 16, right: 16, top: 16,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 16,
               ),
-              child: Column(
+              // ফিক্স: আগে এখানে সরাসরি Column বসানো ছিল, স্ক্রল-করার কোনো
+              // ব্যবস্থা ছাড়া। ছোট স্ক্রিনে বা কীবোর্ড খোলা অবস্থায় শিটের
+              // ভেতরের কনটেন্ট (মোড টগল + সূরা নির্বাচন + আয়াত নম্বর ফিল্ড
+              // + বাটন) স্ক্রিনের উপলব্ধ জায়গার চেয়ে বেশি হয়ে গেলে নিচের
+              // "যোগ করুন" বাটন কেটে/ঢাকা পড়ে যেত। এখন SingleChildScrollView
+              // দিয়ে wrap করা হলো, যাতে প্রয়োজনে পুরো শিট স্ক্রল করে নিচের
+              // বাটন পর্যন্ত সবসময় পৌঁছানো যায়।
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -487,6 +495,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ),
                 ],
+              ),
               ),
             );
           },
@@ -711,12 +720,22 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 14),
+                              // ফিক্স: আগে drag handle আইকনটা ছোট (মাত্র
+                              // ২৮dp টাচ-টার্গেট) ছিল এবং ✕ বাটনের ঠিক
+                              // পাশে থাকায় ধরা কঠিন/misclick হতো, যার
+                              // কারণে rearrange করা যাচ্ছিল না মনে হতো।
+                              // এখন হ্যান্ডেলটা বড়, স্পষ্ট ব্যাকগ্রাউন্ড
+                              // সহ, এবং ✕ বাটন থেকে আলাদা করে দেওয়া হলো।
                               ReorderableDragStartListener(
                                 index: index,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: Icon(Icons.drag_handle, color: AppTheme.textSecondary, size: 20),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
                                 ),
                               ),
                             ],

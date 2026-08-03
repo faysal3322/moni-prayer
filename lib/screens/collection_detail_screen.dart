@@ -265,13 +265,37 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   /// সূরা যোগ করার কোনো উপায় ছিল না। এখন শিটের উপরে দুটো মোড আছে —
   /// "নির্দিষ্ট আয়াত" ও "সম্পূর্ণ সূরা", ব্যবহারকারী যেকোনো একটা বেছে
   /// নিয়ে ব্যবহার করতে পারবে।
-  void _showAddVerseSheet() {
+  /// [afterItemId] দেওয়া থাকলে (যেমন কোনো আয়াত কার্ডের ছোট + বাটন থেকে
+  /// আসা কল), শিট সরাসরি সেই আয়াতের পরে যোগ করার জন্য প্রি-সিলেক্ট হয়ে
+  /// খোলে এবং পজিশন ড্রপডাউন লুকানো থাকে (যেহেতু অবস্থান আগেই জানা)।
+  /// FAB থেকে খোলা হলে (afterItemId == null) ব্যবহারকারী নিজে বেছে
+  /// নিতে পারে — "তালিকার শেষে" নাকি "নির্দিষ্ট আয়াতের পরে"।
+  void _showAddVerseSheet({int? afterItemId}) {
     final isBn = widget.lang.isBn;
     bool fullSurahMode = false;
     Map<String, dynamic>? selectedChapter;
     final ayaController = TextEditingController();
     String? errorText;
     bool submitting = false;
+
+    // পজিশন নির্বাচন — শুধু কোনো নির্দিষ্ট আয়াতের কার্ড থেকে না এসে
+    // FAB থেকে খোলা হলে এবং কালেকশনে অন্তত একটা আয়াত থাকলেই দেখানো হয়।
+    final bool showPositionPicker = afterItemId == null && _items.isNotEmpty;
+    // insertAfterId == null মানে "তালিকার শেষে" যোগ হবে।
+    int? insertAfterId = afterItemId;
+
+    String positionLabel(int? itemId) {
+      if (itemId == null) {
+        return isBn ? 'তালিকার শেষে' : 'At the end';
+      }
+      final cached = _ayaCache[itemId];
+      final item = _items.firstWhere((it) => it['id'] == itemId, orElse: () => {});
+      final aya = item['aya'];
+      final suraName = cached?['suraName'] ?? '';
+      return isBn
+          ? '$suraName • আয়াত ${widget.lang.toLocalNum(aya as int? ?? 0)} এর পরে'
+          : '$suraName • after verse $aya';
+    }
 
     showModalBottomSheet(
       context: context,
@@ -385,6 +409,81 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       ],
                     ),
                   ),
+                  if (showPositionPicker) ...[
+                    const SizedBox(height: 14),
+                    InkWell(
+                      onTap: () async {
+                        final chosen = await showModalBottomSheet<int?>(
+                          context: context,
+                          backgroundColor: AppTheme.cardBg,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                          ),
+                          builder: (posContext) {
+                            return SafeArea(
+                              child: ListView(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                children: [
+                                  ListTile(
+                                    title: Text(
+                                      isBn ? 'তালিকার শেষে' : 'At the end',
+                                      style: const TextStyle(color: AppTheme.textPrimary),
+                                    ),
+                                    trailing: insertAfterId == null
+                                        ? const Icon(Icons.check, color: AppTheme.gold)
+                                        : null,
+                                    onTap: () => Navigator.pop(posContext, null),
+                                  ),
+                                  const Divider(color: Colors.white12, height: 1),
+                                  for (final it in _items)
+                                    ListTile(
+                                      title: Text(
+                                        positionLabel(it['id'] as int),
+                                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                                      ),
+                                      trailing: insertAfterId == it['id']
+                                          ? const Icon(Icons.check, color: AppTheme.gold)
+                                          : null,
+                                      onTap: () => Navigator.pop(posContext, it['id'] as int),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                        // চাপার পর কিছুই বাছা না হলে (ব্যাক বাটনে বন্ধ করলে)
+                        // আগের নির্বাচন অপরিবর্তিত থাকবে — তাই আলাদা ফ্ল্যাগ
+                        // ব্যবহার করে "শেষে" স্পষ্টভাবে বেছে নেওয়া বনাম শিট
+                        // বন্ধ করার মধ্যে পার্থক্য করা হচ্ছে না, কারণ চাপার
+                        // ফলাফল সবসময়ই একটা বৈধ নির্বাচন (Navigator.pop এর
+                        // মাধ্যমে explicit মান দিয়ে করা হয়)।
+                        if (context.mounted) {
+                          setSheetState(() => insertAfterId = chosen);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: isBn ? 'কোথায় যোগ হবে' : 'Insert position',
+                          labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                          suffixIcon: const Icon(Icons.expand_more, color: AppTheme.textSecondary),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppTheme.accent),
+                          ),
+                        ),
+                        child: Text(
+                          positionLabel(insertAfterId),
+                          style: const TextStyle(color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   // সূরা নির্বাচন — এখন সার্চযোগ্য bottom sheet খোলে (আগে
                   // ছিল plain dropdown, স্ক্রল করে ১১৪টা সূরা খুঁজতে হতো)
@@ -469,9 +568,25 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                               final sura = selectedChapter!['sura'] as int;
                               final maxAya = selectedChapter!['ayas_count'] as int? ?? 0;
 
+                              // "শেষে" মোডে থাকলে (insertAfterId == null এবং
+                              // showPositionPicker ব্যবহারই হয়নি) পুরোনো
+                              // দ্রুত addFullSurah/addItem পথ ব্যবহার হয়।
+                              // নির্দিষ্ট আয়াতের পরে যোগ করতে হলে
+                              // insertItemAfter ব্যবহার হয়।
+                              final bool insertAtPosition = insertAfterId != null;
+
                               if (fullSurahMode) {
                                 setSheetState(() => submitting = true);
-                                await QuranCollectionsHelper.addFullSurah(widget.collectionId, sura, maxAya);
+                                if (insertAtPosition) {
+                                  await QuranCollectionsHelper.insertFullSurahAfter(
+                                    widget.collectionId,
+                                    sura,
+                                    maxAya,
+                                    afterItemId: insertAfterId,
+                                  );
+                                } else {
+                                  await QuranCollectionsHelper.addFullSurah(widget.collectionId, sura, maxAya);
+                                }
                                 if (context.mounted) Navigator.pop(sheetContext);
                                 _load();
                                 return;
@@ -488,7 +603,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                     : 'This surah has only $maxAya verses');
                                 return;
                               }
-                              await QuranCollectionsHelper.addItem(widget.collectionId, sura, ayaNum);
+                              if (insertAtPosition) {
+                                await QuranCollectionsHelper.insertItemAfter(
+                                  widget.collectionId,
+                                  sura,
+                                  ayaNum,
+                                  afterItemId: insertAfterId,
+                                );
+                              } else {
+                                await QuranCollectionsHelper.addItem(widget.collectionId, sura, ayaNum);
+                              }
                               if (context.mounted) Navigator.pop(sheetContext);
                               _load();
                             },
@@ -650,7 +774,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddVerseSheet,
+        onPressed: () => _showAddVerseSheet(),
         backgroundColor: AppTheme.gold,
         child: const Icon(Icons.add, color: Colors.black),
       ),
@@ -725,6 +849,18 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                   style: const TextStyle(color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               ),
+                              // এই আয়াতের ঠিক পরে নতুন আয়াত যোগ করার শর্টকাট —
+                              // যেমন ৯ নং আয়াতের কার্ডে চাপলে ১০ নং অবস্থানে
+                              // (৯ এর পরে, আগের ১০ নং যা ছিল তার আগে) বসবে।
+                              InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => _showAddVerseSheet(afterItemId: itemId),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(2),
+                                  child: Icon(Icons.add_circle_outline, color: AppTheme.textSecondary, size: 20),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
                               IconButton(
                                 icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
                                 onPressed: () => _removeItem(itemId),
@@ -753,18 +889,24 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                               // ভঙ্গিতে) ড্র্যাগ শুরু করে, যা ListView-এর
                               // ভার্টিক্যাল স্ক্রল জেসচারের সাথে সংঘর্ষ করে
                               // ড্র্যাগ বাতিল হয়ে যাওয়ার সম্ভাবনা কমায়।
+                              // ফিক্স: InkWell/onTap নিজেই একটা tap-recognizer
+                              // যেটা ReorderableDelayedDragStartListener-এর
+                              // long-press-ধরনের drag recognizer-এর সাথে
+                              // gesture arena-তে প্রতিযোগিতা করে — এবং প্রায়ই
+                              // tap জিতে যাওয়ায় ড্র্যাগ শুরুই হতো না (এই কারণেই
+                              // rearrange কাজ করছিল না)। এখন InkWell/onTap বাদ
+                              // দিয়ে শুধু Material (visual splash-এর জন্য) রাখা
+                              // হলো — এতে হিট-টেস্টিং ও visual feedback ঠিক
+                              // থাকে, কিন্তু কোনো প্রতিযোগী tap recognizer থাকে
+                              // না, ফলে drag recognizer বিনা বাধায় কাজ করে।
                               ReorderableDelayedDragStartListener(
                                 index: index,
                                 child: Material(
                                   color: Colors.white.withOpacity(0.06),
                                   borderRadius: BorderRadius.circular(8),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(8),
-                                    onTap: () {}, // ট্যাপযোগ্য রাখার জন্য (হিট-টেস্ট নিশ্চিত করতে), আসল কাজ ড্র্যাগেই হয়
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
-                                    ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
                                   ),
                                 ),
                               ),

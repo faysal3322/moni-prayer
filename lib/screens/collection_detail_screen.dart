@@ -29,7 +29,9 @@ Future<Map<String, dynamic>?> showSearchableSurahPicker({
     builder: (sheetContext) {
       return Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
-        child: SizedBox(
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
           height: MediaQuery.of(sheetContext).size.height * 0.75,
           child: Column(
             children: [
@@ -113,6 +115,7 @@ Future<Map<String, dynamic>?> showSearchableSurahPicker({
               ),
             ],
           ),
+        ),
         ),
       );
     },
@@ -292,10 +295,18 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               }
             }
 
+            final bottomSafeArea = MediaQuery.of(context).padding.bottom;
+            final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
             return Padding(
               padding: EdgeInsets.only(
                 left: 16, right: 16, top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                // ফিক্স: আগে শুধু viewInsets.bottom (কীবোর্ড ইনসেট) যোগ করা
+                // হতো, কিন্তু ফোনের নিচের সিস্টেম নেভিগেশন বার/জেসচার-বার
+                // এর padding (MediaQuery.padding.bottom) হিসাবে ধরা হতো না।
+                // ফলে "যোগ করুন" বাটন নেভিগেশন বার দিয়ে আংশিক ঢাকা পড়ে
+                // যেত (কীবোর্ড বন্ধ থাকা অবস্থাতেও)। এখন দুটোই যোগ করা
+                // হচ্ছে, যেটাই বড় হোক না কেন।
+                bottom: (keyboardInset > bottomSafeArea ? keyboardInset : bottomSafeArea) + 16,
               ),
               // ফিক্স: আগে এখানে সরাসরি Column বসানো ছিল, স্ক্রল-করার কোনো
               // ব্যবস্থা ছাড়া। ছোট স্ক্রিনে বা কীবোর্ড খোলা অবস্থায় শিটের
@@ -727,15 +738,34 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                               // কারণে rearrange করা যাচ্ছিল না মনে হতো।
                               // এখন হ্যান্ডেলটা বড়, স্পষ্ট ব্যাকগ্রাউন্ড
                               // সহ, এবং ✕ বাটন থেকে আলাদা করে দেওয়া হলো।
-                              ReorderableDragStartListener(
+                              // ফিক্স: ReorderableDragStartListener-এর child
+                              // আগে একটা প্লেইন Container ছিল, যেটা কোনো
+                              // Material/InkWell ছাড়াই gesture arena-তে
+                              // ঠিকভাবে অংশ নিচ্ছিল না — ফলে ট্যাপ করলেও
+                              // ড্র্যাগ শুরু হচ্ছিল না। এখন Material+InkWell
+                              // দিয়ে wrap করে দেওয়া হলো (Flutter-এর
+                              // ReorderableListView ডকুমেন্টেশনে সুপারিশ
+                              // করা প্যাটার্ন), যাতে হিট-টেস্টিং ও পয়েন্টার
+                              // ইভেন্ট ঠিকভাবে ধরা পড়ে। এছাড়া সাধারণ
+                              // ReorderableDragStartListener-এর বদলে
+                              // ReorderableDelayedDragStartListener ব্যবহার
+                              // করা হচ্ছে — এটা সামান্য চেপে ধরে (long-press
+                              // ভঙ্গিতে) ড্র্যাগ শুরু করে, যা ListView-এর
+                              // ভার্টিক্যাল স্ক্রল জেসচারের সাথে সংঘর্ষ করে
+                              // ড্র্যাগ বাতিল হয়ে যাওয়ার সম্ভাবনা কমায়।
+                              ReorderableDelayedDragStartListener(
                                 index: index,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.06),
+                                child: Material(
+                                  color: Colors.white.withOpacity(0.06),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: InkWell(
                                     borderRadius: BorderRadius.circular(8),
+                                    onTap: () {}, // ট্যাপযোগ্য রাখার জন্য (হিট-টেস্ট নিশ্চিত করতে), আসল কাজ ড্র্যাগেই হয়
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
+                                    ),
                                   ),
-                                  child: const Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
                                 ),
                               ),
                             ],

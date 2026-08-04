@@ -229,6 +229,11 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     QuranAudioHelper.activeSession.removeListener(_onActiveSessionChanged);
+    // স্ক্রিন থেকে বের হওয়ার সময়ও একবার সর্বশেষ পঠিত অবস্থান সেভ করা
+    // হচ্ছে — এতে ব্যবহারকারী স্ক্রল না করে (শুধু প্রথম আয়াত দেখে) স্ক্রিন
+    // থেকে বের হয়ে গেলেও অন্তত এই সূরার শুরুটা "সর্বশেষ পড়া" হিসেবে
+    // সংরক্ষিত থাকে।
+    _saveCurrentPositionAsLastRead();
     _scrollController.dispose();
     // স্ক্রিন থেকে বের হলেও সূরা প্লে ব্যাকগ্রাউন্ডে চলতে থাকবে (lock screen
     // এও যেমন চলে) — তাই এখানে ইচ্ছাকৃতভাবে audio বন্ধ করা হয় না।
@@ -252,7 +257,44 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     } else if (notification.direction == ScrollDirection.forward && !_bottomBarVisible) {
       setState(() => _bottomBarVisible = true);
     }
+    // "সর্বশেষ পঠিত অবস্থান" সেভ — স্ক্রল থামলেই (ScrollEndNotification নয়,
+    // UserScrollNotification.idle) বর্তমানে দৃশ্যমান প্রথম আয়াতটা বের করে
+    // সংরক্ষণ করা হয়। প্রতিটা স্ক্রল ফ্রেমে না করে শুধু থামার সময় করা
+    // হচ্ছে যাতে অহেতুক বারবার SharedPreferences write না হয়।
+    if (notification.direction == ScrollDirection.idle) {
+      _saveCurrentPositionAsLastRead();
+    }
     return false;
+  }
+
+  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতটা বের করে
+  /// "সর্বশেষ পঠিত অবস্থান" হিসেবে সংরক্ষণ করে। _ayaKeys-এর প্রতিটা
+  /// GlobalKey-এর RenderBox থেকে স্ক্রিনের উপরের কিনারার সাপেক্ষে
+  /// অবস্থান (dy) দেখে সবচেয়ে কাছেরটা (কিন্তু উপরের কিনারার নিচে/সমান)
+  /// বেছে নেওয়া হয়।
+  void _saveCurrentPositionAsLastRead() {
+    if (_ayat.isEmpty) return;
+    int? bestIndex;
+    double bestDy = double.infinity;
+    for (var i = 0; i < _ayaKeys.length; i++) {
+      final ctx = _ayaKeys[i].currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) continue;
+      final dy = box.localToGlobal(Offset.zero).dy;
+      // স্ক্রিনের উপরের অংশের (AppBar-এর নিচ থেকে) কাছাকাছি বা তার একটু
+      // নিচে থাকা প্রথম আয়াতটাই "এখন যা পড়া হচ্ছে" হিসেবে ধরা হচ্ছে।
+      if (dy >= -50 && dy < bestDy) {
+        bestDy = dy;
+        bestIndex = i;
+      }
+    }
+    if (bestIndex != null && bestIndex < _ayat.length) {
+      final ayaNumber = _ayat[bestIndex]['aya'] as int?;
+      if (ayaNumber != null) {
+        QuranPrefs.setLastRead(widget.sura, ayaNumber);
+      }
+    }
   }
 
   Future<void> _loadPrefs() async {

@@ -651,12 +651,25 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     _load();
   }
 
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) newIndex -= 1;
-    if (oldIndex < 0 || oldIndex >= _items.length) return;
+  /// [index] নম্বর আইটেমটাকে এক ধাপ উপরে সরায়। প্রথম আইটেম হলে কিছু করে না।
+  /// UI-তে সাথে সাথে আপডেট দেখানোর জন্য আগে লোকাল লিস্ট বদলানো হয় (setState),
+  /// তারপর ডাটাবেসে নতুন sort_order সংরক্ষণ করা হয়।
+  Future<void> _moveUp(int index) async {
+    if (index <= 0 || index >= _items.length) return;
     setState(() {
-      final item = _items.removeAt(oldIndex);
-      _items.insert(newIndex, item);
+      final item = _items.removeAt(index);
+      _items.insert(index - 1, item);
+    });
+    final orderedIds = _items.map((e) => e['id'] as int).toList();
+    await QuranCollectionsHelper.reorderItems(orderedIds);
+  }
+
+  /// [index] নম্বর আইটেমটাকে এক ধাপ নিচে সরায়। শেষ আইটেম হলে কিছু করে না।
+  Future<void> _moveDown(int index) async {
+    if (index < 0 || index >= _items.length - 1) return;
+    setState(() {
+      final item = _items.removeAt(index);
+      _items.insert(index + 1, item);
     });
     final orderedIds = _items.map((e) => e['id'] as int).toList();
     await QuranCollectionsHelper.reorderItems(orderedIds);
@@ -793,16 +806,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ),
                 )
-              : ReorderableListView.builder(
+              : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
                   itemCount: _items.length,
-                  onReorder: _onReorder,
-                  // ডিফল্ট হ্যান্ডেল বন্ধ — এটা চালু থাকলে পুরো কার্ডের (আরবি টেক্সট
-                  // সহ) যেকোনো জায়গা থেকে ড্র্যাগ শুরু হতে পারত, যেটা টেক্সট
-                  // সিলেকশন/স্ক্রল জেসচারের সাথে সংঘর্ষ করে ড্র্যাগ মাঝপথে বাতিল
-                  // করে দিত এবং আইটেম আগের জায়গায় ফিরে যেত। এখন শুধু নিচের
-                  // drag_handle আইকন থেকেই ড্র্যাগ শুরু করা যাবে।
-                  buildDefaultDragHandles: false,
                   itemBuilder: (context, index) {
                     final item = _items[index];
                     final itemId = item['id'] as int;
@@ -868,45 +874,35 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 constraints: const BoxConstraints(),
                               ),
                               const SizedBox(width: 14),
-                              // ফিক্স: আগে drag handle আইকনটা ছোট (মাত্র
-                              // ২৮dp টাচ-টার্গেট) ছিল এবং ✕ বাটনের ঠিক
-                              // পাশে থাকায় ধরা কঠিন/misclick হতো, যার
-                              // কারণে rearrange করা যাচ্ছিল না মনে হতো।
-                              // এখন হ্যান্ডেলটা বড়, স্পষ্ট ব্যাকগ্রাউন্ড
-                              // সহ, এবং ✕ বাটন থেকে আলাদা করে দেওয়া হলো।
-                              // ফিক্স: ReorderableDragStartListener-এর child
-                              // আগে একটা প্লেইন Container ছিল, যেটা কোনো
-                              // Material/InkWell ছাড়াই gesture arena-তে
-                              // ঠিকভাবে অংশ নিচ্ছিল না — ফলে ট্যাপ করলেও
-                              // ড্র্যাগ শুরু হচ্ছিল না। এখন Material+InkWell
-                              // দিয়ে wrap করে দেওয়া হলো (Flutter-এর
-                              // ReorderableListView ডকুমেন্টেশনে সুপারিশ
-                              // করা প্যাটার্ন), যাতে হিট-টেস্টিং ও পয়েন্টার
-                              // ইভেন্ট ঠিকভাবে ধরা পড়ে। এছাড়া সাধারণ
-                              // ReorderableDragStartListener-এর বদলে
-                              // ReorderableDelayedDragStartListener ব্যবহার
-                              // করা হচ্ছে — এটা সামান্য চেপে ধরে (long-press
-                              // ভঙ্গিতে) ড্র্যাগ শুরু করে, যা ListView-এর
-                              // ভার্টিক্যাল স্ক্রল জেসচারের সাথে সংঘর্ষ করে
-                              // ড্র্যাগ বাতিল হয়ে যাওয়ার সম্ভাবনা কমায়।
-                              // ফিক্স: InkWell/onTap নিজেই একটা tap-recognizer
-                              // যেটা ReorderableDelayedDragStartListener-এর
-                              // long-press-ধরনের drag recognizer-এর সাথে
-                              // gesture arena-তে প্রতিযোগিতা করে — এবং প্রায়ই
-                              // tap জিতে যাওয়ায় ড্র্যাগ শুরুই হতো না (এই কারণেই
-                              // rearrange কাজ করছিল না)। এখন InkWell/onTap বাদ
-                              // দিয়ে শুধু Material (visual splash-এর জন্য) রাখা
-                              // হলো — এতে হিট-টেস্টিং ও visual feedback ঠিক
-                              // থাকে, কিন্তু কোনো প্রতিযোগী tap recognizer থাকে
-                              // না, ফলে drag recognizer বিনা বাধায় কাজ করে।
-                              ReorderableDelayedDragStartListener(
-                                index: index,
-                                child: Material(
-                                  color: Colors.white.withOpacity(0.06),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Icon(Icons.drag_indicator, color: AppTheme.gold, size: 22),
+                              // ফিক্স: আগে ড্র্যাগ-করে সরানোর (ReorderableListView)
+                              // ব্যবস্থা ছিল, কিন্তু বিভিন্ন ডিভাইসে/জেসচারে এটা
+                              // অনির্ভরযোগ্য প্রমাণিত হয়েছে — ড্র্যাগ প্রায়ই শুরুই
+                              // হতো না বা মাঝপথে বাতিল হয়ে যেত। তার বদলে এখন
+                              // সাধারণ ⬆ ⬇ বাটন — এক ট্যাপে এক ধাপ উপরে/নিচে সরে,
+                              // যা মোবাইলে সবসময় নির্ভরযোগ্যভাবে কাজ করে।
+                              InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: index == 0 ? null : () => _moveUp(index),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_up,
+                                    color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: index == _items.length - 1 ? null : () => _moveDown(index),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color: index == _items.length - 1
+                                        ? AppTheme.textSecondary.withOpacity(0.3)
+                                        : AppTheme.gold,
+                                    size: 22,
                                   ),
                                 ),
                               ),

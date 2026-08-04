@@ -261,6 +261,65 @@ class QuranCollectionsHelper {
     await renumberBatch.commit(noResult: true);
   }
 
+  /// ব্যাকআপের জন্য সব কালেকশন ও তাদের আইটেম একসাথে বের করে আনে।
+  /// প্রতিটা কালেকশনের ভেতরে তার নিজস্ব আইটেমগুলো (sura, aya, sort_order)
+  /// নেস্টেড আকারে থাকে, যাতে রিস্টোরের সময় collection_id নতুন করে বসাতে
+  /// সুবিধা হয় (পুরনো ডিভাইসের auto-increment id নতুন ডিভাইসে মিলবে না)।
+  static Future<List<Map<String, dynamic>>> exportAllCollections() async {
+    final db = await database;
+    final collections = await db.query('collections', orderBy: 'created_at DESC');
+    final result = <Map<String, dynamic>>[];
+    for (final c in collections) {
+      final items = await db.query(
+        'collection_items',
+        where: 'collection_id = ?',
+        whereArgs: [c['id']],
+        orderBy: 'sort_order ASC',
+      );
+      result.add({
+        'name': c['name'],
+        'created_at': c['created_at'],
+        'items': items
+            .map((it) => {
+                  'sura': it['sura'],
+                  'aya': it['aya'],
+                  'sort_order': it['sort_order'],
+                })
+            .toList(),
+      });
+    }
+    return result;
+  }
+
+  /// ব্যাকআপ থেকে কালেকশন পুনরুদ্ধার করে। আগে থেকে থাকা সব কালেকশন ও
+  /// আইটেম মুছে ফেলে ব্যাকআপের ডেটা দিয়ে প্রতিস্থাপন করা হয় (পুরনো id
+  /// নির্ভরতা এড়াতে প্রতিটা কালেকশন নতুন করে insert করে তার নতুন id
+  /// দিয়ে আইটেম যুক্ত করা হয়)।
+  static Future<void> importAllCollections(List<dynamic> data) async {
+    final db = await database;
+    await db.delete('collection_items');
+    await db.delete('collections');
+    for (final c in data) {
+      final map = Map<String, dynamic>.from(c as Map);
+      final newId = await db.insert('collections', {
+        'name': map['name'],
+        'created_at': map['created_at'],
+      });
+      final items = (map['items'] as List?) ?? [];
+      final batch = db.batch();
+      for (final it in items) {
+        final itemMap = Map<String, dynamic>.from(it as Map);
+        batch.insert('collection_items', {
+          'collection_id': newId,
+          'sura': itemMap['sura'],
+          'aya': itemMap['aya'],
+          'sort_order': itemMap['sort_order'],
+        });
+      }
+      await batch.commit(noResult: true);
+    }
+  }
+
   static Future<void> removeItem(int itemId) async {
     final db = await database;
     await db.delete('collection_items', where: 'id = ?', whereArgs: [itemId]);

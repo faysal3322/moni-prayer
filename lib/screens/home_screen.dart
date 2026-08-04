@@ -18,6 +18,7 @@ import 'names_screen.dart';
 import 'nafl_screen.dart';
 import 'dua_screen.dart';
 import 'quran_screen.dart';
+import 'zakat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -145,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
       QuranScreen(lang: lang),
       DuaScreen(lang: lang),
       NamesScreen(lang: lang),
+      ZakatScreen(lang: lang),
     ];
 
     return WillPopScope(
@@ -181,6 +183,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.star_outline),
                 selectedIcon: const Icon(Icons.star),
                 label: isBn ? '৯৯ নাম' : '99 Names'),
+            NavigationDestination(
+                icon: const Icon(Icons.volunteer_activism_outlined),
+                selectedIcon: const Icon(Icons.volunteer_activism),
+                label: isBn ? 'যাকাত' : 'Zakat'),
           ],
         ),
       ),

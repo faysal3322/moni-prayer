@@ -878,33 +878,46 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                               // ব্যবস্থা ছিল, কিন্তু বিভিন্ন ডিভাইসে/জেসচারে এটা
                               // অনির্ভরযোগ্য প্রমাণিত হয়েছে — ড্র্যাগ প্রায়ই শুরুই
                               // হতো না বা মাঝপথে বাতিল হয়ে যেত। তার বদলে এখন
-                              // সাধারণ ⬆ ⬇ বাটন — এক ট্যাপে এক ধাপ উপরে/নিচে সরে,
-                              // যা মোবাইলে সবসময় নির্ভরযোগ্যভাবে কাজ করে।
-                              InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: index == 0 ? null : () => _moveUp(index),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.keyboard_arrow_up,
-                                    color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
-                                    size: 22,
+                              // সাধারণ ⬆ ⬇ বাটন।
+                              // ফিক্স: InkWell-কে সরাসরি Container-এর ভেতরে
+                              // (কোনো Material widget ছাড়া) বসানো হয়েছিল —
+                              // InkWell সবসময় Material widget-এর descendant
+                              // হতে হয়, নাহলে splash/hit-test ঠিকভাবে কাজ
+                              // করে না। এখানে পুরো কার্ডের জন্যই কোনো Material
+                              // ছিল না, ফলে বাটনে ট্যাপ করলেও কিছুই ঘটছিল না।
+                              // এখন GestureDetector + সরাসরি hitTestBehavior
+                              // ব্যবহার করা হলো, যেটা Material-নির্ভর নয় এবং
+                              // যেকোনো widget-tree-তে নির্ভরযোগ্যভাবে কাজ করে।
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: index == 0 ? null : () => _moveUp(index),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      child: Icon(
+                                        Icons.keyboard_arrow_up,
+                                        color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
+                                        size: 24,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: index == _items.length - 1 ? null : () => _moveDown(index),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color: index == _items.length - 1
-                                        ? AppTheme.textSecondary.withOpacity(0.3)
-                                        : AppTheme.gold,
-                                    size: 22,
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: index == _items.length - 1 ? null : () => _moveDown(index),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      child: Icon(
+                                        Icons.keyboard_arrow_down,
+                                        color: index == _items.length - 1
+                                            ? AppTheme.textSecondary.withOpacity(0.3)
+                                            : AppTheme.gold,
+                                        size: 24,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),

@@ -3,6 +3,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
 import '../utils/quran_collections_helper.dart';
+import '../utils/quran_prefs.dart';
 import 'surah_detail_screen.dart';
 import 'juz_detail_screen.dart';
 import 'collection_detail_screen.dart';
@@ -90,6 +91,42 @@ class _SuraTabState extends State<_SuraTab> {
   bool _loading = true;
   String _error = '';
   final TextEditingController _searchController = TextEditingController();
+  // "সর্বশেষ পঠিত অবস্থান" — সূরা নম্বর, আয়াত নম্বর, এবং সূরার নাম
+  // (কার্ডে দেখানোর জন্য)। কোনো ডেটা না থাকলে null।
+  Map<String, dynamic>? _lastRead;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChapters();
+    _loadLastRead();
+  }
+
+  /// এই ট্যাব আবার visible/rebuild হলে (যেমন সূরা পড়ে ফিরে এলে) সর্বশেষ
+  /// পঠিত অবস্থান নতুন করে লোড করা হয়, যাতে কার্ডটা আপ-টু-ডেট থাকে।
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadLastRead();
+  }
+
+  Future<void> _loadLastRead() async {
+    final lastRead = await QuranPrefs.getLastRead();
+    if (lastRead == null || !mounted) {
+      if (mounted) setState(() => _lastRead = null);
+      return;
+    }
+    final chapter = await QuranDatabaseHelper.getChapter(lastRead['sura']!);
+    if (!mounted) return;
+    setState(() {
+      _lastRead = {
+        'sura': lastRead['sura'],
+        'aya': lastRead['aya'],
+        'name': chapter?['name_transliteration'] ?? '',
+        'nameArabic': chapter?['name_arabic'] ?? '',
+      };
+    });
+  }
 
   @override
   void initState() {
@@ -176,6 +213,69 @@ class _SuraTabState extends State<_SuraTab> {
             ),
           ),
         ),
+        // "সর্বশেষ পঠিত অবস্থান" কার্ড — সার্চ চলাকালীন (যখন তালিকা
+        // ফিল্টার করা থাকে) দেখানো হয় না, শুধু পুরো সূরা তালিকা দেখা
+        // অবস্থায় সবার উপরে দেখানো হয়।
+        if (_lastRead != null && _searchController.text.trim().isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                  settings: const RouteSettings(name: kSurahDetailRouteName),
+                  builder: (_) => SurahDetailScreen(
+                    lang: widget.lang,
+                    sura: _lastRead!['sura'] as int,
+                    jumpToAyaNumber: _lastRead!['aya'] as int,
+                  ),
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.gold.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.gold.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bookmark, color: AppTheme.gold, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isBn ? 'সর্বশেষ পঠিত অবস্থান' : 'Last read position',
+                            style: const TextStyle(
+                              color: AppTheme.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_lastRead!['name']} (${widget.lang.toLocalNum(_lastRead!['aya'] as int)})',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _lastRead!['nameArabic'] as String? ?? '',
+                      style: const TextStyle(
+                        color: AppTheme.gold,
+                        fontSize: 20,
+                        fontFamily: 'ScheherazadeNew',
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))

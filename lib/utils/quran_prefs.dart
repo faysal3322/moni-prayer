@@ -8,6 +8,7 @@ class QuranPrefs {
   static const _keyShowTransliteration = 'quran_show_transliteration';
   static const _keyFontSize = 'quran_font_size';
   static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
+  static const _keyPlaybackSpeed = 'quran_playback_speed';
   static const _keyLastReadSura = 'quran_last_read_sura';
   static const _keyLastReadAya = 'quran_last_read_aya';
 

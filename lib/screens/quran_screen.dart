@@ -129,12 +129,6 @@ class _SuraTabState extends State<_SuraTab> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _loadChapters();
-  }
-
-  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();

@@ -8,7 +8,8 @@ class QuranPrefs {
   static const _keyShowTransliteration = 'quran_show_transliteration';
   static const _keyFontSize = 'quran_font_size';
   static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
-  static const _keyPlaybackSpeed = 'quran_playback_speed';
+  static const _keyLastReadSura = 'quran_last_read_sura';
+  static const _keyLastReadAya = 'quran_last_read_aya';
 
   // Default: Arabic on, English transliteration off, Bangla text off
   // (ব্যবহারকারীর অনুরোধে ইংরেজি উচ্চারণ এখন ডিফল্টে বন্ধ থাকে — আগে
@@ -79,9 +80,28 @@ class QuranPrefs {
     await prefs.setDouble(_keyPlaybackSpeed, value);
   }
 
+  /// সর্বশেষ পঠিত অবস্থান (last read position) সেভ করে — কোরআন সূরা তালিকার
+  /// উপরে একটা কার্ড হিসেবে দেখানো হয়, যেটাতে চাপলে সরাসরি এই সূরা+আয়াতে
+  /// ফিরে যাওয়া যায় (অনেক কোরআন অ্যাপে পরিচিত একটা ফিচার)।
+  static Future<void> setLastRead(int sura, int aya) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyLastReadSura, sura);
+    await prefs.setInt(_keyLastReadAya, aya);
+  }
+
+  /// সর্বশেষ পঠিত অবস্থান ফেরত দেয় — এখনো কিছু পড়া না হলে null।
+  static Future<Map<String, int>?> getLastRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sura = prefs.getInt(_keyLastReadSura);
+    final aya = prefs.getInt(_keyLastReadAya);
+    if (sura == null || aya == null) return null;
+    return {'sura': sura, 'aya': aya};
+  }
+
   /// ব্যাকআপের জন্য কোরআন সেকশনের সব সেটিংস (ভাষা টগল, ফন্ট সাইজ,
   /// ভিউ মোড, প্লেব্যাক স্পিড) একসাথে বের করে আনে।
   static Future<Map<String, dynamic>> exportPrefs() async {
+    final lastRead = await getLastRead();
     return {
       'show_arabic': await getShowArabic(),
       'show_bangla': await getShowBangla(),
@@ -89,6 +109,8 @@ class QuranPrefs {
       'font_size': await getFontSize(),
       'view_mode': await getViewMode(),
       'playback_speed': await getPlaybackSpeed(),
+      if (lastRead != null) 'last_read_sura': lastRead['sura'],
+      if (lastRead != null) 'last_read_aya': lastRead['aya'],
     };
   }
 
@@ -104,6 +126,12 @@ class QuranPrefs {
     if (data['view_mode'] != null) await setViewMode(data['view_mode'] as String);
     if (data['playback_speed'] != null) {
       await setPlaybackSpeed((data['playback_speed'] as num).toDouble());
+    }
+    if (data['last_read_sura'] != null && data['last_read_aya'] != null) {
+      await setLastRead(
+        (data['last_read_sura'] as num).toInt(),
+        (data['last_read_aya'] as num).toInt(),
+      );
     }
   }
 }

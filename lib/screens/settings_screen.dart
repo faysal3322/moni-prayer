@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/database_helper.dart';
+import '../utils/quran_collections_helper.dart';
+import '../utils/quran_prefs.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -95,6 +97,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final prefs = await SharedPreferences.getInstance();
       data['user_name'] = prefs.getString('user_name') ?? 'FAYSAL';
       data['language'] = prefs.getString('language') ?? 'bn';
+      // কোরআন কালেকশন ("আমার কোরআন") ও কোরআন সেকশনের সেটিংস (ভাষা টগল,
+      // ফন্ট সাইজ ইত্যাদি) এখন এই একই ব্যাকআপ ফাইলে যুক্ত হচ্ছে, যাতে
+      // অ্যাপ uninstall/reinstall করলে ব্যবহারকারীর সাজানো আয়াতের
+      // সংগ্রহ ও পছন্দগুলো একটামাত্র ফাইল দিয়েই ফিরে পাওয়া যায়।
+      data['quran_collections'] = await QuranCollectionsHelper.exportAllCollections();
+      data['quran_prefs'] = await QuranPrefs.exportPrefs();
       final now = DateTime.now();
       final fileName =
           'moni_prayer_backup_${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}.json';
@@ -156,6 +164,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final prefs = await SharedPreferences.getInstance();
       if (json['user_name'] != null) await prefs.setString('user_name', json['user_name']);
       if (json['language'] != null) await prefs.setString('language', json['language']);
+      // কোরআন কালেকশন ও কোরআন সেকশন সেটিংস — পুরনো ব্যাকআপ ফাইলে (এই
+      // ফিচার যোগ হওয়ার আগে তৈরি) এই key দুটো নাও থাকতে পারে, তাই null
+      // চেক করে নিরাপদে skip করা হচ্ছে যাতে পুরনো ব্যাকআপ রিস্টোর করতে
+      // গিয়ে error না হয়।
+      if (json['quran_collections'] != null) {
+        await QuranCollectionsHelper.importAllCollections(json['quran_collections'] as List);
+      }
+      if (json['quran_prefs'] != null) {
+        await QuranPrefs.importPrefs(Map<String, dynamic>.from(json['quran_prefs'] as Map));
+      }
       widget.onChanged();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(widget.lang.isBn ? 'রিস্টোর সম্পন্ন' : 'Restore complete'),
@@ -257,8 +275,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             isBn
-                ? 'আপনার সমস্ত ডেটা Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
-                : 'Save your data as a JSON file in your Download folder, or restore from one.',
+                ? 'আপনার সমস্ত ডেটা (নামাজ, রোজা, আমার কোরআন কালেকশন ও কোরআন সেটিংস সহ) Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
+                : 'Save all your data (prayers, roza, My Quran collections, and Quran settings) as a JSON file in your Download folder, or restore from one.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 12),

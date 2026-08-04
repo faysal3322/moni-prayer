@@ -654,7 +654,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   /// [index] নম্বর আইটেমটাকে এক ধাপ উপরে সরায়। প্রথম আইটেম হলে কিছু করে না।
   /// UI-তে সাথে সাথে আপডেট দেখানোর জন্য আগে লোকাল লিস্ট বদলানো হয় (setState),
   /// তারপর ডাটাবেসে নতুন sort_order সংরক্ষণ করা হয়।
+  /// ডিবাগ: সমস্যা নির্ণয়ের জন্য সাময়িকভাবে একটা SnackBar যোগ করা হলো —
+  /// এটা দেখাবে বাটনের onTap আদৌ কল হচ্ছে কিনা এবং index/আইটেম সংখ্যা কী।
+  /// সমস্যা ধরা পড়ার পর এই SnackBar লাইনগুলো সরিয়ে ফেলা হবে।
   Future<void> _moveUp(int index) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('moveUp চাপা হয়েছে: index=$index, মোট=${_items.length}'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
     if (index <= 0 || index >= _items.length) return;
     setState(() {
       final item = _items.removeAt(index);
@@ -666,6 +675,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   /// [index] নম্বর আইটেমটাকে এক ধাপ নিচে সরায়। শেষ আইটেম হলে কিছু করে না।
   Future<void> _moveDown(int index) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('moveDown চাপা হয়েছে: index=$index, মোট=${_items.length}'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
     if (index < 0 || index >= _items.length - 1) return;
     setState(() {
       final item = _items.removeAt(index);

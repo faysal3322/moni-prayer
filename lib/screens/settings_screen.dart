@@ -10,6 +10,7 @@ import '../utils/app_language.dart';
 import '../utils/database_helper.dart';
 import '../utils/quran_collections_helper.dart';
 import '../utils/quran_prefs.dart';
+import '../utils/zakat_helper.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -103,6 +104,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // সংগ্রহ ও পছন্দগুলো একটামাত্র ফাইল দিয়েই ফিরে পাওয়া যায়।
       data['quran_collections'] = await QuranCollectionsHelper.exportAllCollections();
       data['quran_prefs'] = await QuranPrefs.exportPrefs();
+      // যাকাত সেকশনের ডেটা (বছরভিত্তিক প্রদেয়/প্রদান রেকর্ড ও ক্যালকুলেটরের
+      // শেষ ইনপুট) — একই একটামাত্র ব্যাকআপ ফাইলে যোগ হচ্ছে।
+      data['zakat'] = await ZakatHelper.exportData();
       final now = DateTime.now();
       final fileName =
           'moni_prayer_backup_${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}.json';
@@ -173,6 +177,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       if (json['quran_prefs'] != null) {
         await QuranPrefs.importPrefs(Map<String, dynamic>.from(json['quran_prefs'] as Map));
+      }
+      if (json['zakat'] != null) {
+        await ZakatHelper.importData(Map<String, dynamic>.from(json['zakat'] as Map));
       }
       widget.onChanged();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -275,8 +282,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             isBn
-                ? 'আপনার সমস্ত ডেটা (নামাজ, রোজা, আমার কোরআন কালেকশন ও কোরআন সেটিংস সহ) Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
-                : 'Save all your data (prayers, roza, My Quran collections, and Quran settings) as a JSON file in your Download folder, or restore from one.',
+                ? 'আপনার সমস্ত ডেটা (নামাজ, রোজা, আমার কোরআন কালেকশন, কোরআন সেটিংস ও যাকাত হিসাব সহ) Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
+                : 'Save all your data (prayers, roza, My Quran collections, Quran settings, and Zakat records) as a JSON file in your Download folder, or restore from one.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 12),

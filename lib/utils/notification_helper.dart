@@ -65,24 +65,29 @@ class NotificationHelper {
 
   /// প্রতিদিনের সব গুরুত্বপূর্ণ ওয়াক্ত/মুহূর্তের জন্য notification
   /// শিডিউল করে। প্রতিবার কল করলে আগেরগুলো বাতিল করে নতুন করে বসায় —
-  /// তাই এটা প্রতিদিন একবার (যেমন অ্যাপ খোলার সময় বা মধ্যরাতে) কল করা
-  /// দরকার, কারণ নামাজের সময় প্রতিদিন কিছুটা বদলায়।
+  /// তাই এটা প্রতিদিন একবার (যেমন অ্যাপ খোলার সময়) কল করা দরকার, কারণ
+  /// নামাজের সময় প্রতিদিন কিছুটা বদলায়।
+  ///
+  /// ফিক্স: আগে শুধু আজ+আগামীকাল (২ দিন) এর জন্য schedule করা হতো।
+  /// সমস্যা হলো, এই ফাংশন কল হয় শুধু অ্যাপ চালু হওয়ার সময় (main.dart)
+  /// — কোনো daily background rescheduling নেই। তাই যদি ব্যবহারকারী
+  /// পরপর ২ দিনের বেশি অ্যাপ না খোলেন, ৩য় দিন থেকে (তাহাজ্জুদ, সেহরি,
+  /// ইফতার সহ সব) নোটিফিকেশন সাইলেন্টলি বন্ধ হয়ে যেত — এটাই মূলত
+  /// "মাঝে মাঝে তাহাজ্জুদের নোটিফিকেশন আসে না" সমস্যার প্রধান কারণ।
+  /// এখন ৭ দিন আগে থেকেই শিডিউল করে রাখা হচ্ছে, যাতে সপ্তাহে অন্তত
+  /// একবার অ্যাপ খুললেই পরবর্তী পুরো সপ্তাহের সব নোটিফিকেশন নিশ্চিত
+  /// থাকে।
   static Future<void> schedulePrayerNotifications() async {
     await _plugin.cancelAll();
 
     final isBn = await _isBangla();
-    final today = await PrayerTimeHelper.getPrayerTimes();
-    final tomorrow = await PrayerTimeHelper.getPrayerTimes(
-      date: DateTime.now().add(const Duration(days: 1)),
-    );
-
     int id = 0;
-    id = await _scheduleForDay(id, today, isBn);
-    // আজকের অনেক ওয়াক্ত (বিশেষ করে ফজর, সেহরি, তাহাজ্জুদ) ইতিমধ্যে
-    // পার হয়ে গেলেও কালকেরগুলো যেন আগে থেকেই শিডিউল হয়ে থাকে, তাই
-    // পরের দিনেরও একই সাথে বসিয়ে রাখা হচ্ছে (past সময়গুলো এমনিতেই
-    // স্কিপ হয়ে যায়)।
-    await _scheduleForDay(id, tomorrow, isBn);
+    for (var dayOffset = 0; dayOffset < 7; dayOffset++) {
+      final times = await PrayerTimeHelper.getPrayerTimes(
+        date: DateTime.now().add(Duration(days: dayOffset)),
+      );
+      id = await _scheduleForDay(id, times, isBn);
+    }
   }
 
   static Future<bool> _isBangla() async {

@@ -44,10 +44,12 @@ class QuranPrefs {
   }
 
   /// Font size scale for Arabic text, in logical pixels (base size).
-  /// Range: 18 (small) .. 40 (large). Default 24.
+  /// Range: 18 (small) .. 40 (large). Default 28 (আগে ২৪ ছিল, ব্যবহারকারীর
+  /// অনুরোধে একটু বড় করে দেওয়া হলো যাতে নতুন ব্যবহারকারীরা প্রথমেই আরও
+  /// স্পষ্ট আরবি টেক্সট দেখতে পান)।
   static Future<double> getFontSize() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_keyFontSize) ?? 24.0;
+    return prefs.getDouble(_keyFontSize) ?? 28.0;
   }
 
   static Future<void> setFontSize(double value) async {
@@ -75,5 +77,33 @@ class QuranPrefs {
   static Future<void> setPlaybackSpeed(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyPlaybackSpeed, value);
+  }
+
+  /// ব্যাকআপের জন্য কোরআন সেকশনের সব সেটিংস (ভাষা টগল, ফন্ট সাইজ,
+  /// ভিউ মোড, প্লেব্যাক স্পিড) একসাথে বের করে আনে।
+  static Future<Map<String, dynamic>> exportPrefs() async {
+    return {
+      'show_arabic': await getShowArabic(),
+      'show_bangla': await getShowBangla(),
+      'show_transliteration': await getShowTransliteration(),
+      'font_size': await getFontSize(),
+      'view_mode': await getViewMode(),
+      'playback_speed': await getPlaybackSpeed(),
+    };
+  }
+
+  /// ব্যাকআপ থেকে কোরআন সেকশনের সেটিংস পুনরুদ্ধার করে। কোনো key অনুপস্থিত
+  /// থাকলে (পুরনো ব্যাকআপ ফাইল) সেই সেটিং অপরিবর্তিত থাকে।
+  static Future<void> importPrefs(Map<String, dynamic> data) async {
+    if (data['show_arabic'] != null) await setShowArabic(data['show_arabic'] as bool);
+    if (data['show_bangla'] != null) await setShowBangla(data['show_bangla'] as bool);
+    if (data['show_transliteration'] != null) {
+      await setShowTransliteration(data['show_transliteration'] as bool);
+    }
+    if (data['font_size'] != null) await setFontSize((data['font_size'] as num).toDouble());
+    if (data['view_mode'] != null) await setViewMode(data['view_mode'] as String);
+    if (data['playback_speed'] != null) {
+      await setPlaybackSpeed((data['playback_speed'] as num).toDouble());
+    }
   }
 }

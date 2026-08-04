@@ -147,7 +147,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   bool _showArabic = true;
   bool _showBangla = false;
   bool _showTransliteration = true;
-  double _fontSize = 24.0;
+  double _fontSize = 28.0;
 
   // ══ অডিও প্লেয়ার স্টেট ══
   // ফিক্স: আগে কালেকশনের কোনো আয়াতই শোনার কোনো উপায় ছিল না। এখন প্রতিটা

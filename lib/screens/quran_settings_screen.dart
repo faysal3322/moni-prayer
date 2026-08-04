@@ -16,7 +16,7 @@ class _QuranSettingsScreenState extends State<QuranSettingsScreen> {
   bool _showArabic = true;
   bool _showBangla = false;
   bool _showTransliteration = false;
-  double _fontSize = 24.0;
+  double _fontSize = 28.0;
   bool _loading = true;
 
   @override

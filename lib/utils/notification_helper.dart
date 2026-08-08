@@ -279,16 +279,44 @@ class NotificationHelper {
 
     final details = NotificationDetails(android: androidDetails);
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      // ফিক্স: যদি exact alarm permission না থাকে (ব্যবহারকারী deny
+      // করেছেন) বা অন্য কোনো platform-level সমস্যা হয়, exactAllowWhileIdle
+      // মোড exception ছুড়তে পারে — এটা catch না করলে পুরো
+      // schedulePrayerNotifications() লুপ (৭ দিনের ৭৭টা notification)
+      // মাঝপথে থেমে যেত, ফলে যেগুলো এখনো schedule হয়নি (যেমন লুপের
+      // পরের দিকের তাহাজ্জুদ notification) সেগুলো একদমই বসত না। এখন
+      // exact mode ব্যর্থ হলে সাধারণ (inexact) মোডে আবার চেষ্টা করা
+      // হচ্ছে, যাতে অন্তত কিছুটা দেরিতে হলেও notification আসে, এবং
+      // loop বাকি notification-গুলোর জন্য চলতেই থাকে।
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          tz.TZDateTime.from(scheduledTime, tz.local),
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (_) {
+        // এই নির্দিষ্ট notification schedule করা গেল না — বাকিগুলো
+        // যাতে প্রভাবিত না হয়, তাই silently skip করে লুপ চালিয়ে
+        // যাওয়া হচ্ছে।
+      }
+    }
   }
 
   static String _fmt(DateTime time) {

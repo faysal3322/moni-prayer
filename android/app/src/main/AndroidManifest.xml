@@ -27,6 +27,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- ফিক্স: AndroidNotificationDetails-এ fullScreenIntent: true সেট করা
+         আছে (তাহাজ্জুদ/নামাজের সময়/সেহরি-ইফতার নোটিফিকেশন ফোন লক থাকা
+         অবস্থায়ও স্ক্রিনের উপর সরাসরি ভেসে ওঠার জন্য), কিন্তু এই permission
+         ছাড়া fullScreenIntent সিস্টেম-লেভেলে silently কাজ করে না — ফলে
+         নোটিফিকেশন একদমই আসছিল না বা শুধু normal notification হিসেবে
+         (heads-up ছাড়া) আসছিল, বিশেষ করে গভীর রাতে ফোন lock/idle অবস্থায়
+         (যেমন তাহাজ্জুদের সময়)। এই permission Android 14 (API 34)+ এ
+         বিশেষভাবে কড়াকড়িভাবে প্রযোজ্য। -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- ফোন রিস্টার্ট হলে flutter_local_notifications-এর শিডিউল করা
          exact alarm গুলো (নামাজের সময়/নিষিদ্ধ সময়/সেহরি ইত্যাদি
          notification) মুছে যায় — এই পারমিশন + প্যাকেজের নিজস্ব

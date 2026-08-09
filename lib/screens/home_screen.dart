@@ -787,9 +787,17 @@ class _HomeTabState extends State<_HomeTab> {
       // তাহাজ্জুদের উত্তম সময় শুরু হতে বাকি
       final cd = _countdown(tahajjudStart);
       alerts.add({'icon': '🌙', 'text': isBn ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd' : 'Best Tahajjud time starts in $cd', 'color': const Color(0xFF7C4DFF)});
-    } else if (now.isAfter(tahajjudStart) && now.isBefore(pt.fajr)) {
+    } else if (now.isAfter(tahajjudStart) && now.isBefore(nextFajr)) {
       // তাহাজ্জুদের সময় চলছে — ফজর শুরু হওয়া পর্যন্ত বাকি সময়
-      final cd = _countdown(pt.fajr);
+      //
+      // ফিক্স: আগে এখানে ভুলবশত pt.fajr (আজকের/অতীতের ফজর) ব্যবহার
+      // হচ্ছিল, nextFajr (পরের দিনের সঠিক ফজর) নয়। যেহেতু pt.fajr
+      // মধ্যরাতের অনেক আগেই পার হয়ে যায়, "now.isBefore(pt.fajr)"
+      // শর্তটা রাতে কখনোই true হতো না — ফলে তাহাজ্জুদের সময় প্রকৃতপক্ষে
+      // চললেও হোম স্ক্রিনে "তাহাজ্জুদের সময় চলছে" কার্ডটা কখনো
+      // দেখাতোই না। এখন nextFajr (উপরে ইতিমধ্যে সঠিকভাবে হিসাব করা
+      // পরের দিনের ফজর) ব্যবহার করা হচ্ছে।
+      final cd = _countdown(nextFajr);
       alerts.add({'icon': '🌙', 'text': isBn
           ? 'তাহাজ্জুদের সময় বাকি আছে — $cd (ফজরের আগ পর্যন্ত)'
           : 'Tahajjud time remaining — $cd (until Fajr)', 'color': const Color(0xFF7C4DFF)});

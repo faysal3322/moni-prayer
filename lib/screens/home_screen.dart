@@ -224,6 +224,14 @@ class _HomeTabState extends State<_HomeTab> {
   Map<String, String> _todayPrayers = {};
   String? _todayRoza;
   PrayerTimes? _prayerTimes;
+  // ফিক্স: মধ্যরাতের পর থেকে ফজরের আগ পর্যন্ত সময়ে (যেমন রাত ২টা),
+  // _prayerTimes (আজকের তারিখের PrayerTimes) এ maghrib/isha হলো
+  // *আজ সন্ধ্যার* — যেটা তখনও ভবিষ্যতে, এখনও ঘটেইনি। ফলে
+  // "now.isAfter(pt.isha)" শর্ত তখন false থেকে যেত এবং তাহাজ্জুদের
+  // এলার্ট কখনোই দেখাতো না। _yesterdayPrayerTimes দিয়ে গতকালের সঠিক
+  // মাগরিব/এশা/ফজর রাখা হচ্ছে, যা থেকে ভোররাতে তাহাজ্জুদের সময় ঠিকভাবে
+  // হিসাব করা যায়।
+  PrayerTimes? _yesterdayPrayerTimes;
   SunnahTimes? _sunnahTimes;
   String _hijriDate = '';
   int _hijriMonthNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি মাস
@@ -575,10 +583,14 @@ class _HomeTabState extends State<_HomeTab> {
     }
     if (_prayerTimes == null) {
       final times = await PrayerTimeHelper.getPrayerTimes();
+      final yesterdayTimes = await PrayerTimeHelper.getPrayerTimes(
+        date: DateTime.now().subtract(const Duration(days: 1)),
+      );
       final sunnah = SunnahTimes(times);
       if (mounted) {
         setState(() {
           _prayerTimes = times;
+          _yesterdayPrayerTimes = yesterdayTimes;
           _sunnahTimes = sunnah;
         });
       }
@@ -679,14 +691,28 @@ class _HomeTabState extends State<_HomeTab> {
     final alerts = <Map<String, dynamic>>[];
     if (pt == null) return alerts;
 
+    // ফিক্স: এখন যদি মধ্যরাতের পর থেকে আজকের ফজরের আগ পর্যন্ত সময় হয়
+    // (যেমন রাত ২টা), তাহলে "রাত" শুরু হয়েছিল *গতকাল* সন্ধ্যার মাগরিব/এশা
+    // থেকে — আজকের pt.maghrib/pt.isha তখনও ভবিষ্যতে (আজ সন্ধ্যায়)।
+    // তাই এক্ষেত্রে গতকালের PrayerTimes থেকে maghrib/isha নিয়ে
+    // তাহাজ্জুদ/আওওয়াবিনের হিসাব করা হচ্ছে, আর ফজর হিসেবে আজকেরটাই
+    // ব্যবহার হচ্ছে (যেটা প্রকৃতপক্ষে আসন্ন)।
+    final isPastMidnightBeforeFajr = now.isBefore(pt.fajr);
+    final nightMaghrib = (isPastMidnightBeforeFajr && _yesterdayPrayerTimes != null)
+        ? _yesterdayPrayerTimes!.maghrib
+        : pt.maghrib;
+    final nightIsha = (isPastMidnightBeforeFajr && _yesterdayPrayerTimes != null)
+        ? _yesterdayPrayerTimes!.isha
+        : pt.isha;
+
     final lastThird = _sunnahTimes?.lastThirdOfTheNight;
     // রাতের সঠিক ১/৩ অংশ ম্যানুয়ালি হিসাব — মাগরিব থেকে পরের দিনের ফজর পর্যন্ত
     // (adhan package এর lastThirdOfTheNight কখনো ভুল asymmetric রাত ধরতে পারে, তাই নিজে হিসাব করছি)
-    final nextFajr = pt.fajr.isAfter(pt.maghrib)
+    final nextFajr = pt.fajr.isAfter(nightMaghrib)
         ? pt.fajr
         : pt.fajr.add(const Duration(days: 1));
-    final nightDuration = nextFajr.difference(pt.maghrib);
-    final manualLastThird = pt.maghrib.add(
+    final nightDuration = nextFajr.difference(nightMaghrib);
+    final manualLastThird = nightMaghrib.add(
       Duration(milliseconds: (nightDuration.inMilliseconds * 2 / 3).round()),
     );
     // হোম স্ক্রিনে দেখানো হিজরি তারিখের সাথে মিলিয়ে (DateHelper থেকে, user adjust সহ)
@@ -783,7 +809,7 @@ class _HomeTabState extends State<_HomeTab> {
     }
     // ══ তাহাজ্জুদ — সময় বাকি + ফজিলত + নির্দেশনা (এশার পর থেকে ফজরের আগ পর্যন্ত) ══
     final tahajjudStart = manualLastThird;
-    if (now.isAfter(pt.isha) && now.isBefore(tahajjudStart)) {
+    if (now.isAfter(nightIsha) && now.isBefore(tahajjudStart)) {
       // তাহাজ্জুদের উত্তম সময় শুরু হতে বাকি
       final cd = _countdown(tahajjudStart);
       alerts.add({'icon': '🌙', 'text': isBn ? 'তাহাজ্জুদের সর্বোত্তম সময় শুরু হতে বাকি $cd' : 'Best Tahajjud time starts in $cd', 'color': const Color(0xFF7C4DFF)});

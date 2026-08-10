@@ -11,6 +11,7 @@ import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
 import '../utils/database_helper.dart';
 import '../utils/prayer_time_helper.dart';
+import '../utils/notification_helper.dart';
 import 'calendar_screen.dart';
 import 'settings_screen.dart';
 import 'missed_list_screen.dart';
@@ -220,7 +221,7 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<_HomeTab> {
+class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   Map<String, String> _todayPrayers = {};
   String? _todayRoza;
   PrayerTimes? _prayerTimes;
@@ -250,6 +251,7 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadToday();
     _loadHijri();
     _fetchLocationAndWeather();
@@ -467,8 +469,41 @@ class _HomeTabState extends State<_HomeTab> {
         desiredAccuracy: LocationAccuracy.low,
         timeLimit: const Duration(seconds: 10),
       );
+
+      // ফিক্স: ব্যবহারকারী উড়োজাহাজে ভিন্ন দেশে/টাইমজোনে চলে গেলে (যেমন
+      // বাংলাদেশ → ভারত), অ্যাপ যদি চালু বা ব্যাকগ্রাউন্ডে থাকে, GPS
+      // কোঅর্ডিনেট এখানে প্রতি ১৫ মিনিটে রিফ্রেশ হতো ঠিকই কিন্তু
+      // নামাজের সময় (_prayerTimes) ও শিডিউল করা নোটিফিকেশন পুরনো
+      // লোকেশন অনুযায়ীই থেকে যেত — নতুন করে হিসাব হতো না। এখন আগের ও
+      // নতুন কোঅর্ডিনেটের মধ্যে দূরত্ব মাপা হচ্ছে; ৫০ কিমি-র বেশি হলে
+      // (শহর/দেশ বদলের নির্ভরযোগ্য সংকেত — সাধারণ GPS ড্রিফট এর চেয়ে
+      // অনেক বেশি) নামাজের সময় নতুন করে হিসাব করা হয় এবং নোটিফিকেশন
+      // নতুন লোকেশন অনুযায়ী re-schedule করা হয়।
+      final previousLat = _lat;
+      final previousLng = _lng;
+      final locationChangedSignificantly = previousLat != null &&
+          previousLng != null &&
+          Geolocator.distanceBetween(previousLat, previousLng, pos.latitude, pos.longitude) > 50000;
+
       _lat = pos.latitude;
       _lng = pos.longitude;
+
+      if (locationChangedSignificantly) {
+        final newTimes = await PrayerTimeHelper.getPrayerTimes();
+        final newYesterdayTimes = await PrayerTimeHelper.getPrayerTimes(
+          date: DateTime.now().subtract(const Duration(days: 1)),
+        );
+        if (mounted) {
+          setState(() {
+            _prayerTimes = newTimes;
+            _yesterdayPrayerTimes = newYesterdayTimes;
+            _sunnahTimes = SunnahTimes(newTimes);
+          });
+        }
+        // পুরনো লোকেশনের ওপর ভিত্তি করে শিডিউল করা সব নোটিফিকেশন বাতিল
+        // করে নতুন লোকেশন অনুযায়ী আবার শিডিউল করা হচ্ছে।
+        await NotificationHelper.schedulePrayerNotifications();
+      }
 
       // Reverse geocode via nominatim (free, no API key)
       final geoUrl = Uri.parse(
@@ -547,9 +582,21 @@ class _HomeTabState extends State<_HomeTab> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoQazaTimer?.cancel();
     _weatherTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // অ্যাপ ব্যাকগ্রাউন্ড থেকে আবার সামনে এলে (যেমন ফ্লাইট মোড বন্ধ করে
+    // ফোন আনলক করার পর) সাথে সাথেই লোকেশন চেক করা হচ্ছে — ১৫ মিনিটের
+    // periodic timer-এর জন্য অপেক্ষা করতে হয় না। এতে টাইমজোন/দেশ বদলের
+    // পর নামাজের সময় দ্রুত সঠিক হয়ে যায়।
+    if (state == AppLifecycleState.resumed) {
+      _fetchLocationAndWeather();
+    }
   }
 
   @override

@@ -159,12 +159,13 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ═══ উপরে নিসাবের রেফারেন্স তথ্য — তোলা ও গ্রাম উভয় এককে ═══
-          // (ব্যবহারকারীর অনুরোধে, অন্য একটি রেফারেন্স অ্যাপের মতো
-          // ক্যালকুলেটরের একদম শুরুতে দেখানো হচ্ছে যাতে ব্যবহারকারী আগেই
-          // বুঝে নিতে পারেন নিসাবের পরিমাণ কত)।
+          // ═══ উপরে নিসাবের পরিমাণ + নিসাব-ভিত্তি নির্বাচন — একসাথে
+          // একটাই জায়গায়, যাতে ব্যবহারকারী শুরুতেই পুরো নিসাব-সংক্রান্ত
+          // সব তথ্য ও ইনপুট একবারে দেখে/পূরণ করে ফেলতে পারেন। ═══
           _nisabReferenceCard(isBn),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          _nisabBasisCard(isBn),
+          const SizedBox(height: 18),
           _sectionTitle(isBn ? 'নগদ অর্থ ও সঞ্চয়' : 'Cash & Savings'),
           _amountField(_cashController, isBn ? 'নগদ + ব্যাংক সঞ্চয়' : 'Cash + Bank Savings'),
           const SizedBox(height: 18),
@@ -188,10 +189,6 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
           const SizedBox(height: 18),
           _sectionTitle(isBn ? 'দায়/ঋণ (বাদ যাবে)' : 'Liabilities/Debt (deducted)'),
           _amountField(_liabilitiesController, isBn ? 'তাৎক্ষণিক পরিশোধযোগ্য ঋণ' : 'Immediate payable debt'),
-          const SizedBox(height: 18),
-          // ═══ নিসাব হিসাবের ভিত্তি — একটা সুসংগঠিত কার্ডের মধ্যে সব
-          // উপাদান (ব্যাখ্যা + রূপা/সোনা বাছাই + বাজারদর ইনপুট) একসাথে ═══
-          _nisabBasisCard(isBn),
           const SizedBox(height: 8),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -401,9 +398,7 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
         children: [
           _resultRow(isBn ? 'মোট সম্পদ' : 'Total Assets', totalAssets),
           _resultRow(isBn ? 'দায়/ঋণ (বাদ)' : 'Liabilities (deducted)', -liabilities),
-          const Divider(color: Colors.white24),
           _resultRow(isBn ? 'নিট সম্পদ' : 'Net Assets', netAssets, bold: true),
-          const SizedBox(height: 6),
           _resultRow(nisabLabel, nisabValue),
           const SizedBox(height: 12),
           if (nisabValue <= 0)
@@ -421,14 +416,38 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13.5),
             )
           else ...[
-            Text(
-              isBn ? 'প্রদেয় যাকাত (২.৫%)' : 'Zakat Due (2.5%)',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
             const SizedBox(height: 4),
-            Text(
-              _fmtAmount(zakatDue),
-              style: const TextStyle(color: AppTheme.gold, fontSize: 26, fontWeight: FontWeight.bold),
+            // ফিক্স: চূড়ান্ত "প্রদেয় যাকাত" সংখ্যাটা আগে সরাসরি একটা
+            // প্লেইন Text widget হিসেবে বাম-align হয়ে থাকত (কোনো Row/
+            // right-align ছাড়া) — তাই এটা _resultRow-এর মতো সারিবদ্ধ
+            // থাকত না, বাম দিকে "ভাসমান" দেখাত। এখন এটাকেও লেবেল-বামে,
+            // অংক-ডানে এই একই প্যাটার্নে সাজানো হলো, যাতে পুরো কার্ডের
+            // সব সংখ্যা একই উলম্ব রেখায় (ডান কিনারায়) align থাকে।
+            Container(
+              padding: const EdgeInsets.only(top: 8),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: AppTheme.gold, width: 1.4)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      isBn ? 'প্রদেয় যাকাত (২.৫%)' : 'Zakat Due (2.5%)',
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      _fmtAmount(zakatDue),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(color: AppTheme.gold, fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -436,16 +455,21 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
     );
   }
 
-  /// প্রতিটা হিসাবের সারি — লেবেল বামে, টাকার পরিমাণ ডানে, নির্দিষ্ট
-  /// প্রস্থের কলামে align করা (Expanded + right-align) যাতে একাধিক
-  /// সারির amount সবসময় একই উলম্ব রেখায় (ডান দিকে সমান্তরাল) থাকে —
-  /// এতে হিসাবের তালিকাটা একটা সুসংগঠিত টেবিলের মতো দেখায়।
+  /// প্রতিটা হিসাবের সারি — লেবেল বামে, টাকার পরিমাণ ডানে। রেফারেন্স
+  /// অ্যাপের মতো হালকা নিচের-বর্ডার দিয়ে প্রতিটা সারি আলাদা করে
+  /// দেখানো হচ্ছে, যাতে টেবিলের মতো স্পষ্ট এবং amount সবসময় ডান
+  /// কিনারায় align দেখা যায়।
   Widget _resultRow(String label, double value, {bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white10, width: 1)),
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
+            flex: 3,
             child: Text(
               label,
               style: TextStyle(
@@ -455,13 +479,16 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
               ),
             ),
           ),
-          Text(
-            _fmtAmount(value),
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
-              fontSize: 13.5,
-              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+          Expanded(
+            flex: 2,
+            child: Text(
+              _fmtAmount(value),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
+                fontSize: 13.5,
+                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
         ],

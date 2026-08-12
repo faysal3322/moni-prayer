@@ -159,6 +159,12 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ═══ উপরে নিসাবের রেফারেন্স তথ্য — তোলা ও গ্রাম উভয় এককে ═══
+          // (ব্যবহারকারীর অনুরোধে, অন্য একটি রেফারেন্স অ্যাপের মতো
+          // ক্যালকুলেটরের একদম শুরুতে দেখানো হচ্ছে যাতে ব্যবহারকারী আগেই
+          // বুঝে নিতে পারেন নিসাবের পরিমাণ কত)।
+          _nisabReferenceCard(isBn),
+          const SizedBox(height: 16),
           _sectionTitle(isBn ? 'নগদ অর্থ ও সঞ্চয়' : 'Cash & Savings'),
           _amountField(_cashController, isBn ? 'নগদ + ব্যাংক সঞ্চয়' : 'Cash + Bank Savings'),
           const SizedBox(height: 18),
@@ -183,12 +189,107 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
           _sectionTitle(isBn ? 'দায়/ঋণ (বাদ যাবে)' : 'Liabilities/Debt (deducted)'),
           _amountField(_liabilitiesController, isBn ? 'তাৎক্ষণিক পরিশোধযোগ্য ঋণ' : 'Immediate payable debt'),
           const SizedBox(height: 18),
-          _sectionTitle(isBn ? 'নিসাব হিসাবের ভিত্তি' : 'Nisab Basis'),
+          // ═══ নিসাব হিসাবের ভিত্তি — একটা সুসংগঠিত কার্ডের মধ্যে সব
+          // উপাদান (ব্যাখ্যা + রূপা/সোনা বাছাই + বাজারদর ইনপুট) একসাথে ═══
+          _nisabBasisCard(isBn),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: () async {
+              setState(() {});
+              await _saveInputs();
+            },
+            icon: const Icon(Icons.calculate_outlined),
+            label: Text(isBn ? 'হিসাব করুন' : 'Calculate'),
+          ),
+          const SizedBox(height: 20),
+          _resultCard(
+            isBn: isBn,
+            totalAssets: totalAssets,
+            liabilities: liabilities,
+            netAssets: netAssets,
+            nisabLabel: nisabLabel,
+            nisabValue: nisabValue,
+            isEligible: isEligible,
+            zakatDue: zakatDue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// উপরে দেখানো নিসাবের রেফারেন্স তথ্য — সোনা ৮৫ গ্রাম (≈৭.৫ তোলা) ও
+  /// রূপা ৫৯৫ গ্রাম (≈৫২.৫ তোলা)। শুধু তথ্যগত, কোনো ইনপুট নেই।
+  Widget _nisabReferenceCard(bool isBn) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppTheme.gold, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                isBn ? 'নিসাবের পরিমাণ' : 'Nisab Amount',
+                style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isBn
+                ? 'স্বর্ণের নিসাব = ৭.৫০ তোলা (৮৫ গ্রাম)।\nরৌপ্যের নিসাব = ৫২.৫০ তোলা (৫৯৫ গ্রাম)।'
+                : 'Gold Nisab = 7.50 tola (85 grams).\nSilver Nisab = 52.50 tola (595 grams).',
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isBn
+                ? 'ধরে নেওয়া হয়েছে যে, নিসাব মূল্যের অধিক সম্পদ থাকলেই যাকাত ফরজ হয়।'
+                : 'It is assumed that Zakat becomes obligatory once your wealth exceeds the nisab value.',
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11.5, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// "নিসাব হিসাবের ভিত্তি" — ব্যাখ্যা, রূপা/সোনা বাছাই ও বাজারদর ইনপুট
+  /// একটা কার্ডে একসাথে গুছিয়ে দেখানো হয়েছে, যাতে পুরো ক্যালকুলেটরটা
+  /// এলোমেলো না লেগে সুসংগঠিত মনে হয়।
+  Widget _nisabBasisCard(bool isBn) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isBn ? 'নিসাব হিসাবের ভিত্তি' : 'Nisab Basis',
+            style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 6),
           Text(
             isBn
                 ? 'উলামাদের মতে, নগদ টাকার ক্ষেত্রে সোনা ও রূপার নিসাবের মধ্যে যেটির মূল্য কম, সেটি ধরাই গরীবদের জন্য বেশি উপকারী। তাই সাধারণত রূপা-ভিত্তিক নিসাব ব্যবহার করা হয়। ⚠️ নিচের বাজারদর একটা আনুমানিক মান — যাকাত হিসাবের আগে বর্তমান বাজারদর দিয়ে যাচাই করে নিন।'
                 : 'Scholars recommend using whichever nisab (gold or silver) has the lower value, as it benefits the poor more. Silver-based nisab is commonly used. ⚠️ The price below is an estimate — please verify with current market rates before finalizing your zakat.',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, height: 1.4),
           ),
           const SizedBox(height: 10),
           Row(
@@ -233,31 +334,6 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            onPressed: () async {
-              setState(() {});
-              await _saveInputs();
-            },
-            icon: const Icon(Icons.calculate_outlined),
-            label: Text(isBn ? 'হিসাব করুন' : 'Calculate'),
-          ),
-          const SizedBox(height: 20),
-          _resultCard(
-            isBn: isBn,
-            totalAssets: totalAssets,
-            liabilities: liabilities,
-            netAssets: netAssets,
-            nisabLabel: nisabLabel,
-            nisabValue: nisabValue,
-            isEligible: isEligible,
-            zakatDue: zakatDue,
           ),
         ],
       ),
@@ -360,22 +436,28 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
     );
   }
 
+  /// প্রতিটা হিসাবের সারি — লেবেল বামে, টাকার পরিমাণ ডানে, নির্দিষ্ট
+  /// প্রস্থের কলামে align করা (Expanded + right-align) যাতে একাধিক
+  /// সারির amount সবসময় একই উলম্ব রেখায় (ডান দিকে সমান্তরাল) থাকে —
+  /// এতে হিসাবের তালিকাটা একটা সুসংগঠিত টেবিলের মতো দেখায়।
   Widget _resultRow(String label, double value, {bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
-              fontSize: 13.5,
-              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
+                fontSize: 13.5,
+                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
           Text(
             _fmtAmount(value),
+            textAlign: TextAlign.right,
             style: TextStyle(
               color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
               fontSize: 13.5,

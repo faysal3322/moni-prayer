@@ -56,10 +56,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     super.dispose();
   }
 
-  void _openSettings() {
-    Navigator.push(context, MaterialPageRoute(
+  void _openSettings() async {
+    // ফিক্স: আগে Navigator.push এর ফলাফল await/handle করা হতো না, তাই
+    // কোরআন সেটিংস স্ক্রিনে গিয়ে ভাষা টগল বা ফন্ট সাইজ পরিবর্তন করে
+    // "Back" চাপলে সেই পরিবর্তন QuranPrefs (SharedPreferences)-এ সেভ
+    // হতো ঠিকই, কিন্তু এই স্ক্রিনের ইন-মেমরি state (_showArabic,
+    // _showBangla, _showTransliteration, _fontSize) রিফ্রেশ হতো না —
+    // ফলে সেটিংস বদলানোর কোনো প্রভাব সাথে সাথে দেখা যেত না। এখন
+    // সেটিংস স্ক্রিন থেকে ফিরে এলে _loadPrefs() আবার কল করে সর্বশেষ
+    // সংরক্ষিত মান নতুন করে লোড করা হচ্ছে।
+    await Navigator.push(context, MaterialPageRoute(
       builder: (_) => QuranSettingsScreen(lang: widget.lang),
     ));
+    if (mounted) await _loadPrefs();
   }
 
   /// একটা সূরার সম্পূর্ণ-প্লেব্যাক শেষ হলে পরের সূরার পেজে সরানো হয় এবং
@@ -1760,9 +1769,17 @@ class _AyaCardState extends State<_AyaCard> {
                 widget.banglaText.isNotEmpty
                     ? widget.banglaText
                     : (isBn ? 'এই আয়াতের অনুবাদ পাওয়া যায়নি' : 'Translation not available for this verse'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.textPrimary,
-                  fontSize: 15,
+                  // ফিক্স: আগে এখানে fontSize hardcoded 15 ছিল, তাই কোরআন
+                  // সেটিংসের ফন্ট সাইজ স্লাইডার শুধু আরবি টেক্সটে প্রভাব
+                  // ফেলত, বাংলা অনুবাদে না। এখন widget.fontSize (স্লাইডার
+                  // থেকে আসা মান) এর সাথে আনুপাতিকভাবে স্কেল করা হচ্ছে —
+                  // আরবি ফন্টের চেয়ে কিছুটা ছোট রাখা হয়েছে (0.625×) যাতে
+                  // ভিজুয়াল hierarchy (আরবি সবচেয়ে বড়, অনুবাদ তার চেয়ে
+                  // ছোট) বজায় থাকে, কিন্তু স্লাইডার বাড়ালে/কমালে এটাও
+                  // proportionally বদলায়।
+                  fontSize: widget.fontSize * 0.625,
                   height: 1.6,
                 ),
               ),
@@ -1771,9 +1788,12 @@ class _AyaCardState extends State<_AyaCard> {
               const Divider(color: Colors.white12, height: 20),
               Text(
                 widget.transliterationText,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.textSecondary,
-                  fontSize: 13,
+                  // ফিক্স: একই কারণে transliteration টেক্সটেও এখন
+                  // widget.fontSize এর সাথে আনুপাতিক স্কেলিং (0.54×,
+                  // সবচেয়ে ছোট — এটা সহায়ক/ঐচ্ছিক তথ্য)।
+                  fontSize: widget.fontSize * 0.54,
                   fontStyle: FontStyle.italic,
                   height: 1.5,
                 ),

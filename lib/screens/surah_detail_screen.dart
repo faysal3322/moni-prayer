@@ -56,19 +56,30 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     super.dispose();
   }
 
+  // সেটিংস থেকে ফিরে আসার পর PageView-এর সব পেজ জোর করে নতুন করে তৈরি
+  // (rebuild with fresh state) করাতে এই কাউন্টার ব্যবহার হয় — নিচে
+  // itemBuilder-এর key-তে এটা যুক্ত করা আছে, তাই মান বদলালে প্রতিটা
+  // _SurahPage-এর নতুন state instance তৈরি হয়, যেটা initState-এ
+  // নিজে থেকেই সর্বশেষ QuranPrefs মান লোড করে নেয়।
+  int _prefsRefreshTick = 0;
+
   void _openSettings() async {
     // ফিক্স: আগে Navigator.push এর ফলাফল await/handle করা হতো না, তাই
     // কোরআন সেটিংস স্ক্রিনে গিয়ে ভাষা টগল বা ফন্ট সাইজ পরিবর্তন করে
     // "Back" চাপলে সেই পরিবর্তন QuranPrefs (SharedPreferences)-এ সেভ
-    // হতো ঠিকই, কিন্তু এই স্ক্রিনের ইন-মেমরি state (_showArabic,
-    // _showBangla, _showTransliteration, _fontSize) রিফ্রেশ হতো না —
-    // ফলে সেটিংস বদলানোর কোনো প্রভাব সাথে সাথে দেখা যেত না। এখন
-    // সেটিংস স্ক্রিন থেকে ফিরে এলে _loadPrefs() আবার কল করে সর্বশেষ
-    // সংরক্ষিত মান নতুন করে লোড করা হচ্ছে।
+    // হতো ঠিকই, কিন্তু সূরা পড়ার পেজের (_SurahPage) ইন-মেমরি state
+    // (_showArabic, _showBangla, _showTransliteration, _fontSize)
+    // রিফ্রেশ হতো না — ফলে সেটিংস বদলানোর কোনো প্রভাব সাথে সাথে দেখা
+    // যেত না। _loadPrefs() সরাসরি এখান থেকে কল করা যায় না কারণ সেটা
+    // ভিন্ন (child) widget-এর state-এ থাকে। তাই এখন সেটিংস স্ক্রিন
+    // থেকে ফিরে এলে _prefsRefreshTick বাড়িয়ে PageView-এর key বদলে
+    // দেওয়া হচ্ছে, যা প্রতিটা সূরা-পেজকে ফ্রেশ state দিয়ে আবার তৈরি
+    // করে — এবং সেই নতুন state তার initState-এই সর্বশেষ সংরক্ষিত
+    // QuranPrefs মান লোড করে নেয়।
     await Navigator.push(context, MaterialPageRoute(
       builder: (_) => QuranSettingsScreen(lang: widget.lang),
     ));
-    if (mounted) await _loadPrefs();
+    if (mounted) setState(() => _prefsRefreshTick++);
   }
 
   /// একটা সূরার সম্পূর্ণ-প্লেব্যাক শেষ হলে পরের সূরার পেজে সরানো হয় এবং
@@ -119,7 +130,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
             // suraNumber পাল্টালে GlobalKey না থাকলেও পুরনো _SurahPageState
             // পুনর্ব্যবহার হওয়ার ঝুঁকি এড়াতে key ব্যবহার করা হচ্ছে — এটা
             // নিশ্চিত করে অটো-প্লে টার্গেট পেজ সবসময় ফ্রেশ state দিয়ে খোলে।
-            key: ValueKey('surah_page_$suraNumber'),
+            // _prefsRefreshTick যোগ করা হয়েছে যাতে কোরআন সেটিংস বদলে ফেরার
+            // পর প্রতিটা পেজ ফ্রেশ state নিয়ে আবার তৈরি হয় (দেখুন
+            // _openSettings-এর কমেন্ট)।
+            key: ValueKey('surah_page_${suraNumber}_$_prefsRefreshTick'),
             lang: widget.lang,
             sura: suraNumber,
             autoPlayOnStart: shouldAutoPlay,

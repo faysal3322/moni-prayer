@@ -36,6 +36,11 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
   static const double goldNisabGrams = 85.0;
   static const double silverNisabGrams = 595.0;
   static const double zakatRate = 0.025;
+  // আনুমানিক রূপার বাজারদর (প্রতি গ্রাম, টাকায়) — শুধু প্রথমবার প্রি-ফিল
+  // করার জন্য একটা যুক্তিসঙ্গত সূচনা-বিন্দু, সঠিক/আপডেটেড দর নয়।
+  // ব্যবহারকারীকে অবশ্যই বর্তমান বাজারদর দিয়ে এটা যাচাই/হালনাগাদ করে
+  // নিতে বলা হচ্ছে (নিচে হেল্পার টেক্সটেও উল্লেখ আছে)।
+  static const double _defaultSilverPricePerGram = 150.0;
 
   @override
   void initState() {
@@ -67,6 +72,16 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
     _goldNisabPriceController.text = _fmtInput(saved['goldNisabPrice']);
     _silverNisabPriceController.text = _fmtInput(saved['silverNisabPrice']);
     _nisabBasis = saved['nisabBasis'] as String? ?? 'silver';
+    // ফিক্স: প্রথমবার (কোনো সংরক্ষিত মান না থাকলে) নিসাব-দর ফিল্ড
+    // দুটো একদম ফাঁকা থাকত, যার ফলে শুধু নগদ টাকা দিয়ে হিসাব করতে
+    // চাইলে নিসাব-মূল্য ০ থেকে যেত এবং কোনো ফলাফল আসত না। এখন প্রথমবার
+    // একটা যুক্তিসঙ্গত আনুমানিক রূপার বাজারদর (প্রতি গ্রাম) প্রি-ফিল
+    // করে দেওয়া হচ্ছে, যাতে ব্যবহারকারী শুধু নগদ টাকা দিয়েই সাথে সাথে
+    // ফলাফল দেখতে পান — চাইলে সাম্প্রতিক বাজারদর দিয়ে এটা বদলে নিতে
+    // পারবেন। (এটা একটা মোটামুটি ধারণা মাত্র, নির্ভুল দর নয়।)
+    if (_silverNisabPriceController.text.isEmpty) {
+      _silverNisabPriceController.text = _defaultSilverPricePerGram.toString();
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -108,8 +123,23 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
 
     final goldNisabPrice = _parse(_goldNisabPriceController);
     final silverNisabPrice = _parse(_silverNisabPriceController);
-    final goldNisabValue = goldNisabPrice * goldNisabGrams;
-    final silverNisabValue = silverNisabPrice * silverNisabGrams;
+
+    // ফিক্স: আগে নিসাব হিসাবের জন্য শুধু নিচের "রূপার/সোনার বাজারদর"
+    // ফিল্ড দুটোর মান ব্যবহার হতো। কিন্তু বেশিরভাগ ব্যবহারকারী শুধু
+    // "নগদ অর্থ" পূরণ করেই "হিসাব করুন" চাপতেন — এই আলাদা নিসাব-দর
+    // ফিল্ড দুটো ফাঁকা রেখে দিতেন (বুঝতে পারতেন না এটাও পূরণ করা লাগবে)।
+    // ফলে নিসাব-মূল্য সবসময় ০ হয়ে যেত এবং "নিসাব হিসাবের জন্য বাজারদর
+    // দিন" বার্তা ছাড়া কোনো ফলাফলই আসত না, এমনকি বড় অঙ্কের নগদ থাকা
+    // সত্ত্বেও।
+    //
+    // এখন যদি নিসাব-দর ফিল্ড ফাঁকা থাকে, উপরের সোনা/রূপা সেকশনে
+    // ব্যবহারকারী যে প্রতি-গ্রাম দর দিয়েছেন (থাকলে) সেটাই fallback
+    // হিসেবে ব্যবহার করা হচ্ছে — যেহেতু বাস্তবে এটা একই বাজারদর হওয়ার
+    // কথা, দুইবার একই তথ্য চাওয়ার দরকার নেই।
+    final effectiveGoldNisabPrice = goldNisabPrice > 0 ? goldNisabPrice : _parse(_goldPriceController);
+    final effectiveSilverNisabPrice = silverNisabPrice > 0 ? silverNisabPrice : _parse(_silverPriceController);
+    final goldNisabValue = effectiveGoldNisabPrice * goldNisabGrams;
+    final silverNisabValue = effectiveSilverNisabPrice * silverNisabGrams;
 
     double nisabValue;
     String nisabLabel;
@@ -156,8 +186,8 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
           _sectionTitle(isBn ? 'নিসাব হিসাবের ভিত্তি' : 'Nisab Basis'),
           Text(
             isBn
-                ? 'উলামাদের মতে, নগদ টাকার ক্ষেত্রে সোনা ও রূপার নিসাবের মধ্যে যেটির মূল্য কম, সেটি ধরাই গরীবদের জন্য বেশি উপকারী। তাই সাধারণত রূপা-ভিত্তিক নিসাব ব্যবহার করা হয়।'
-                : 'Scholars recommend using whichever nisab (gold or silver) has the lower value, as it benefits the poor more. Silver-based nisab is commonly used.',
+                ? 'উলামাদের মতে, নগদ টাকার ক্ষেত্রে সোনা ও রূপার নিসাবের মধ্যে যেটির মূল্য কম, সেটি ধরাই গরীবদের জন্য বেশি উপকারী। তাই সাধারণত রূপা-ভিত্তিক নিসাব ব্যবহার করা হয়। ⚠️ নিচের বাজারদর একটা আনুমানিক মান — যাকাত হিসাবের আগে বর্তমান বাজারদর দিয়ে যাচাই করে নিন।'
+                : 'Scholars recommend using whichever nisab (gold or silver) has the lower value, as it benefits the poor more. Silver-based nisab is commonly used. ⚠️ The price below is an estimate — please verify with current market rates before finalizing your zakat.',
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
           ),
           const SizedBox(height: 10),

@@ -68,6 +68,15 @@ class ZakatHelper {
   static const _keyLastNisabBasis = 'zakat_last_nisab_basis'; // 'gold' | 'silver'
   static const _keyLastSilverNisabPrice = 'zakat_last_silver_nisab_price'; // নিসাব হিসাবের জন্য রূপার বাজারদর (প্রতি গ্রাম)
   static const _keyLastGoldNisabPrice = 'zakat_last_gold_nisab_price'; // নিসাব হিসাবের জন্য সোনার বাজারদর (প্রতি গ্রাম)
+  // রেফারেন্স "যাকাত হিসাব" অ্যাপের ডিজাইন অনুসরণ করে যোগ করা অতিরিক্ত
+  // সম্পদ/দায়ের ঘর — এগুলো নগদ/সোনা/রূপার বাইরের অন্যান্য যাকাতযোগ্য
+  // সম্পদ ও ব্যক্তিগত দায় হিসাবের জন্য।
+  static const _keyLastProvidentFund = 'zakat_last_provident_fund'; // প্রভিডেন্ট ফান্ড, শেয়ার, বন্ড, বীমা, সঞ্চয়পত্র
+  static const _keyLastGoodsStock = 'zakat_last_goods_stock'; // জমাকৃত পণ্য বা মালামাল
+  static const _keyLastReceivables = 'zakat_last_receivables'; // পাওনা, ধার প্রদান, অগ্রিম
+  static const _keyLastOtherAssets = 'zakat_last_other_assets'; // অন্যান্য সম্পদ
+  static const _keyLastBankLoan = 'zakat_last_bank_loan'; // ব্যাংক/এনজিও ঋণ
+  static const _keyLastOtherLiabilities = 'zakat_last_other_liabilities'; // অন্যান্য দায় সমূহ
 
   // ═══ বছরভিত্তিক রেকর্ড ═══
 
@@ -120,6 +129,12 @@ class ZakatHelper {
       'nisabBasis': prefs.getString(_keyLastNisabBasis) ?? 'silver',
       'silverNisabPrice': prefs.getDouble(_keyLastSilverNisabPrice) ?? 0.0,
       'goldNisabPrice': prefs.getDouble(_keyLastGoldNisabPrice) ?? 0.0,
+      'providentFund': prefs.getDouble(_keyLastProvidentFund) ?? 0.0,
+      'goodsStock': prefs.getDouble(_keyLastGoodsStock) ?? 0.0,
+      'receivables': prefs.getDouble(_keyLastReceivables) ?? 0.0,
+      'otherAssets': prefs.getDouble(_keyLastOtherAssets) ?? 0.0,
+      'bankLoan': prefs.getDouble(_keyLastBankLoan) ?? 0.0,
+      'otherLiabilities': prefs.getDouble(_keyLastOtherLiabilities) ?? 0.0,
     };
   }
 
@@ -133,6 +148,12 @@ class ZakatHelper {
     required String nisabBasis,
     required double silverNisabPrice,
     required double goldNisabPrice,
+    double providentFund = 0.0,
+    double goodsStock = 0.0,
+    double receivables = 0.0,
+    double otherAssets = 0.0,
+    double bankLoan = 0.0,
+    double otherLiabilities = 0.0,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyLastCash, cash);
@@ -144,6 +165,12 @@ class ZakatHelper {
     await prefs.setString(_keyLastNisabBasis, nisabBasis);
     await prefs.setDouble(_keyLastSilverNisabPrice, silverNisabPrice);
     await prefs.setDouble(_keyLastGoldNisabPrice, goldNisabPrice);
+    await prefs.setDouble(_keyLastProvidentFund, providentFund);
+    await prefs.setDouble(_keyLastGoodsStock, goodsStock);
+    await prefs.setDouble(_keyLastReceivables, receivables);
+    await prefs.setDouble(_keyLastOtherAssets, otherAssets);
+    await prefs.setDouble(_keyLastBankLoan, bankLoan);
+    await prefs.setDouble(_keyLastOtherLiabilities, otherLiabilities);
   }
 
   // ═══ ব্যাকআপ/রিস্টোর ═══
@@ -179,6 +206,12 @@ class ZakatHelper {
         nisabBasis: c['nisabBasis'] as String? ?? 'silver',
         silverNisabPrice: (c['silverNisabPrice'] as num?)?.toDouble() ?? 0.0,
         goldNisabPrice: (c['goldNisabPrice'] as num?)?.toDouble() ?? 0.0,
+        providentFund: (c['providentFund'] as num?)?.toDouble() ?? 0.0,
+        goodsStock: (c['goodsStock'] as num?)?.toDouble() ?? 0.0,
+        receivables: (c['receivables'] as num?)?.toDouble() ?? 0.0,
+        otherAssets: (c['otherAssets'] as num?)?.toDouble() ?? 0.0,
+        bankLoan: (c['bankLoan'] as num?)?.toDouble() ?? 0.0,
+        otherLiabilities: (c['otherLiabilities'] as num?)?.toDouble() ?? 0.0,
       );
     }
   }

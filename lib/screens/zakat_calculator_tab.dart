@@ -46,7 +46,6 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
   static const double goldNisabGrams = 85.0;
   static const double silverNisabGrams = 595.0;
   static const double zakatRate = 0.025;
-  static const double _defaultSilverPricePerGram = 150.0;
 
   @override
   void initState() {
@@ -88,9 +87,6 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
     _goldNisabPriceController.text = _fmtInput(saved['goldNisabPrice']);
     _silverNisabPriceController.text = _fmtInput(saved['silverNisabPrice']);
     _nisabBasis = saved['nisabBasis'] as String? ?? 'silver';
-    if (_silverNisabPriceController.text.isEmpty) {
-      _silverNisabPriceController.text = _defaultSilverPricePerGram.toString();
-    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -212,8 +208,6 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
           const SizedBox(height: 16),
           _netAssetsCard(isBn, netAssets),
           const SizedBox(height: 16),
-          _nisabBasisCard(isBn),
-          const SizedBox(height: 16),
           _finalZakatCard(isBn, nisabValue, isEligible, zakatDue),
           const SizedBox(height: 16),
           Padding(
@@ -257,6 +251,8 @@ class _ZakatCalculatorTabState extends State<ZakatCalculatorTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _nisabReferenceCard(isBn),
           ),
+          const SizedBox(height: 16),
+          _nisabBasisCard(isBn),
         ],
       ),
     );

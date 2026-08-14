@@ -133,6 +133,7 @@ class DateHelper {
     final year = date.year;
     int bMonth = 0;
     int bDay = 1;
+    int bYear = year - 593;
 
     final monthStarts = [
       DateTime(year, 4, 14),
@@ -150,6 +151,7 @@ class DateHelper {
     ];
 
     if (date.isBefore(DateTime(year, 4, 14))) {
+      bYear = year - 594;
       final prevMonthStarts = [
         DateTime(year - 1, 4, 14),
         DateTime(year - 1, 5, 15),
@@ -182,7 +184,7 @@ class DateHelper {
     }
 
     final season = _seasonNames[bMonth];
-    return '${_toBangla(bDay)} ${bMonths[bMonth]}, $season';
+    return '$season, ${_toBangla(bDay)} ${bMonths[bMonth]} ${_toBangla(bYear)}';
   }
 
   static String _toBangla(int n) {

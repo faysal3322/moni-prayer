@@ -65,8 +65,8 @@ class _QuranScreenState extends State<QuranScreen> with SingleTickerProviderStat
           tabs: [
             Tab(text: isBn ? 'সূরা' : 'Sura'),
             Tab(text: isBn ? 'পারা' : 'Para'),
-            Tab(text: isBn ? 'আমার কোরআন' : 'My Quran'),
             Tab(text: isBn ? 'বাংলা কোরআন' : 'Bangla Quran'),
+            Tab(text: isBn ? 'আমার কোরআন' : 'My Quran'),
           ],
         ),
       ),
@@ -75,8 +75,8 @@ class _QuranScreenState extends State<QuranScreen> with SingleTickerProviderStat
         children: [
           _SuraTab(lang: widget.lang),
           _ParaTab(lang: widget.lang),
-          _MyQuranTab(lang: widget.lang),
           BanglaQuranTab(lang: widget.lang),
+          _MyQuranTab(lang: widget.lang),
         ],
       ),
     );

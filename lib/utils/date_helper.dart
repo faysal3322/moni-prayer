@@ -112,6 +112,79 @@ class DateHelper {
     return '${_toBangla(bDay)} ${bMonths[bMonth]} ${_toBangla(bYear)}';
   }
 
+  // বাংলা মাসের index (০=বৈশাখ ... ১১=চৈত্র) থেকে ঋতুর নাম
+  static const List<String> _seasonNames = [
+    'গ্রীষ্মকাল', 'গ্রীষ্মকাল',   // বৈশাখ, জ্যৈষ্ঠ
+    'বর্ষাকাল', 'বর্ষাকাল',       // আষাঢ়, শ্রাবণ
+    'শরৎকাল', 'শরৎকাল',           // ভাদ্র, আশ্বিন
+    'হেমন্তকাল', 'হেমন্তকাল',     // কার্তিক, অগ্রহায়ণ
+    'শীতকাল', 'শীতকাল',           // পৌষ, মাঘ
+    'বসন্তকাল', 'বসন্তকাল',       // ফাল্গুন, চৈত্র
+  ];
+
+  // "৩০ শ্রাবণ ১৪৩৩" এর বদলে "৩০ শ্রাবণ, বর্ষাকাল" — ক্লক কার্ডে দেখানোর জন্য
+  static String toBanglaWithSeason(DateTime date) {
+    final bMonths = [
+      'বৈশাখ','জ্যৈষ্ঠ','আষাঢ়','শ্রাবণ',
+      'ভাদ্র','আশ্বিন','কার্তিক','অগ্রহায়ণ',
+      'পৌষ','মাঘ','ফাল্গুন','চৈত্র'
+    ];
+
+    final year = date.year;
+    int bMonth = 0;
+    int bDay = 1;
+
+    final monthStarts = [
+      DateTime(year, 4, 14),
+      DateTime(year, 5, 15),
+      DateTime(year, 6, 15),
+      DateTime(year, 7, 16),
+      DateTime(year, 8, 16),
+      DateTime(year, 9, 16),
+      DateTime(year, 10, 16),
+      DateTime(year, 11, 15),
+      DateTime(year, 12, 15),
+      DateTime(year + 1, 1, 14),
+      DateTime(year + 1, 2, 13),
+      DateTime(year + 1, 3, 14),
+    ];
+
+    if (date.isBefore(DateTime(year, 4, 14))) {
+      final prevMonthStarts = [
+        DateTime(year - 1, 4, 14),
+        DateTime(year - 1, 5, 15),
+        DateTime(year - 1, 6, 15),
+        DateTime(year - 1, 7, 16),
+        DateTime(year - 1, 8, 16),
+        DateTime(year - 1, 9, 16),
+        DateTime(year - 1, 10, 16),
+        DateTime(year - 1, 11, 15),
+        DateTime(year - 1, 12, 15),
+        DateTime(year, 1, 14),
+        DateTime(year, 2, 13),
+        DateTime(year, 3, 14),
+      ];
+      for (int i = prevMonthStarts.length - 1; i >= 0; i--) {
+        if (!date.isBefore(prevMonthStarts[i])) {
+          bMonth = i;
+          bDay = date.difference(prevMonthStarts[i]).inDays + 1;
+          break;
+        }
+      }
+    } else {
+      for (int i = monthStarts.length - 1; i >= 0; i--) {
+        if (!date.isBefore(monthStarts[i])) {
+          bMonth = i;
+          bDay = date.difference(monthStarts[i]).inDays + 1;
+          break;
+        }
+      }
+    }
+
+    final season = _seasonNames[bMonth];
+    return '${_toBangla(bDay)} ${bMonths[bMonth]}, $season';
+  }
+
   static String _toBangla(int n) {
     const map = {
       '0':'০','1':'১','2':'২','3':'৩','4':'৪',

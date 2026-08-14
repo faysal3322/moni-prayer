@@ -89,7 +89,8 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         } else {
             if (isBn) "pm" else "PM"
         }
-        var timeStr = timeFormat.format(now.time) + " " + amPm
+        // সময় ও am/pm এর মাঝে ফাঁকা কমানোর জন্য non-breaking narrow space
+        var timeStr = timeFormat.format(now.time) + "\u2009" + amPm
         if (isBn) timeStr = toBanglaDigits(timeStr)
 
         views.setTextViewText(R.id.widget_time, timeStr)
@@ -108,11 +109,13 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
         views.setTextViewText(R.id.widget_weather, prefs.getString("widget_weather", "") ?: "")
+        views.setTextViewText(R.id.widget_location, prefs.getString("widget_location", "") ?: "")
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
         views.setTextViewText(R.id.widget_bangla_date, prefs.getString("widget_bangla_date", "") ?: "")
         views.setTextViewText(R.id.widget_waqt_name, prefs.getString("widget_waqt_name", "") ?: "")
         views.setTextViewText(R.id.widget_waqt_range, prefs.getString("widget_waqt_range", "") ?: "")
+        views.setTextViewText(R.id.widget_waqt_remaining, prefs.getString("widget_waqt_remaining", "") ?: "")
         views.setTextViewText(R.id.widget_sunrise, prefs.getString("widget_sunrise", "") ?: "")
         views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")

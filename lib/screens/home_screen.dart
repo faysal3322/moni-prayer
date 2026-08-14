@@ -1940,7 +1940,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
 
           // ══ চিকন আবহাওয়া বার — সময় ও নামাজের ওয়াক্তের মাঝখানে ══
           Padding(
@@ -1976,9 +1976,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Divider(color: Colors.white.withOpacity(0.1), thickness: 1, indent: 16, endIndent: 16),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // ══ মাঝের অংশ: নামাজের ওয়াক্ত (বাম) | দিন ও তারিখ (ডান) ══
           Padding(
@@ -2005,7 +2005,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           _fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime),
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 13,
+                            fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -2015,7 +2015,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           isBn ? 'ওয়াক্ত শেষ হতে বাকি' : 'Time remaining',
                           style: const TextStyle(
                             color: Colors.white54,
-                            fontSize: 11,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -2047,11 +2047,12 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                 // ডান: দিনের নাম + তারিখসমূহ
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       // বার
                       Text(
                         widget.lang.dayName(now.weekday),
+                        textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 20,
                           color: isFriday ? AppTheme.accent : Colors.white70,
@@ -2063,9 +2064,10 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       // ইংরেজি তারিখ
                       Text(
                         DateHelper.formatGregorian(now, bangla: isBn),
+                        textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
-                          fontSize: 13,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2075,9 +2077,10 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         widget.hijriDate.isEmpty
                             ? DateHelper.toHijri(now, bangla: isBn)
                             : widget.hijriDate,
+                        textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: AppTheme.gold,
-                          fontSize: 13,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2085,9 +2088,10 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       // বাংলা তারিখ + ঋতু
                       Text(
                         DateHelper.toBanglaWithSeason(now),
+                        textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: Color(0xFF80DEEA),
-                          fontSize: 12,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -2098,9 +2102,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Divider(color: Colors.white.withOpacity(0.1), thickness: 1, indent: 16, endIndent: 16),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // ══ একদম নিচে: সূর্যোদয়, সূর্যাস্ত, সেহরি, ইফতার ══
           Padding(
@@ -2201,18 +2205,18 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(icon, style: const TextStyle(fontSize: 12)),
+            Text(icon, style: const TextStyle(fontSize: 15)),
             const SizedBox(width: 3),
             Text(
               label,
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+              style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ],
         ),
         const SizedBox(height: 2),
         Text(
           time,
-          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+          style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold),
         ),
       ],
     );

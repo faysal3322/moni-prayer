@@ -36,9 +36,10 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
   bool _loading = true;
   String _error = '';
   final TextEditingController _searchController = TextEditingController();
-  // "সর্বশেষ পঠিত অবস্থান" — সূরা ট্যাবের মতোই, এখানেও দেখানো হয়। সূরা
-  // ট্যাব ও বাংলা কোরআন ট্যাব একই QuranPrefs.getLastRead() শেয়ার করে, তাই
-  // যেকোনো একটায় পড়ে বের হলে দুই জায়গাতেই আপডেট হওয়া কার্ড দেখা যাবে।
+  // "সূরা" ট্যাব ও "বাংলা কোরআন" ট্যাব এখন সম্পূর্ণ আলাদা last-read key
+  // ব্যবহার করে (QuranPrefs.getBanglaLastRead()) — একজন আরবি তেলাওয়াত
+  // এক জায়গা পর্যন্ত পড়তে পারেন, বাংলা অনুবাদ অন্য জায়গা পর্যন্ত; দুটো
+  // একে অপরকে ওভাররাইট করবে না।
   Map<String, dynamic>? _lastRead;
 
   @override
@@ -57,7 +58,7 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
   }
 
   Future<void> _loadLastRead() async {
-    final lastRead = await QuranPrefs.getLastRead();
+    final lastRead = await QuranPrefs.getBanglaLastRead();
     if (lastRead == null || !mounted) {
       if (mounted) setState(() => _lastRead = null);
       return;
@@ -352,6 +353,17 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
 
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _ayaKeys = [];
+  // ফিক্স: আগে dispose()-এর সময় সরাসরি _ayaKeys[i].currentContext পড়ে
+  // "এখন কোন আয়াত দেখা যাচ্ছে" বের করা হতো। কিন্তু dispose() কল হওয়ার
+  // মুহূর্তে widget tree ইতিমধ্যে unmount হতে শুরু করে দেয়, ফলে প্রায়
+  // সবসময়ই প্রতিটা GlobalKey-র currentContext আগেভাগেই null হয়ে
+  // যাচ্ছিল — লুপ কোনো ম্যাচ না পেয়ে bestIndex ??= 0 এ পড়ে যেত, এবং
+  // সবসময় ১ নম্বর আয়াতই "সর্বশেষ পঠিত" হিসেবে সেভ হতো, আসলে যতদূর পড়া
+  // হয়েছিল তা নির্বিশেষে। এখন স্ক্রল থামার সময়েই (যখন widget tree পুরো
+  // জীবিত ও দৃশ্যমান) বর্তমান ইনডেক্স এই ভ্যারিয়েবলে ক্যাশ করে রাখা হয়,
+  // আর dispose()-এ GlobalKey আবার না পড়ে সরাসরি এই ক্যাশ করা মান
+  // ব্যবহার করা হয় — dispose-টাইমিং সমস্যা সম্পূর্ণ এড়িয়ে যায়।
+  int? _lastKnownVisibleIndex;
 
   @override
   void initState() {
@@ -361,22 +373,22 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
 
   @override
   void dispose() {
-    // ফিক্স: আগে এই স্ক্রিন থেকে বের হলে "সর্বশেষ পঠিত অবস্থান" কোথাও
-    // সংরক্ষণ করা হতো না — ফলে ব্যবহারকারী বাংলা কোরআন ট্যাবে যত দূরই
-    // পড়ুক না কেন, ফিরে এলে কোনো চিহ্ন থাকত না। এখন সূরা ট্যাবের মতোই,
-    // স্ক্রিন থেকে বের হওয়ার সাথে সাথেই (ইনস্ট্যান্ট, বিলম্ব ছাড়া)
-    // বর্তমানে দৃশ্যমান আয়াতটা QuranPrefs-এ সেভ করা হয় — সূরা ট্যাব ও
-    // বাংলা কোরআন ট্যাব একই last-read key শেয়ার করে, তাই যেকোনো একটায়
-    // পড়ে বের হলে অন্যটাতেও আপডেটেড কার্ড দেখা যাবে।
+    // স্ক্রিন থেকে বের হওয়ার সময়ও একবার সর্বশেষ পঠিত অবস্থান সেভ করা
+    // হচ্ছে (ইনস্ট্যান্ট, বিলম্ব ছাড়া) — কিন্তু GlobalKey recompute না
+    // করে, বরং সর্বশেষ scroll-idle এ যা ক্যাশ হয়েছিল সেটাই ব্যবহার
+    // করে (দেখুন _lastKnownVisibleIndex-এর কমেন্ট)। "সূরা" ট্যাব ও
+    // "বাংলা কোরআন" ট্যাব এখন সম্পূর্ণ আলাদা last-read key ব্যবহার করে,
+    // তাই একটায় পড়া অন্যটার সর্বশেষ অবস্থান পাল্টায় না।
     _saveCurrentPositionAsLastRead();
     _scrollController.dispose();
     super.dispose();
   }
 
-  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতটা বের করে
-  /// "সর্বশেষ পঠিত অবস্থান" হিসেবে সংরক্ষণ করে (সূরা ডিটেইল স্ক্রিনের
-  /// একই কৌশল ব্যবহার করে)।
-  void _saveCurrentPositionAsLastRead() {
+  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতের ইনডেক্স খুঁজে
+  /// _lastKnownVisibleIndex-এ ক্যাশ করে রাখে। স্ক্রল থামলে (idle) কল করা
+  /// হয়, যখন widget tree এখনো পুরোপুরি জীবিত — তাই এখানে GlobalKey পড়া
+  /// নির্ভরযোগ্য।
+  void _updateLastKnownVisibleIndex() {
     if (_ayat.isEmpty) return;
     int? bestIndex;
     double bestDy = double.infinity;
@@ -391,16 +403,22 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
         bestIndex = i;
       }
     }
-    // কোনো আয়াতের GlobalKey এখনো attach হয়নি এমন (যেমন ব্যবহারকারী একদম
-    // না স্ক্রল করেই সাথে সাথে বের হয়ে গেলে) ক্ষেত্রে প্রথম আয়াতটাকেই
-    // "সর্বশেষ পঠিত" হিসেবে ধরা হয়, যাতে অন্তত এই সূরার শুরুটা সংরক্ষিত
-    // থাকে।
-    bestIndex ??= 0;
-    if (bestIndex < _ayat.length) {
-      final ayaNumber = _ayat[bestIndex]['aya'] as int?;
-      if (ayaNumber != null) {
-        QuranPrefs.setLastRead(widget.sura, ayaNumber);
-      }
+    if (bestIndex != null) {
+      _lastKnownVisibleIndex = bestIndex;
+    }
+  }
+
+  /// ক্যাশ করা ইনডেক্স (_lastKnownVisibleIndex) অনুযায়ী "সর্বশেষ পঠিত
+  /// অবস্থান" QuranPrefs-এ সেভ করে। কোনো ক্যাশ এখনো তৈরি না হয়ে থাকলে
+  /// (যেমন ব্যবহারকারী একদম না স্ক্রল করেই সাথে সাথে বের হয়ে গেলে)
+  /// প্রথম আয়াতটাকেই "সর্বশেষ পঠিত" হিসেবে ধরা হয়, যাতে অন্তত এই
+  /// সূরার শুরুটা সংরক্ষিত থাকে।
+  void _saveCurrentPositionAsLastRead() {
+    if (_ayat.isEmpty) return;
+    final index = (_lastKnownVisibleIndex ?? 0).clamp(0, _ayat.length - 1);
+    final ayaNumber = _ayat[index]['aya'] as int?;
+    if (ayaNumber != null) {
+      QuranPrefs.setBanglaLastRead(widget.sura, ayaNumber);
     }
   }
 
@@ -683,9 +701,11 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
                   // আপডেট করা হচ্ছে — সূরা ডিটেইল স্ক্রিনের একই আচরণ,
                   // যাতে ব্যবহারকারী অ্যাপ থেকে হুট করে (back বাটন, হোম
                   // বাটন, বা অন্য অ্যাপে চলে গিয়ে) বের হয়ে গেলেও সর্বশেষ
-                  // অবস্থান দ্রুত সংরক্ষিত থাকে।
+                  // অবস্থান দ্রুত সংরক্ষিত থাকে। এখানে widget tree এখনো
+                  // জীবিত, তাই আগে ক্যাশ রিফ্রেশ করে তারপর সেভ করা হয়।
                   onNotification: (notification) {
                     if (notification.direction == ScrollDirection.idle) {
+                      _updateLastKnownVisibleIndex();
                       _saveCurrentPositionAsLastRead();
                     }
                     return false;

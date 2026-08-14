@@ -200,6 +200,15 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
 
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _ayaKeys = [];
+  // ফিক্স: আগে dispose()-এর সময় সরাসরি _ayaKeys[i].currentContext পড়ে
+  // "এখন কোন আয়াত দেখা যাচ্ছে" বের করা হতো। কিন্তু dispose() কল হওয়ার
+  // মুহূর্তে widget tree ইতিমধ্যে unmount হতে শুরু করে দেয়, ফলে প্রায়
+  // সবসময়ই GlobalKey-দের currentContext আগেভাগেই null হয়ে যাচ্ছিল —
+  // ফলে dispose-এ last-read সেভই হতো না, বা (বড় সূরায় "page" মোডে)
+  // ভুল/পুরনো আয়াত সেভ হতো। এখন স্ক্রল থামার সময়েই (যখন widget tree
+  // পুরো জীবিত) বর্তমান ইনডেক্স এখানে ক্যাশ করে রাখা হয়, আর dispose()-এ
+  // GlobalKey আবার না পড়ে সরাসরি এই ক্যাশ করা মান ব্যবহার করা হয়।
+  int? _lastKnownVisibleIndex;
 
   // নিচের বার (সূরার নাম/জাম্প + প্লে বাটন + Page/List টগল) স্ক্রল করলে
   // লুকিয়ে/দেখা যাওয়ার জন্য — উপরের দিকে স্ক্রল করলে (নিচে পড়তে থাকলে)
@@ -244,6 +253,11 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     });
     if (session.ayaIndex >= 0) {
       _resumeFromIndex = session.ayaIndex;
+      // অডিও প্লেব্যাক নিজে থেকে আয়াত এগিয়ে নিয়ে গেলে ব্যবহারকারী হয়তো
+      // কোনো ম্যানুয়াল স্ক্রল করবেনই না (idle notification আসবে না) —
+      // তাই এখানেও সরাসরি ক্যাশ আপডেট করা হচ্ছে, যাতে শোনা অবস্থায়
+      // হঠাৎ বের হয়ে গেলেও সঠিক আয়াত last-read হিসেবে সেভ হয়।
+      _lastKnownVisibleIndex = session.ayaIndex;
       _scrollToVerse(session.ayaIndex);
     }
   }
@@ -283,19 +297,24 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // "সর্বশেষ পঠিত অবস্থান" সেভ — স্ক্রল থামলেই (ScrollEndNotification নয়,
     // UserScrollNotification.idle) বর্তমানে দৃশ্যমান প্রথম আয়াতটা বের করে
     // সংরক্ষণ করা হয়। প্রতিটা স্ক্রল ফ্রেমে না করে শুধু থামার সময় করা
-    // হচ্ছে যাতে অহেতুক বারবার SharedPreferences write না হয়।
+    // হচ্ছে যাতে অহেতুক বারবার SharedPreferences write না হয়। widget tree
+    // এখনো জীবিত থাকা অবস্থাতেই এটা ঘটে, তাই আগে ক্যাশ রিফ্রেশ করে তারপর
+    // সেভ করা হয় (dispose()-এ শুধু এই ক্যাশ থেকে সেভ হয়, নতুন করে
+    // GlobalKey পড়া হয় না)।
     if (notification.direction == ScrollDirection.idle) {
+      _updateLastKnownVisibleIndex();
       _saveCurrentPositionAsLastRead();
     }
     return false;
   }
 
-  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতটা বের করে
-  /// "সর্বশেষ পঠিত অবস্থান" হিসেবে সংরক্ষণ করে। _ayaKeys-এর প্রতিটা
-  /// GlobalKey-এর RenderBox থেকে স্ক্রিনের উপরের কিনারার সাপেক্ষে
-  /// অবস্থান (dy) দেখে সবচেয়ে কাছেরটা (কিন্তু উপরের কিনারার নিচে/সমান)
-  /// বেছে নেওয়া হয়।
-  void _saveCurrentPositionAsLastRead() {
+  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতের ইনডেক্স খুঁজে
+  /// _lastKnownVisibleIndex-এ ক্যাশ করে রাখে। স্ক্রল থামলে (idle) কল করা
+  /// হয়, যখন widget tree এখনো পুরোপুরি জীবিত — তাই এখানে GlobalKey পড়া
+  /// নির্ভরযোগ্য। _ayaKeys-এর প্রতিটা GlobalKey-এর RenderBox থেকে
+  /// স্ক্রিনের উপরের কিনারার সাপেক্ষে অবস্থান (dy) দেখে সবচেয়ে কাছেরটা
+  /// (কিন্তু উপরের কিনারার নিচে/সমান) বেছে নেওয়া হয়।
+  void _updateLastKnownVisibleIndex() {
     if (_ayat.isEmpty) return;
     int? bestIndex;
     double bestDy = double.infinity;
@@ -312,11 +331,22 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         bestIndex = i;
       }
     }
-    if (bestIndex != null && bestIndex < _ayat.length) {
-      final ayaNumber = _ayat[bestIndex]['aya'] as int?;
-      if (ayaNumber != null) {
-        QuranPrefs.setLastRead(widget.sura, ayaNumber);
-      }
+    if (bestIndex != null) {
+      _lastKnownVisibleIndex = bestIndex;
+    }
+  }
+
+  /// ক্যাশ করা ইনডেক্স (_lastKnownVisibleIndex) অনুযায়ী "সর্বশেষ পঠিত
+  /// অবস্থান" QuranPrefs-এ সেভ করে (GlobalKey আবার recompute করে না,
+  /// দেখুন _lastKnownVisibleIndex-এর কমেন্ট)। কোনো ক্যাশ এখনো তৈরি না
+  /// হয়ে থাকলে (যেমন ব্যবহারকারী একদম না স্ক্রল করেই সাথে সাথে বের হয়ে
+  /// গেলে) প্রথম আয়াতটাকেই "সর্বশেষ পঠিত" হিসেবে ধরা হয়।
+  void _saveCurrentPositionAsLastRead() {
+    if (_ayat.isEmpty) return;
+    final index = (_lastKnownVisibleIndex ?? 0).clamp(0, _ayat.length - 1);
+    final ayaNumber = _ayat[index]['aya'] as int?;
+    if (ayaNumber != null) {
+      QuranPrefs.setLastRead(widget.sura, ayaNumber);
     }
   }
 

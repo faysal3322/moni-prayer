@@ -1612,7 +1612,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             const SizedBox(height: 12),
 
-            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon),
+            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, yesterdayPrayerTimes: _yesterdayPrayerTimes, sunnahTimes: _sunnahTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon),
             const SizedBox(height: 12),
 
             Row(children: [
@@ -1691,6 +1691,8 @@ class _ClockCard extends StatefulWidget {
   final DateTime now;
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
+  final PrayerTimes? yesterdayPrayerTimes;
+  final SunnahTimes? sunnahTimes;
   final String hijriDate;
   final List<Map<String, dynamic>> liveAlerts;
   final String locationName;
@@ -1701,6 +1703,8 @@ class _ClockCard extends StatefulWidget {
     required this.now,
     required this.lang,
     required this.prayerTimes,
+    this.yesterdayPrayerTimes,
+    this.sunnahTimes,
     required this.hijriDate,
     required this.liveAlerts,
     required this.locationName,
@@ -1751,6 +1755,90 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         .join('          ✦          ');
   }
 
+  // ছোট এলাকা (উপরে) / বড় এলাকা (নিচে) — locationName সাধারণত
+  // "এলাকা, শহর" বা "এলাকা, জেলা" ফরম্যাটে আসে। কমা দিয়ে ভাগ করে
+  // প্রথম অংশ ছোট জায়গা, বাকি অংশ বড় জায়গা হিসেবে দেখানো হচ্ছে।
+  List<String> _splitLocation(String loc) {
+    if (loc.isEmpty) return ['', ''];
+    final parts = loc.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (parts.length <= 1) return [loc, ''];
+    return [parts.first, parts.sublist(1).join(', ')];
+  }
+
+  String _countdown(DateTime end, DateTime now) {
+    final diff = end.difference(now);
+    if (diff.isNegative) return '';
+    final hr = diff.inHours.toString().padLeft(2, '0');
+    final mn = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final sc = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hr:$mn:$sc';
+  }
+
+  String _fmtRange(DateTime start, DateTime end) {
+    return '${PrayerTimeHelper.formatTime(start)} - ${PrayerTimeHelper.formatTime(end)}';
+  }
+
+  // বর্তমানে সক্রিয় ওয়াক্ত (ফরজ বা নফল) নির্ণয় করে নাম, রেঞ্জ ও বাকি সময় ফেরত দেয়
+  Map<String, dynamic>? _currentWaqt(bool isBn) {
+    final pt = widget.prayerTimes;
+    if (pt == null) return null;
+    final now = widget.now;
+
+    final yesterday = widget.yesterdayPrayerTimes;
+    final isPastMidnightBeforeFajr = now.isBefore(pt.fajr);
+    final nightMaghrib = (isPastMidnightBeforeFajr && yesterday != null) ? yesterday.maghrib : pt.maghrib;
+    final nightIsha = (isPastMidnightBeforeFajr && yesterday != null) ? yesterday.isha : pt.isha;
+
+    final nextFajr = pt.fajr.isAfter(nightMaghrib) ? pt.fajr : pt.fajr.add(const Duration(days: 1));
+    final nightDuration = nextFajr.difference(nightMaghrib);
+    final lastThird = nightMaghrib.add(Duration(milliseconds: (nightDuration.inMilliseconds * 2 / 3).round()));
+
+    final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
+    final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));
+    final chashtStart = pt.sunrise.add(const Duration(minutes: 45));
+    final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
+    final zawalEnd = pt.dhuhr;
+    final ishaaEnd = lastThird;
+
+    // অগ্রাধিকার ক্রম: ফরজ ওয়াক্ত > যাওয়াল/নিষিদ্ধ সময় > নফল ওয়াক্ত > তাহাজ্জুদ
+    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
+      return {'name': isBn ? 'ফজর' : 'Fajr', 'start': pt.fajr, 'end': pt.sunrise};
+    }
+    if (!now.isBefore(pt.sunrise) && now.isBefore(ishraqStart)) {
+      return {'name': isBn ? 'সূর্যোদয়' : 'Sunrise', 'start': pt.sunrise, 'end': ishraqStart};
+    }
+    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
+      return {'name': isBn ? 'ইশরাক' : 'Ishraq', 'start': ishraqStart, 'end': ishraqEnd};
+    }
+    if (now.isAfter(chashtStart) && now.isBefore(zawalStart)) {
+      return {'name': isBn ? 'দুহা/চাশত' : 'Duha/Chasht', 'start': chashtStart, 'end': zawalStart};
+    }
+    if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
+      return {'name': isBn ? 'যাওয়াল (নিষিদ্ধ সময়)' : 'Zawal (Forbidden)', 'start': zawalStart, 'end': zawalEnd};
+    }
+    if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
+      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'start': pt.dhuhr, 'end': pt.asr};
+    }
+    if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+      return {'name': isBn ? 'আসর' : 'Asr', 'start': pt.asr, 'end': pt.maghrib};
+    }
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      return {'name': isBn ? 'মাগরিব / আওয়াবিন' : 'Maghrib / Awwabin', 'start': pt.maghrib, 'end': pt.isha};
+    }
+    if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
+      return {'name': isBn ? 'এশা' : 'Isha', 'start': pt.isha, 'end': ishaaEnd};
+    }
+    if (now.isAfter(nightIsha) && !now.isBefore(lastThird)) {
+      // তাহাজ্জুদের সময় চলছে (রাতের শেষ ১/৩ অংশ, ফজরের আগ পর্যন্ত)
+      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'start': lastThird, 'end': pt.fajr};
+    }
+    // বাকি সময়টুকু (এশার পর, তাহাজ্জুদ শুরুর আগ পর্যন্ত)
+    if (now.isAfter(nightIsha)) {
+      return {'name': isBn ? 'এশা পরবর্তী সময়' : 'Post-Isha', 'start': nightIsha, 'end': lastThird};
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBn = widget.lang.isBn;
@@ -1762,6 +1850,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     const sunColor = AppTheme.gold;
     const fastColor = Color(0xFF00E676);
     final isFriday = now.weekday == DateTime.friday;
+    final locParts = _splitLocation(widget.locationName);
+    final waqt = _currentWaqt(isBn);
 
     return Container(
       width: double.infinity,
@@ -1776,69 +1866,113 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       ),
       child: Column(
         children: [
-          // ══ উপরের অংশ: সময় + বার ══
+          // ══ উপরের অংশ: সময় (বামে) + লোকেশন (ডানে) ══
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Column(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // সময় (সবসময় ইংরেজি/আরবি সংখ্যায় দেখানো হয়)
                 Text(
                   DateHelper.formatTime12(now, bangla: false),
                   style: const TextStyle(
-                    fontSize: 56,
+                    fontSize: 44,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 2),
-                // বার + আবহাওয়া placeholder row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // বার
-                    Text(
-                      widget.lang.dayName(now.weekday),
-                      style: TextStyle(
-                        fontSize: 26,
-                        color: isFriday ? AppTheme.accent : Colors.white70,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    // আবহাওয়া (real data)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(widget.weatherIcon, style: const TextStyle(fontSize: 18)),
-                          const SizedBox(width: 6),
-                          Flexible(
+                // লোকেশন — ছোট জায়গা উপরে, বড় জায়গা নিচে
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (widget.locationName.isEmpty)
+                        Text(
+                          isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...',
+                          style: const TextStyle(
+                            color: Color(0xFF80DEEA),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.right,
+                        )
+                      else ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 13),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                locParts[0],
+                                style: const TextStyle(
+                                  color: Color(0xFF80DEEA),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (locParts[1].isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
                             child: Text(
-                              widget.weatherText.isEmpty
-                                  ? (isBn ? 'লোড হচ্ছে...' : 'Loading...')
-                                  : widget.weatherText,
+                              locParts[1],
                               style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
+                              textAlign: TextAlign.right,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // ══ চিকন আবহাওয়া বার — সময় ও নামাজের ওয়াক্তের মাঝখানে ══
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.35)),
+              ),
+              child: Row(
+                children: [
+                  Text(widget.weatherIcon, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      widget.weatherText.isEmpty
+                          ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
+                          : widget.weatherText,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -1846,48 +1980,58 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
           Divider(color: Colors.white.withOpacity(0.1), thickness: 1, indent: 16, endIndent: 16),
           const SizedBox(height: 8),
 
-          // ══ মাঝের অংশ: তারিখ বাম | নামাজ ডান ══
+          // ══ মাঝের অংশ: নামাজের ওয়াক্ত (বাম) | দিন ও তারিখ (ডান) ══
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // বাম: তারিখ
+                // বাম: বর্তমান নামাজের ওয়াক্ত
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ইংরেজি তারিখ
                       Text(
-                        DateHelper.formatGregorian(now, bangla: isBn),
+                        waqt != null ? (waqt['name'] as String) : (isBn ? '—' : '—'),
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
-                          fontSize: 15,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      // হিজরি তারিখ
-                      Text(
-                        widget.hijriDate.isEmpty
-                            ? DateHelper.toHijri(now, bangla: isBn)
-                            : widget.hijriDate,
-                        style: const TextStyle(
-                          color: AppTheme.gold,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      if (waqt != null)
+                        Text(
+                          _fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      // বাংলা তারিখ
-                      Text(
-                        DateHelper.toBangla(now),
-                        style: const TextStyle(
-                          color: Color(0xFF80DEEA),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                      const SizedBox(height: 4),
+                      if (waqt != null) ...[
+                        Text(
+                          isBn ? 'ওয়াক্ত শেষ হতে বাকি' : 'Time remaining',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _countdown(waqt['end'] as DateTime, now).isEmpty
+                              ? '--:--:--'
+                              : _countdown(waqt['end'] as DateTime, now),
+                          style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1900,22 +2044,53 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                 ),
 
-                // ডান: সূর্যোদয়, সূর্যাস্ত, সেহরি, ইফতার
+                // ডান: দিনের নাম + তারিখসমূহ
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _timeRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
-                          sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--', sunColor),
-                      const SizedBox(height: 4),
-                      _timeRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
-                          maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', sunColor),
-                      const SizedBox(height: 8),
-                      _timeRow('🍽️', isBn ? 'সেহরি' : 'Sehri',
-                          fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--', fastColor),
-                      const SizedBox(height: 4),
-                      _timeRow('🌙', isBn ? 'ইফতার' : 'Iftar',
-                          maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', fastColor),
+                      // বার
+                      Text(
+                        widget.lang.dayName(now.weekday),
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: isFriday ? AppTheme.accent : Colors.white70,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // ইংরেজি তারিখ
+                      Text(
+                        DateHelper.formatGregorian(now, bangla: isBn),
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      // হিজরি তারিখ
+                      Text(
+                        widget.hijriDate.isEmpty
+                            ? DateHelper.toHijri(now, bangla: isBn)
+                            : widget.hijriDate,
+                        style: const TextStyle(
+                          color: AppTheme.gold,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      // বাংলা তারিখ + ঋতু
+                      Text(
+                        DateHelper.toBanglaWithSeason(now),
+                        style: const TextStyle(
+                          color: Color(0xFF80DEEA),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1924,29 +2099,23 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
           ),
 
           const SizedBox(height: 10),
+          Divider(color: Colors.white.withOpacity(0.1), thickness: 1, indent: 16, endIndent: 16),
+          const SizedBox(height: 8),
 
-          // ══ লোকেশন — মাঝ বরাবর ══
+          // ══ একদম নিচে: সূর্যোদয়, সূর্যাস্ত, সেহরি, ইফতার ══
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 14),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    widget.locationName.isEmpty
-                        ? (isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...')
-                        : widget.locationName,
-                    style: const TextStyle(
-                      color: Color(0xFF80DEEA),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                _bottomTimeCol('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
+                    sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--', sunColor),
+                _bottomTimeCol('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
+                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', sunColor),
+                _bottomTimeCol('🍽️', isBn ? 'সেহরি শেষ' : 'Sehri',
+                    fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--', fastColor),
+                _bottomTimeCol('🌙', isBn ? 'ইফতার শুরু' : 'Iftar',
+                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', fastColor),
               ],
             ),
           ),
@@ -2020,6 +2189,30 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               ),
             ]),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _bottomTimeCol(String icon, String label, String time, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 3),
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          time,
+          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
         ),
       ],
     );

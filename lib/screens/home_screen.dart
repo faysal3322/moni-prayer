@@ -294,37 +294,37 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         '${PrayerTimeHelper.formatTime(s)} - ${PrayerTimeHelper.formatTime(e)}';
 
     if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
-      return {'name': isBn ? 'ফজর' : 'Fajr', 'range': range(pt.fajr, pt.sunrise)};
+      return {'name': isBn ? 'ফজর' : 'Fajr', 'range': range(pt.fajr, pt.sunrise), 'end': pt.sunrise};
     }
     if (!now.isBefore(pt.sunrise) && now.isBefore(ishraqStart)) {
-      return {'name': isBn ? 'সূর্যোদয়' : 'Sunrise', 'range': range(pt.sunrise, ishraqStart)};
+      return {'name': isBn ? 'সূর্যোদয়' : 'Sunrise', 'range': range(pt.sunrise, ishraqStart), 'end': ishraqStart};
     }
     if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
-      return {'name': isBn ? 'ইশরাক' : 'Ishraq', 'range': range(ishraqStart, ishraqEnd)};
+      return {'name': isBn ? 'ইশরাক' : 'Ishraq', 'range': range(ishraqStart, ishraqEnd), 'end': ishraqEnd};
     }
     if (now.isAfter(chashtStart) && now.isBefore(zawalStart)) {
-      return {'name': isBn ? 'দুহা/চাশত' : 'Duha/Chasht', 'range': range(chashtStart, zawalStart)};
+      return {'name': isBn ? 'দুহা/চাশত' : 'Duha/Chasht', 'range': range(chashtStart, zawalStart), 'end': zawalStart};
     }
     if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
-      return {'name': isBn ? 'যাওয়াল' : 'Zawal', 'range': range(zawalStart, zawalEnd)};
+      return {'name': isBn ? 'যাওয়াল' : 'Zawal', 'range': range(zawalStart, zawalEnd), 'end': zawalEnd};
     }
     if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'range': range(pt.dhuhr, pt.asr)};
+      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'range': range(pt.dhuhr, pt.asr), 'end': pt.asr};
     }
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
-      return {'name': isBn ? 'আসর' : 'Asr', 'range': range(pt.asr, pt.maghrib)};
+      return {'name': isBn ? 'আসর' : 'Asr', 'range': range(pt.asr, pt.maghrib), 'end': pt.maghrib};
     }
     if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
-      return {'name': isBn ? 'মাগরিব' : 'Maghrib', 'range': range(pt.maghrib, pt.isha)};
+      return {'name': isBn ? 'মাগরিব' : 'Maghrib', 'range': range(pt.maghrib, pt.isha), 'end': pt.isha};
     }
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
-      return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd)};
+      return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd), 'end': ishaaEnd};
     }
     if (now.isAfter(nightIsha) && !now.isBefore(lastThird)) {
-      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr)};
+      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr), 'end': pt.fajr};
     }
     if (now.isAfter(nightIsha)) {
-      return {'name': isBn ? 'রাত' : 'Night', 'range': range(nightIsha, lastThird)};
+      return {'name': isBn ? 'রাত' : 'Night', 'range': range(nightIsha, lastThird), 'end': lastThird};
     }
     return null;
   }
@@ -381,16 +381,32 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (iftar): $e'); }
 
     try {
-      // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম ও সময়সীমা (ক্লক কার্ডের মতো)
+      // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়
+      // (widget প্রতি মিনিটে আপডেট হয় বলে সেকেন্ড না দেখিয়ে HH:MM আকারে দেখানো হচ্ছে)
       final waqt = _currentWidgetWaqt(isBn, pt, now);
       if (waqt != null) {
         await HomeWidget.saveWidgetData('widget_waqt_name', waqt['name'] as String);
         await HomeWidget.saveWidgetData('widget_waqt_range', waqt['range'] as String);
+        final end = waqt['end'] as DateTime;
+        final diff = end.difference(now);
+        String remaining = '';
+        if (!diff.isNegative) {
+          final hh = diff.inHours.toString().padLeft(2, '0');
+          final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
+          remaining = (isBn ? 'বাকি ' : 'Remaining ') + '$hh:$mm';
+        }
+        await HomeWidget.saveWidgetData('widget_waqt_remaining', remaining);
       } else {
         await HomeWidget.saveWidgetData('widget_waqt_name', '');
         await HomeWidget.saveWidgetData('widget_waqt_range', '');
+        await HomeWidget.saveWidgetData('widget_waqt_remaining', '');
       }
     } catch (e) { debugPrint('WIDGET ERROR (waqt): $e'); }
+
+    try {
+      // লোকেশন
+      await HomeWidget.saveWidgetData('widget_location', _locationName);
+    } catch (e) { debugPrint('WIDGET ERROR (location): $e'); }
 
     try {
       // weather: icon + temp + short description

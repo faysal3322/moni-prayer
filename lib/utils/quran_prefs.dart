@@ -16,6 +16,13 @@ class QuranPrefs {
   static const _keyPlaybackSpeed = 'quran_playback_speed';
   static const _keyLastReadSura = 'quran_last_read_sura';
   static const _keyLastReadAya = 'quran_last_read_aya';
+  // "বাংলা কোরআন" ট্যাবের সর্বশেষ পঠিত অবস্থান "সূরা" ট্যাবের থেকে
+  // সম্পূর্ণ আলাদা key-তে রাখা হয় — দুইটা ভিন্ন পড়ার অভিজ্ঞতা (একটায়
+  // আরবি তেলাওয়াত, আরেকটায় শুধু বাংলা অনুবাদ), তাই একজন ব্যবহারকারী
+  // দুই জায়গায় ভিন্ন ভিন্ন জায়গা পর্যন্ত পড়তে পারেন এবং প্রতিটার
+  // নিজস্ব "সর্বশেষ পঠিত" মনে থাকা উচিত, একটা আরেকটাকে ওভাররাইট করবে না।
+  static const _keyBanglaLastReadSura = 'quran_bangla_last_read_sura';
+  static const _keyBanglaLastReadAya = 'quran_bangla_last_read_aya';
 
   // Default: Arabic on, English transliteration off, Bangla text off
   // (ব্যবহারকারীর অনুরোধে ইংরেজি উচ্চারণ এখন ডিফল্টে বন্ধ থাকে — আগে
@@ -117,10 +124,29 @@ class QuranPrefs {
     return {'sura': sura, 'aya': aya};
   }
 
+  /// "বাংলা কোরআন" ট্যাবের সর্বশেষ পঠিত অবস্থান সেভ করে — "সূরা" ট্যাবের
+  /// setLastRead থেকে সম্পূর্ণ স্বতন্ত্র, একে অপরকে প্রভাবিত করে না।
+  static Future<void> setBanglaLastRead(int sura, int aya) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyBanglaLastReadSura, sura);
+    await prefs.setInt(_keyBanglaLastReadAya, aya);
+  }
+
+  /// "বাংলা কোরআন" ট্যাবের সর্বশেষ পঠিত অবস্থান ফেরত দেয় — এখনো কিছু
+  /// পড়া না হলে null।
+  static Future<Map<String, int>?> getBanglaLastRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sura = prefs.getInt(_keyBanglaLastReadSura);
+    final aya = prefs.getInt(_keyBanglaLastReadAya);
+    if (sura == null || aya == null) return null;
+    return {'sura': sura, 'aya': aya};
+  }
+
   /// ব্যাকআপের জন্য কোরআন সেকশনের সব সেটিংস (ভাষা টগল, ফন্ট সাইজ,
   /// ভিউ মোড, প্লেব্যাক স্পিড) একসাথে বের করে আনে।
   static Future<Map<String, dynamic>> exportPrefs() async {
     final lastRead = await getLastRead();
+    final banglaLastRead = await getBanglaLastRead();
     return {
       'show_arabic': await getShowArabic(),
       'show_bangla': await getShowBangla(),
@@ -131,6 +157,8 @@ class QuranPrefs {
       'playback_speed': await getPlaybackSpeed(),
       if (lastRead != null) 'last_read_sura': lastRead['sura'],
       if (lastRead != null) 'last_read_aya': lastRead['aya'],
+      if (banglaLastRead != null) 'bangla_last_read_sura': banglaLastRead['sura'],
+      if (banglaLastRead != null) 'bangla_last_read_aya': banglaLastRead['aya'],
     };
   }
 
@@ -154,6 +182,12 @@ class QuranPrefs {
       await setLastRead(
         (data['last_read_sura'] as num).toInt(),
         (data['last_read_aya'] as num).toInt(),
+      );
+    }
+    if (data['bangla_last_read_sura'] != null && data['bangla_last_read_aya'] != null) {
+      await setBanglaLastRead(
+        (data['bangla_last_read_sura'] as num).toInt(),
+        (data['bangla_last_read_aya'] as num).toInt(),
       );
     }
   }

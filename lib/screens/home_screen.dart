@@ -270,6 +270,65 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     });
   }
 
+  // widget-এর জন্য বর্তমান সক্রিয় ওয়াক্তের নাম ও সময়সীমা বের করে —
+  // ClockCard-এর মূল লজিকের সরলীকৃত সংস্করণ (ফরজ ওয়াক্তগুলো + ইশরাক/দুহা/
+  // যাওয়াল/তাহাজ্জুদ), যাতে widget-ও ক্লক কার্ডের সাথে সামঞ্জস্যপূর্ণ থাকে।
+  Map<String, dynamic>? _currentWidgetWaqt(bool isBn, PrayerTimes pt, DateTime now) {
+    final yesterday = _yesterdayPrayerTimes;
+    final isPastMidnightBeforeFajr = now.isBefore(pt.fajr);
+    final nightMaghrib = (isPastMidnightBeforeFajr && yesterday != null) ? yesterday.maghrib : pt.maghrib;
+    final nightIsha = (isPastMidnightBeforeFajr && yesterday != null) ? yesterday.isha : pt.isha;
+
+    final nextFajr = pt.fajr.isAfter(nightMaghrib) ? pt.fajr : pt.fajr.add(const Duration(days: 1));
+    final nightDuration = nextFajr.difference(nightMaghrib);
+    final lastThird = nightMaghrib.add(Duration(milliseconds: (nightDuration.inMilliseconds * 2 / 3).round()));
+
+    final ishraqStart = pt.sunrise.add(const Duration(minutes: 15));
+    final ishraqEnd = pt.sunrise.add(const Duration(minutes: 45));
+    final chashtStart = pt.sunrise.add(const Duration(minutes: 45));
+    final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
+    final zawalEnd = pt.dhuhr;
+    final ishaaEnd = lastThird;
+
+    String range(DateTime s, DateTime e) =>
+        '${PrayerTimeHelper.formatTime(s)} - ${PrayerTimeHelper.formatTime(e)}';
+
+    if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
+      return {'name': isBn ? 'ফজর' : 'Fajr', 'range': range(pt.fajr, pt.sunrise)};
+    }
+    if (!now.isBefore(pt.sunrise) && now.isBefore(ishraqStart)) {
+      return {'name': isBn ? 'সূর্যোদয়' : 'Sunrise', 'range': range(pt.sunrise, ishraqStart)};
+    }
+    if (now.isAfter(ishraqStart) && now.isBefore(ishraqEnd)) {
+      return {'name': isBn ? 'ইশরাক' : 'Ishraq', 'range': range(ishraqStart, ishraqEnd)};
+    }
+    if (now.isAfter(chashtStart) && now.isBefore(zawalStart)) {
+      return {'name': isBn ? 'দুহা/চাশত' : 'Duha/Chasht', 'range': range(chashtStart, zawalStart)};
+    }
+    if (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) {
+      return {'name': isBn ? 'যাওয়াল' : 'Zawal', 'range': range(zawalStart, zawalEnd)};
+    }
+    if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
+      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'range': range(pt.dhuhr, pt.asr)};
+    }
+    if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
+      return {'name': isBn ? 'আসর' : 'Asr', 'range': range(pt.asr, pt.maghrib)};
+    }
+    if (now.isAfter(pt.maghrib) && now.isBefore(pt.isha)) {
+      return {'name': isBn ? 'মাগরিব' : 'Maghrib', 'range': range(pt.maghrib, pt.isha)};
+    }
+    if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
+      return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd)};
+    }
+    if (now.isAfter(nightIsha) && !now.isBefore(lastThird)) {
+      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr)};
+    }
+    if (now.isAfter(nightIsha)) {
+      return {'name': isBn ? 'রাত' : 'Night', 'range': range(nightIsha, lastThird)};
+    }
+    return null;
+  }
+
   // ══ Home Screen Widget এ data পাঠানো (হোমস্ক্রিনের widget আপডেট) ══
   Future<void> _updateHomeWidget() async {
     final pt = _prayerTimes;
@@ -305,24 +364,33 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (bangla_date): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_sunrise',
-          (isBn ? '🌅 সূর্যোদয় ' : '🌅 Sunrise ') + PrayerTimeHelper.formatTime(pt.sunrise));
+      // widget-এ শুধু সময়টুকু পাঠানো হয়, আইকন/লেবেল layout XML-এ ফিক্সড থাকে
+      await HomeWidget.saveWidgetData('widget_sunrise', PrayerTimeHelper.formatTime(pt.sunrise));
     } catch (e) { debugPrint('WIDGET ERROR (sunrise): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_sunset',
-          (isBn ? '🌇 সূর্যাস্ত ' : '🌇 Sunset ') + PrayerTimeHelper.formatTime(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_sunset', PrayerTimeHelper.formatTime(pt.maghrib));
     } catch (e) { debugPrint('WIDGET ERROR (sunset): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_sehri',
-          (isBn ? '🍽️ সেহরি ' : '🍽️ Sehri ') + PrayerTimeHelper.formatTime(pt.fajr));
+      await HomeWidget.saveWidgetData('widget_sehri', PrayerTimeHelper.formatTime(pt.fajr));
     } catch (e) { debugPrint('WIDGET ERROR (sehri): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_iftar',
-          (isBn ? '🌙 ইফতার ' : '🌙 Iftar ') + PrayerTimeHelper.formatTime(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_iftar', PrayerTimeHelper.formatTime(pt.maghrib));
     } catch (e) { debugPrint('WIDGET ERROR (iftar): $e'); }
+
+    try {
+      // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম ও সময়সীমা (ক্লক কার্ডের মতো)
+      final waqt = _currentWidgetWaqt(isBn, pt, now);
+      if (waqt != null) {
+        await HomeWidget.saveWidgetData('widget_waqt_name', waqt['name'] as String);
+        await HomeWidget.saveWidgetData('widget_waqt_range', waqt['range'] as String);
+      } else {
+        await HomeWidget.saveWidgetData('widget_waqt_name', '');
+        await HomeWidget.saveWidgetData('widget_waqt_range', '');
+      }
+    } catch (e) { debugPrint('WIDGET ERROR (waqt): $e'); }
 
     try {
       // weather: icon + temp + short description

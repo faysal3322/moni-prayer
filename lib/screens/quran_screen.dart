@@ -8,6 +8,7 @@ import 'surah_detail_screen.dart';
 import 'juz_detail_screen.dart';
 import 'collection_detail_screen.dart';
 import 'quran_settings_screen.dart';
+import 'bangla_quran_screen.dart';
 
 class QuranScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -23,7 +24,7 @@ class _QuranScreenState extends State<QuranScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -55,10 +56,17 @@ class _QuranScreenState extends State<QuranScreen> with SingleTickerProviderStat
           labelColor: AppTheme.gold,
           unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.gold,
+          // ফিক্স: নতুন "বাংলা কোরআন" ট্যাব যোগ হওয়ায় এখন মোট ৪টা ট্যাব —
+          // ছোট স্ক্রিনে ৪টা ট্যাব-লেবেল ঠাসাঠাসি হয়ে যেতে পারে, তাই
+          // isScrollable: true দেওয়া হলো যাতে প্রতিটা ট্যাব নিজের
+          // স্বাভাবিক প্রস্থ পায় এবং প্রয়োজনে পাশে স্ক্রল করা যায়।
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(text: isBn ? 'সূরা' : 'Sura'),
             Tab(text: isBn ? 'পারা' : 'Para'),
             Tab(text: isBn ? 'আমার কোরআন' : 'My Quran'),
+            Tab(text: isBn ? 'বাংলা কোরআন' : 'Bangla Quran'),
           ],
         ),
       ),
@@ -68,6 +76,7 @@ class _QuranScreenState extends State<QuranScreen> with SingleTickerProviderStat
           _SuraTab(lang: widget.lang),
           _ParaTab(lang: widget.lang),
           _MyQuranTab(lang: widget.lang),
+          BanglaQuranTab(lang: widget.lang),
         ],
       ),
     );

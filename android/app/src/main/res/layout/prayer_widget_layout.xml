@@ -9,12 +9,12 @@
     android:paddingTop="4dp"
     android:paddingBottom="8dp">
 
-    <!-- সময় (বাম) + বার (ডান, উপরে ছোট / নিচে বড় করার বদলে single line বড়) -->
+    <!-- ══ উপরে: সময় (বাম) + লোকেশন (ডান) ══ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="top">
 
         <TextView
             android:id="@+id/widget_time"
@@ -23,54 +23,41 @@
             android:layout_weight="1"
             android:text="--:--"
             android:textColor="#FFFFFF"
-            android:textSize="34sp"
+            android:textSize="32sp"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:gravity="start|center_vertical" />
 
         <TextView
-            android:id="@+id/widget_day"
+            android:id="@+id/widget_weather"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text=""
-            android:textColor="#66BB6A"
-            android:textSize="16sp"
+            android:textColor="#80DEEA"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:includeFontPadding="false"
+            android:gravity="end"
             android:singleLine="true"
-            android:ellipsize="end"
-            android:gravity="end" />
+            android:ellipsize="end" />
 
     </LinearLayout>
 
-    <!-- চিকন আবহাওয়া বার (থাকবে, প্রয়োজনে খালি দেখাবে) -->
+    <!-- একটা পাতলা আলাদাকারী লাইন (RemoteViews-এ <View> সাপোর্ট করে না, তাই TextView দিয়ে) -->
     <TextView
-        android:id="@+id/widget_weather"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
-        android:text=""
-        android:textColor="#80DEEA"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:gravity="start"
-        android:singleLine="true"
-        android:ellipsize="end" />
-
-    <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="3dp"
-        android:background="#22FFFFFF" />
+        android:layout_marginBottom="4dp"
+        android:background="#22FFFFFF"
+        android:text="" />
 
-    <!-- তারিখ + নামাজ পাশাপাশি -->
+    <!-- ══ মাঝে: নামাজের ওয়াক্ত (বাম) | দিন-তারিখ (ডান) ══ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!-- বাম: তারিখ -->
+        <!-- বাম: নামাজের ওয়াক্ত -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -78,42 +65,129 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/widget_gregorian"
+                android:id="@+id/widget_waqt_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textColor="#E0E0E0"
-                android:textSize="13sp"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/widget_hijri"
+                android:id="@+id/widget_waqt_range"
                 android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text=""
+                android:textColor="#B0BEC5"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- ডান: দিন + তারিখসমূহ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#66BB6A"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:gravity="end" />
+
+            <TextView
+                android:id="@+id/widget_gregorian"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text=""
+                android:textColor="#E0E0E0"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:gravity="end" />
+
+            <TextView
+                android:id="@+id/widget_hijri"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:gravity="end" />
 
             <TextView
                 android:id="@+id/widget_bangla_date"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#80DEEA"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:gravity="end" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ══ নিচে: সাহরি শেষ | সূর্যোদয় | সূর্যাস্ত | ইফতার শুরু (কোনো আইকন ছাড়া) ══ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_sehri_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="সাহরি শেষ"
+                android:textColor="#00E676"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_sehri"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#00E676"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
 
-        <!-- ডান: নামাজের সময় -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_sunrise_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="সূর্যোদয়"
+                android:textColor="#FFD54F"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_sunrise"
@@ -124,37 +198,62 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_sunset_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="সূর্যাস্ত"
+                android:textColor="#FFD54F"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
             <TextView
                 android:id="@+id/widget_sunset"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#FFD54F"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
             <TextView
-                android:id="@+id/widget_sehri"
+                android:id="@+id/widget_iftar_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text=""
+                android:text="ইফতার শুরু"
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_iftar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#00E676"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
+
     </LinearLayout>
 
     <!-- নিচে alert — অপরিবর্তিত রাখা হয়েছে -->

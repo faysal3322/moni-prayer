@@ -7,6 +7,11 @@ class QuranPrefs {
   static const _keyShowBangla = 'quran_show_bangla';
   static const _keyShowTransliteration = 'quran_show_transliteration';
   static const _keyFontSize = 'quran_font_size';
+  // "বাংলা কোরআন" ট্যাবের ফন্ট সাইজ সূরা ট্যাবের (আরবি+অনুবাদ একসাথে)
+  // ফন্ট সাইজ থেকে আলাদাভাবে সংরক্ষণ করা হয় — যেহেতু এটা শুধু বাংলা
+  // টেক্সট দেখায়, ব্যবহারকারী দুই জায়গায় ভিন্ন ভিন্ন আরামদায়ক সাইজ
+  // চাইতে পারেন (যেমন সূরা ট্যাবে বড় আরবি ফন্ট, বাংলা কোরআনে অন্য মাপ)।
+  static const _keyBanglaQuranFontSize = 'quran_bangla_tab_font_size';
   static const _keyViewMode = 'quran_view_mode'; // 'list' or 'page'
   static const _keyPlaybackSpeed = 'quran_playback_speed';
   static const _keyLastReadSura = 'quran_last_read_sura';
@@ -59,6 +64,19 @@ class QuranPrefs {
     await prefs.setDouble(_keyFontSize, value);
   }
 
+  /// "বাংলা কোরআন" ট্যাবের ফন্ট সাইজ — ব্যবহারকারী যেভাবে সেট করে রাখবে,
+  /// অ্যাপ পরের বার খোলার সময়ও ঠিক সেই মাপেই দেখাবে। Range: 13 (ছোট)
+  /// .. 28 (বড়)। ডিফল্ট 17।
+  static Future<double> getBanglaQuranFontSize() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_keyBanglaQuranFontSize) ?? 17.0;
+  }
+
+  static Future<void> setBanglaQuranFontSize(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyBanglaQuranFontSize, value);
+  }
+
   /// 'list' (card-by-card, with translation) or 'page' (mushaf-style flowing Arabic).
   static Future<String> getViewMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -108,6 +126,7 @@ class QuranPrefs {
       'show_bangla': await getShowBangla(),
       'show_transliteration': await getShowTransliteration(),
       'font_size': await getFontSize(),
+      'bangla_quran_font_size': await getBanglaQuranFontSize(),
       'view_mode': await getViewMode(),
       'playback_speed': await getPlaybackSpeed(),
       if (lastRead != null) 'last_read_sura': lastRead['sura'],
@@ -124,6 +143,9 @@ class QuranPrefs {
       await setShowTransliteration(data['show_transliteration'] as bool);
     }
     if (data['font_size'] != null) await setFontSize((data['font_size'] as num).toDouble());
+    if (data['bangla_quran_font_size'] != null) {
+      await setBanglaQuranFontSize((data['bangla_quran_font_size'] as num).toDouble());
+    }
     if (data['view_mode'] != null) await setViewMode(data['view_mode'] as String);
     if (data['playback_speed'] != null) {
       await setPlaybackSpeed((data['playback_speed'] as num).toDouble());

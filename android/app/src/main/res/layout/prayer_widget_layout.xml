@@ -4,12 +4,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp"
-    android:paddingTop="4dp"
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp"
+    android:paddingTop="6dp"
     android:paddingBottom="8dp">
 
-    <!-- ══ উপরে: সময় (বাম) + লোকেশন (ডান) ══ -->
+    <!-- ══ উপরে: সময় (বাম) + লোকেশন ও আবহাওয়া (ডান) ══ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -23,22 +23,45 @@
             android:layout_weight="1"
             android:text="--:--"
             android:textColor="#FFFFFF"
-            android:textSize="32sp"
+            android:textSize="38sp"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:gravity="start|center_vertical" />
 
-        <TextView
-            android:id="@+id/widget_weather"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#80DEEA"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:gravity="end"
-            android:singleLine="true"
-            android:ellipsize="end" />
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/widget_location"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#80DEEA"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:maxWidth="180dp" />
+
+            <TextView
+                android:id="@+id/widget_weather"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text=""
+                android:textColor="#B0BEC5"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:maxWidth="180dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -46,8 +69,8 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
         android:background="#22FFFFFF"
         android:text="" />
 
@@ -70,17 +93,27 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_range"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#B0BEC5"
-                android:textSize="12sp" />
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/widget_waqt_remaining"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text=""
+                android:textColor="#FFD54F"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
 
@@ -97,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#66BB6A"
-                android:textSize="15sp"
+                android:textSize="19sp"
                 android:textStyle="bold"
                 android:singleLine="true"
                 android:ellipsize="end"
@@ -107,10 +140,10 @@
                 android:id="@+id/widget_gregorian"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="12sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -118,10 +151,10 @@
                 android:id="@+id/widget_hijri"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="12sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -129,10 +162,10 @@
                 android:id="@+id/widget_bangla_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="2dp"
                 android:text=""
                 android:textColor="#80DEEA"
-                android:textSize="12sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -143,7 +176,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -159,7 +192,7 @@
                 android:layout_height="wrap_content"
                 android:text="সাহরি শেষ"
                 android:textColor="#00E676"
-                android:textSize="11sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -168,7 +201,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -186,7 +219,7 @@
                 android:layout_height="wrap_content"
                 android:text="সূর্যোদয়"
                 android:textColor="#FFD54F"
-                android:textSize="11sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -195,7 +228,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="13sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -213,7 +246,7 @@
                 android:layout_height="wrap_content"
                 android:text="সূর্যাস্ত"
                 android:textColor="#FFD54F"
-                android:textSize="11sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -222,7 +255,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFD54F"
-                android:textSize="13sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -240,7 +273,7 @@
                 android:layout_height="wrap_content"
                 android:text="ইফতার শুরু"
                 android:textColor="#00E676"
-                android:textSize="11sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -249,7 +282,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -261,7 +294,7 @@
         android:id="@+id/widget_alert"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="6dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         android:paddingStart="4dp"
@@ -269,7 +302,7 @@
         android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"
-        android:textSize="13sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         android:gravity="start"
         android:maxLines="10"

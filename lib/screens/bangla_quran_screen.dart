@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
+import '../utils/quran_prefs.dart';
 
 /// "বাংলা কোরআন" — কোরআন সেকশনের ৪র্থ ট্যাব।
 /// এই ট্যাবের একমাত্র উদ্দেশ্য: ব্যবহারকারী যেন শুধুমাত্র বাংলা অনুবাদ
@@ -34,11 +36,42 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
   bool _loading = true;
   String _error = '';
   final TextEditingController _searchController = TextEditingController();
+  // "সর্বশেষ পঠিত অবস্থান" — সূরা ট্যাবের মতোই, এখানেও দেখানো হয়। সূরা
+  // ট্যাব ও বাংলা কোরআন ট্যাব একই QuranPrefs.getLastRead() শেয়ার করে, তাই
+  // যেকোনো একটায় পড়ে বের হলে দুই জায়গাতেই আপডেট হওয়া কার্ড দেখা যাবে।
+  Map<String, dynamic>? _lastRead;
 
   @override
   void initState() {
     super.initState();
     _loadChapters();
+    _loadLastRead();
+  }
+
+  /// এই ট্যাব আবার visible/rebuild হলে (যেমন আয়াত পড়ে ফিরে এলে) সর্বশেষ
+  /// পঠিত অবস্থান নতুন করে লোড করা হয়, যাতে কার্ডটা আপ-টু-ডেট থাকে।
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadLastRead();
+  }
+
+  Future<void> _loadLastRead() async {
+    final lastRead = await QuranPrefs.getLastRead();
+    if (lastRead == null || !mounted) {
+      if (mounted) setState(() => _lastRead = null);
+      return;
+    }
+    final chapter = await QuranDatabaseHelper.getChapter(lastRead['sura']!);
+    if (!mounted) return;
+    setState(() {
+      _lastRead = {
+        'sura': lastRead['sura'],
+        'aya': lastRead['aya'],
+        'name': chapter?['name_transliteration'] ?? '',
+        'nameArabic': chapter?['name_arabic'] ?? '',
+      };
+    });
   }
 
   @override
@@ -120,6 +153,70 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
             ),
           ),
         ),
+        // "সর্বশেষ পঠিত অবস্থান" কার্ড — সার্চ চলাকালীন (যখন তালিকা
+        // ফিল্টার করা থাকে) দেখানো হয় না, শুধু পুরো সূরা তালিকা দেখা
+        // অবস্থায় সবার উপরে দেখানো হয়। সূরা ট্যাবের কার্ডের মতোই দেখতে।
+        if (_lastRead != null && _searchController.text.trim().isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => BanglaSurahDetailScreen(
+                    lang: widget.lang,
+                    sura: _lastRead!['sura'] as int,
+                    suraNameTranslit: _lastRead!['name'] as String? ?? '',
+                    suraNameArabic: _lastRead!['nameArabic'] as String? ?? '',
+                    jumpToAyaNumber: _lastRead!['aya'] as int,
+                  ),
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.gold.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.gold.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bookmark, color: AppTheme.gold, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isBn ? 'সর্বশেষ পঠিত অবস্থান' : 'Last read position',
+                            style: const TextStyle(
+                              color: AppTheme.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_lastRead!['name']} (${widget.lang.toLocalNum(_lastRead!['aya'] as int)})',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _lastRead!['nameArabic'] as String? ?? '',
+                      style: const TextStyle(
+                        color: AppTheme.gold,
+                        fontSize: 20,
+                        fontFamily: 'ScheherazadeNew',
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
@@ -231,12 +328,16 @@ class BanglaSurahDetailScreen extends StatefulWidget {
   final int sura;
   final String suraNameTranslit;
   final String suraNameArabic;
+  /// দেওয়া থাকলে, এই সূরার পেজ খোলার পর সরাসরি এই আয়াতে স্ক্রল করে দেখায় —
+  /// "সর্বশেষ পঠিত অবস্থান" কার্ডে চাপলে ব্যবহৃত হয়।
+  final int? jumpToAyaNumber;
   const BanglaSurahDetailScreen({
     super.key,
     required this.lang,
     required this.sura,
     required this.suraNameTranslit,
     required this.suraNameArabic,
+    this.jumpToAyaNumber,
   });
 
   @override
@@ -249,20 +350,88 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
   String _error = '';
   double _fontSize = 17.0;
 
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _ayaKeys = [];
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    // ফিক্স: আগে এই স্ক্রিন থেকে বের হলে "সর্বশেষ পঠিত অবস্থান" কোথাও
+    // সংরক্ষণ করা হতো না — ফলে ব্যবহারকারী বাংলা কোরআন ট্যাবে যত দূরই
+    // পড়ুক না কেন, ফিরে এলে কোনো চিহ্ন থাকত না। এখন সূরা ট্যাবের মতোই,
+    // স্ক্রিন থেকে বের হওয়ার সাথে সাথেই (ইনস্ট্যান্ট, বিলম্ব ছাড়া)
+    // বর্তমানে দৃশ্যমান আয়াতটা QuranPrefs-এ সেভ করা হয় — সূরা ট্যাব ও
+    // বাংলা কোরআন ট্যাব একই last-read key শেয়ার করে, তাই যেকোনো একটায়
+    // পড়ে বের হলে অন্যটাতেও আপডেটেড কার্ড দেখা যাবে।
+    _saveCurrentPositionAsLastRead();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// বর্তমানে স্ক্রিনের উপরের দিকে দৃশ্যমান প্রথম আয়াতটা বের করে
+  /// "সর্বশেষ পঠিত অবস্থান" হিসেবে সংরক্ষণ করে (সূরা ডিটেইল স্ক্রিনের
+  /// একই কৌশল ব্যবহার করে)।
+  void _saveCurrentPositionAsLastRead() {
+    if (_ayat.isEmpty) return;
+    int? bestIndex;
+    double bestDy = double.infinity;
+    for (var i = 0; i < _ayaKeys.length; i++) {
+      final ctx = _ayaKeys[i].currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) continue;
+      final dy = box.localToGlobal(Offset.zero).dy;
+      if (dy >= -50 && dy < bestDy) {
+        bestDy = dy;
+        bestIndex = i;
+      }
+    }
+    // কোনো আয়াতের GlobalKey এখনো attach হয়নি এমন (যেমন ব্যবহারকারী একদম
+    // না স্ক্রল করেই সাথে সাথে বের হয়ে গেলে) ক্ষেত্রে প্রথম আয়াতটাকেই
+    // "সর্বশেষ পঠিত" হিসেবে ধরা হয়, যাতে অন্তত এই সূরার শুরুটা সংরক্ষিত
+    // থাকে।
+    bestIndex ??= 0;
+    if (bestIndex < _ayat.length) {
+      final ayaNumber = _ayat[bestIndex]['aya'] as int?;
+      if (ayaNumber != null) {
+        QuranPrefs.setLastRead(widget.sura, ayaNumber);
+      }
+    }
+  }
+
   Future<void> _load() async {
     try {
       final ayat = await QuranDatabaseHelper.getAyatBangla(widget.sura);
+      // ফিক্স: আগে ফন্ট সাইজ শুধু এই widget-এর in-memory state-এ থাকত
+      // (সবসময় 17.0 দিয়ে শুরু হতো), QuranPrefs-এ সেভ/লোড হতো না — ফলে
+      // ব্যবহারকারী নিজের পছন্দমতো ফন্ট সাইজ সেট করলেও পরের বার এই
+      // স্ক্রিনে ঢুকলে বা অ্যাপ পুনরায় চালু করলে সেটা মনে থাকত না। এখন
+      // QuranPrefs.getBanglaQuranFontSize() থেকে সর্বশেষ সংরক্ষিত মান
+      // লোড করা হচ্ছে।
+      final savedFontSize = await QuranPrefs.getBanglaQuranFontSize();
       if (!mounted) return;
       setState(() {
         _ayat = ayat;
+        _ayaKeys.clear();
+        _ayaKeys.addAll(List.generate(ayat.length, (_) => GlobalKey()));
+        _fontSize = savedFontSize;
         _loading = false;
       });
+      if (widget.jumpToAyaNumber != null) {
+        final targetIndex = _ayat.indexWhere((a) => a['aya'] == widget.jumpToAyaNumber);
+        if (targetIndex >= 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Future.delayed(const Duration(milliseconds: 200), () {
+              _scrollToVerse(targetIndex, attemptsLeft: 8);
+            });
+          });
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -272,10 +441,184 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
     }
   }
 
-  void _changeFontSize(double delta) {
-    setState(() {
-      _fontSize = (_fontSize + delta).clamp(13.0, 28.0);
+  /// [ayaIndex] নম্বর আয়াতের কার্ডে স্ক্রল করে নিয়ে যায় — কার্ডটা এখনো
+  /// লে-আউট হয়ে না থাকলে (GlobalKey-র context null) কয়েকবার রিট্রাই করে।
+  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 5}) {
+    if (!mounted) return;
+    if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
+    final ctx = _ayaKeys[ayaIndex].currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        alignment: 0.25,
+      );
+      return;
+    }
+    if (attemptsLeft <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
+      });
     });
+  }
+
+  void _jumpToVerse(int ayaIndex) {
+    Navigator.of(context).pop(); // জাম্প শিট বন্ধ করা হচ্ছে
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _scrollToVerse(ayaIndex, attemptsLeft: 15);
+    });
+  }
+
+  /// আয়াত নম্বর লিখে সরাসরি সেই আয়াতে যাওয়ার bottom sheet — সূরা ডিটেইল
+  /// স্ক্রিনের "জাম্প" শিটের মতোই আচরণ করে।
+  void _showVerseJumpSheet() {
+    final isBn = widget.lang.isBn;
+    final searchController = TextEditingController();
+    final ValueNotifier<String> searchQuery = ValueNotifier('');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    widget.suraNameTranslit,
+                    style: const TextStyle(
+                      color: AppTheme.gold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: isBn ? 'আয়াত নম্বর লিখুন...' : 'Enter verse number...',
+                      hintStyle: const TextStyle(color: AppTheme.textSecondary),
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
+                      filled: true,
+                      fillColor: Colors.black26,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.accent),
+                      ),
+                    ),
+                    onChanged: (value) => searchQuery.value = value.trim(),
+                    onSubmitted: (value) {
+                      final num = int.tryParse(value.trim());
+                      if (num != null) {
+                        final index = _ayat.indexWhere((a) => (a['aya'] as int) == num);
+                        if (index != -1) {
+                          _jumpToVerse(index);
+                        }
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white12, height: 1),
+                Expanded(
+                  child: ValueListenableBuilder<String>(
+                    valueListenable: searchQuery,
+                    builder: (context, query, _) {
+                      final filteredIndices = <int>[];
+                      if (query.isEmpty) {
+                        filteredIndices.addAll(List.generate(_ayat.length, (i) => i));
+                      } else {
+                        final q = int.tryParse(query);
+                        for (int i = 0; i < _ayat.length; i++) {
+                          final ayaNum = _ayat[i]['aya'] as int;
+                          if (q != null && ayaNum.toString().startsWith(query)) {
+                            filteredIndices.add(i);
+                          }
+                        }
+                      }
+
+                      if (filteredIndices.isEmpty) {
+                        return Center(
+                          child: Text(
+                            isBn ? 'কোনো আয়াত পাওয়া যায়নি' : 'No verse found',
+                            style: const TextStyle(color: AppTheme.textSecondary),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        itemCount: filteredIndices.length,
+                        itemBuilder: (context, listIndex) {
+                          final index = filteredIndices[listIndex];
+                          final ayaNum = _ayat[index]['aya'] as int;
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              isBn ? 'আয়াত $ayaNum' : 'Verse $ayaNum',
+                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            ),
+                            onTap: () => _jumpToVerse(index),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      searchController.dispose();
+      searchQuery.dispose();
+    });
+  }
+
+  void _changeFontSize(double delta) {
+    final newSize = (_fontSize + delta).clamp(13.0, 28.0);
+    if (newSize == _fontSize) return;
+    setState(() => _fontSize = newSize);
+    // ফিক্স: এখন পরিবর্তিত ফন্ট সাইজ সাথে সাথে QuranPrefs-এ সেভ হয়, যাতে
+    // ব্যবহারকারী যেভাবে সেট করে রাখবে অ্যাপ পরের বার সেভাবেই মনে রাখে।
+    QuranPrefs.setBanglaQuranFontSize(newSize);
   }
 
   @override
@@ -303,6 +646,11 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: isBn ? 'আয়াতে যান' : 'Jump to verse',
+            onPressed: _loading ? null : _showVerseJumpSheet,
+          ),
+          IconButton(
             icon: const Icon(Icons.text_decrease),
             tooltip: isBn ? 'ফন্ট ছোট করুন' : 'Decrease font size',
             onPressed: () => _changeFontSize(-1),
@@ -329,26 +677,44 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
                     ),
                   ),
                 )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
-                  children: [
-                    if (showBismillah)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          isBn
-                              ? 'শুরু করছি আল্লাহর নামে যিনি পরম করুণাময়, অতি দয়ালু।'
-                              : 'In the name of Allah, the Most Gracious, the Most Merciful.',
-                          style: const TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 14,
+              : NotificationListener<UserScrollNotification>(
+                  // ফিক্স: শুধু স্ক্রিন থেকে বের হওয়ার সময় (dispose) না,
+                  // বরং স্ক্রল থামার সাথে সাথেই "সর্বশেষ পঠিত অবস্থান"
+                  // আপডেট করা হচ্ছে — সূরা ডিটেইল স্ক্রিনের একই আচরণ,
+                  // যাতে ব্যবহারকারী অ্যাপ থেকে হুট করে (back বাটন, হোম
+                  // বাটন, বা অন্য অ্যাপে চলে গিয়ে) বের হয়ে গেলেও সর্বশেষ
+                  // অবস্থান দ্রুত সংরক্ষিত থাকে।
+                  onNotification: (notification) {
+                    if (notification.direction == ScrollDirection.idle) {
+                      _saveCurrentPositionAsLastRead();
+                    }
+                    return false;
+                  },
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
+                    itemCount: _ayat.length + (showBismillah ? 1 : 0),
+                    itemBuilder: (context, listIndex) {
+                      if (showBismillah && listIndex == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            isBn
+                                ? 'শুরু করছি আল্লাহর নামে যিনি পরম করুণাময়, অতি দয়ালু।'
+                                : 'In the name of Allah, the Most Gracious, the Most Merciful.',
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    for (final row in _ayat)
-                      Container(
+                        );
+                      }
+                      final index = showBismillah ? listIndex - 1 : listIndex;
+                      final row = _ayat[index];
+                      return Container(
+                        key: _ayaKeys[index],
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -378,8 +744,9 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
                             ],
                           ),
                         ),
-                      ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
     );
   }

@@ -269,6 +269,54 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
   }
 
+  /// "1-5,9,21-29,78" ফরম্যাটের স্ট্রিং পার্স করে একটা sorted, ডুপ্লিকেট-মুক্ত
+  /// আয়াত-নম্বর তালিকায় রূপান্তর করে। কমা দিয়ে আলাদা আলাদা অংশ, প্রতিটা অংশ
+  /// হয় একক নম্বর ("9") নয়তো রেঞ্জ ("21-29") হতে পারে। খালি অংশ (যেমন পরপর
+  /// দুটো কমা) উপেক্ষা করা হয়। রেঞ্জের শুরু > শেষ হলে (যেমন "29-21") সেটাও
+  /// স্বাভাবিকভাবে উল্টে নেওয়া হয়। কোনো অংশ পার্স করা না গেলে বা কোনো নম্বর
+  /// ১ এর কম বা [maxAya] এর বেশি হলে একটা বর্ণনামূলক এরর ছুড়ে দেয়, যাতে
+  /// ব্যবহারকারীকে ঠিক কোন অংশে সমস্যা তা জানানো যায়।
+  List<int> _parseAyaRanges(String input, int maxAya) {
+    final result = <int>{};
+    final parts = input.split(',');
+    for (final rawPart in parts) {
+      final part = rawPart.trim();
+      if (part.isEmpty) continue;
+      if (part.contains('-')) {
+        final bounds = part.split('-');
+        if (bounds.length != 2) {
+          throw FormatException(part);
+        }
+        final start = int.tryParse(bounds[0].trim());
+        final end = int.tryParse(bounds[1].trim());
+        if (start == null || end == null) {
+          throw FormatException(part);
+        }
+        final lo = start <= end ? start : end;
+        final hi = start <= end ? end : start;
+        if (lo < 1 || hi > maxAya) {
+          throw RangeError.range(hi, 1, maxAya, part);
+        }
+        for (var a = lo; a <= hi; a++) {
+          result.add(a);
+        }
+      } else {
+        final n = int.tryParse(part);
+        if (n == null) {
+          throw FormatException(part);
+        }
+        if (n < 1 || n > maxAya) {
+          throw RangeError.range(n, 1, maxAya, part);
+        }
+        result.add(n);
+      }
+    }
+    if (result.isEmpty) {
+      throw const FormatException('empty');
+    }
+    return result.toList()..sort();
+  }
+
   /// ফিক্স: আগে + বাটনে শুধু একটা নির্দিষ্ট আয়াত যোগ করা যেত, সম্পূর্ণ
   /// সূরা যোগ করার কোনো উপায় ছিল না। এখন শিটের উপরে দুটো মোড আছে —
   /// "নির্দিষ্ট আয়াত" ও "সম্পূর্ণ সূরা", ব্যবহারকারী যেকোনো একটা বেছে
@@ -524,13 +572,27 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   ),
                   if (!fullSurahMode) ...[
                     const SizedBox(height: 12),
+                    // ফিক্স: আগে এই ফিল্ডে শুধু একটা একক আয়াত নম্বর দেওয়া
+                    // যেত, ফলে একসাথে অনেক আয়াত যোগ করতে হলে বারবার শিট
+                    // খুলে একটা একটা করে যোগ করতে হতো। এখন কমা ও ড্যাশ
+                    // দিয়ে একসাথে একাধিক আয়াত/রেঞ্জ লেখা যায় — যেমন
+                    // "1-5,9,21-29" লিখলে ১-৫, ৯, এবং ২১-২৯ নম্বর আয়াত
+                    // একসাথে, ক্রমান্বয়ে যোগ হবে। _parseAyaRanges এই
+                    // ফরম্যাট পার্স করে।
                     TextField(
                       controller: ayaController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(),
                       style: const TextStyle(color: AppTheme.textPrimary),
                       decoration: InputDecoration(
-                        labelText: isBn ? 'আয়াত নম্বর' : 'Verse Number',
+                        labelText: isBn ? 'আয়াত নম্বর' : 'Verse Number(s)',
                         labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                        hintText: isBn ? 'যেমন: 1-5,9,21-29' : 'e.g. 1-5,9,21-29',
+                        hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
+                        helperText: isBn
+                            ? 'একাধিক আয়াত/রেঞ্জ কমা দিয়ে আলাদা করে লিখুন'
+                            : 'Separate multiple verses/ranges with commas',
+                        helperStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 11.5),
+                        helperMaxLines: 2,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
@@ -600,26 +662,43 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 return;
                               }
 
-                              final ayaNum = int.tryParse(ayaController.text.trim());
-                              if (ayaNum == null || ayaNum < 1) {
-                                setSheetState(() => errorText = isBn ? 'সঠিক আয়াত নম্বর দিন' : 'Enter a valid verse number');
-                                return;
-                              }
-                              if (ayaNum > maxAya) {
+                              // ফিক্স: এখন একটা একক নম্বরের বদলে
+                              // "1-5,9,21-29" ফরম্যাটে একাধিক আয়াত/রেঞ্জ
+                              // পার্স করা হয় (_parseAyaRanges)। ভুল ফরম্যাট
+                              // বা রেঞ্জের বাইরের নম্বর দিলে নির্দিষ্ট এরর
+                              // দেখানো হয়, নাহলে সবগুলো আয়াত একসাথে
+                              // (insertMultipleAyasAfter) batch insert হয়।
+                              List<int> ayaNums;
+                              try {
+                                ayaNums = _parseAyaRanges(ayaController.text.trim(), maxAya);
+                              } on RangeError {
                                 setSheetState(() => errorText = isBn
                                     ? 'এই সূরায় সর্বোচ্চ ${widget.lang.toLocalNum(maxAya)} আয়াত আছে'
                                     : 'This surah has only $maxAya verses');
                                 return;
+                              } catch (_) {
+                                setSheetState(() => errorText = isBn
+                                    ? 'সঠিক আয়াত নম্বর দিন (যেমন: 1-5,9,21-29)'
+                                    : 'Enter valid verse number(s), e.g. 1-5,9,21-29');
+                                return;
                               }
+                              setSheetState(() => submitting = true);
                               if (insertAtPosition) {
-                                await QuranCollectionsHelper.insertItemAfter(
+                                await QuranCollectionsHelper.insertMultipleAyasAfter(
                                   widget.collectionId,
                                   sura,
-                                  ayaNum,
+                                  ayaNums,
                                   afterItemId: insertAfterId,
                                 );
+                              } else if (ayaNums.length == 1) {
+                                await QuranCollectionsHelper.addItem(widget.collectionId, sura, ayaNums.first);
                               } else {
-                                await QuranCollectionsHelper.addItem(widget.collectionId, sura, ayaNum);
+                                await QuranCollectionsHelper.insertMultipleAyasAfter(
+                                  widget.collectionId,
+                                  sura,
+                                  ayaNums,
+                                  afterItemId: null,
+                                );
                               }
                               if (context.mounted) Navigator.pop(sheetContext);
                               _load();

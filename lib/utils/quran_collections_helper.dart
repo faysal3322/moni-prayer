@@ -261,6 +261,78 @@ class QuranCollectionsHelper {
     await renumberBatch.commit(noResult: true);
   }
 
+  /// [afterItemId] এর পরে একই সূরার একাধিক নির্দিষ্ট আয়াত ([ayas]) একসাথে
+  /// ঢোকায় — যেমন ব্যবহারকারী "1-5,9,21-29" লিখলে সেই আয়াতগুলো
+  /// ক্রমান্বয়ে (ছোট থেকে বড়) একসাথে যোগ হয়। insertFullSurahAfter-এর
+  /// মতোই কাজ করে, শুধু ১ থেকে ayasCount পর্যন্ত সব আয়াতের বদলে ব্যবহারকারীর
+  /// দেওয়া নির্দিষ্ট আয়াত-তালিকা ব্যবহার করে। [afterItemId] null হলে
+  /// তালিকার শুরুতে ঢোকে। আগে থেকে যোগ করা আয়াত থাকলে ডুপ্লিকেট করা হয় না।
+  static Future<void> insertMultipleAyasAfter(
+    int collectionId,
+    int sura,
+    List<int> ayas, {
+    int? afterItemId,
+  }) async {
+    final db = await database;
+
+    final existingRows = await db.query(
+      'collection_items',
+      columns: ['aya'],
+      where: 'collection_id = ? AND sura = ?',
+      whereArgs: [collectionId, sura],
+    );
+    final existingAyas = existingRows.map((r) => r['aya'] as int).toSet();
+
+    final items = await db.query(
+      'collection_items',
+      where: 'collection_id = ?',
+      whereArgs: [collectionId],
+      orderBy: 'sort_order ASC',
+    );
+
+    int insertPosition;
+    if (afterItemId == null || items.isEmpty) {
+      insertPosition = 0;
+    } else {
+      final idx = items.indexWhere((it) => it['id'] == afterItemId);
+      insertPosition = idx == -1 ? items.length : idx + 1;
+    }
+
+    // ক্রমান্বয়ে (ছোট থেকে বড়) ঢোকানোর জন্য sort করা হচ্ছে, ব্যবহারকারী
+    // ইনপুটে যে ক্রমেই লিখুক না কেন (যেমন "9,1-5" লিখলেও ১,২,৩,৪,৫,৯ হবে)।
+    final sortedAyas = List<int>.from(ayas.toSet())..sort();
+
+    final batch = db.batch();
+    final newIds = <int>[];
+    for (final aya in sortedAyas) {
+      if (existingAyas.contains(aya)) continue; // ডুপ্লিকেট এড়ানো
+      batch.insert('collection_items', {
+        'collection_id': collectionId,
+        'sura': sura,
+        'aya': aya,
+        'sort_order': -1,
+      });
+    }
+    final results = await batch.commit();
+    for (final r in results) {
+      if (r is int) newIds.add(r);
+    }
+
+    final orderedIds = items.map((it) => it['id'] as int).toList();
+    orderedIds.insertAll(insertPosition, newIds);
+
+    final renumberBatch = db.batch();
+    for (var i = 0; i < orderedIds.length; i++) {
+      renumberBatch.update(
+        'collection_items',
+        {'sort_order': i},
+        where: 'id = ?',
+        whereArgs: [orderedIds[i]],
+      );
+    }
+    await renumberBatch.commit(noResult: true);
+  }
+
   /// ব্যাকআপের জন্য সব কালেকশন ও তাদের আইটেম একসাথে বের করে আনে।
   /// প্রতিটা কালেকশনের ভেতরে তার নিজস্ব আইটেমগুলো (sura, aya, sort_order)
   /// নেস্টেড আকারে থাকে, যাতে রিস্টোরের সময় collection_id নতুন করে বসাতে

@@ -260,7 +260,11 @@ class _SuraTabState extends State<_SuraTab> {
                           const SizedBox(height: 2),
                           Text(
                             '${_lastRead!['name']} (${widget.lang.toLocalNum(_lastRead!['aya'] as int)})',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),

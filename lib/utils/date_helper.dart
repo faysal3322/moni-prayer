@@ -1,5 +1,6 @@
 import 'package:hijri/hijri_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'time_format_prefs.dart';
 
 class DateHelper {
   static Future<int> _getHijriAdjust() async {
@@ -215,6 +216,14 @@ class DateHelper {
   }
 
   static String formatTime12(DateTime time, {bool bangla = true}) {
+    if (TimeFormatPrefs.use24Hour) {
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      if (bangla) {
+        return '${_toBanglaStr(hour)}:${_toBanglaStr(minute)}';
+      }
+      return '$hour:$minute';
+    }
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour < 12 ? 'am' : 'pm';

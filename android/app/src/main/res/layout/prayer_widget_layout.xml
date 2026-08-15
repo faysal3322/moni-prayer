@@ -107,13 +107,23 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/widget_waqt_remaining"
+                android:id="@+id/widget_waqt_remaining_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text=""
-                android:textColor="#FFD54F"
-                android:textSize="15sp"
+                android:textColor="#B0BEC5"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_waqt_remaining_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -154,7 +164,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text=""
-                android:textColor="#FFD54F"
+                android:textColor="#CE93D8"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:gravity="end" />
@@ -219,7 +229,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="সূর্যোদয়"
-                android:textColor="#FFD54F"
+                android:textColor="#00E676"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -228,7 +238,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textColor="#FFD54F"
+                android:textColor="#00E676"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -246,7 +256,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="সূর্যাস্ত"
-                android:textColor="#FFD54F"
+                android:textColor="#00E676"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -255,7 +265,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textColor="#FFD54F"
+                android:textColor="#00E676"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 

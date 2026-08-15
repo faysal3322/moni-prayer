@@ -86,23 +86,27 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         val now = Calendar.getInstance()
         val isBn = prefs.getBoolean("widget_is_bn", true)
-        val timeFormat = SimpleDateFormat("h:mm", Locale.US)
-        val amPm = if (now.get(Calendar.AM_PM) == Calendar.AM) {
-            if (isBn) "am" else "AM"
-        } else {
-            if (isBn) "pm" else "PM"
-        }
-        var timeDigits = timeFormat.format(now.time)
-        if (isBn) timeDigits = toBanglaDigits(timeDigits)
+        val is24Hour = prefs.getBoolean("widget_24hr", false)
 
-        // am/pm অংশ ছোট ফন্টে দেখানোর জন্য SpannableString
-        val timeStr = SpannableString(timeDigits + "\u2009" + amPm)
-        timeStr.setSpan(
-            RelativeSizeSpan(0.45f),
-            timeDigits.length,
-            timeStr.length,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
+        val timeStr: SpannableString
+        if (is24Hour) {
+            // ২৪ ঘণ্টা ফরম্যাটে am/pm লাগে না
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.US)
+            val timeDigits = timeFormat.format(now.time)
+            timeStr = SpannableString(timeDigits)
+        } else {
+            val timeFormat = SimpleDateFormat("h:mm", Locale.US)
+            val amPm = if (now.get(Calendar.AM_PM) == Calendar.AM) "AM" else "PM"
+            val timeDigits = timeFormat.format(now.time)
+            // am/pm অংশ ছোট ফন্টে দেখানোর জন্য SpannableString
+            timeStr = SpannableString(timeDigits + "\u2009" + amPm)
+            timeStr.setSpan(
+                RelativeSizeSpan(0.45f),
+                timeDigits.length,
+                timeStr.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
 
         views.setTextViewText(R.id.widget_time, timeStr)
 
@@ -124,7 +128,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
         views.setTextViewText(R.id.widget_bangla_date, prefs.getString("widget_bangla_date", "") ?: "")
-        views.setTextViewText(R.id.widget_season, prefs.getString("widget_season", "") ?: "")
         views.setTextViewText(R.id.widget_waqt_name, prefs.getString("widget_waqt_name", "") ?: "")
         views.setTextViewText(R.id.widget_waqt_range, prefs.getString("widget_waqt_range", "") ?: "")
         views.setTextViewText(R.id.widget_waqt_remaining, prefs.getString("widget_waqt_remaining", "") ?: "")

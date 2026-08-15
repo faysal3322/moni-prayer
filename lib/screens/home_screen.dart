@@ -256,7 +256,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     _loadToday();
     _loadHijri();
     _fetchLocationAndWeather();
-    _autoQazaTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+    _autoQazaTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) _checkAndAutoMarkQaza();
       if (mounted) _updateHomeWidget();
       if (mounted) setState(() { _alertRotationIndex++; });
@@ -403,23 +403,28 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     try {
       // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়
       // (widget প্রতি মিনিটে আপডেট হয় বলে সেকেন্ড না দেখিয়ে HH:MM আকারে দেখানো হচ্ছে)
+      // লেবেল ("ওয়াক্ত বাকি") ও সময় (HH:MM) আলাদা key-তে পাঠানো হয়, যাতে
+      // widget-এ এই দুটো আলাদা লাইনে (লেবেল উপরে, বড় সময় নিচে) দেখানো যায়।
       final waqt = _currentWidgetWaqt(isBn, pt, now);
       if (waqt != null) {
         await HomeWidget.saveWidgetData('widget_waqt_name', waqt['name'] as String);
         await HomeWidget.saveWidgetData('widget_waqt_range', waqt['range'] as String);
         final end = waqt['end'] as DateTime;
         final diff = end.difference(now);
-        String remaining = '';
+        String remainingValue = '';
         if (!diff.isNegative) {
           final hh = diff.inHours.toString().padLeft(2, '0');
           final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
-          remaining = (isBn ? 'ওয়াক্ত বাকি ' : 'Time left ') + '$hh:$mm';
+          remainingValue = '$hh:$mm';
         }
-        await HomeWidget.saveWidgetData('widget_waqt_remaining', remaining);
+        await HomeWidget.saveWidgetData(
+            'widget_waqt_remaining_label', isBn ? 'ওয়াক্ত বাকি' : 'Time left');
+        await HomeWidget.saveWidgetData('widget_waqt_remaining_value', remainingValue);
       } else {
         await HomeWidget.saveWidgetData('widget_waqt_name', '');
         await HomeWidget.saveWidgetData('widget_waqt_range', '');
-        await HomeWidget.saveWidgetData('widget_waqt_remaining', '');
+        await HomeWidget.saveWidgetData('widget_waqt_remaining_label', '');
+        await HomeWidget.saveWidgetData('widget_waqt_remaining_value', '');
       }
     } catch (e) { debugPrint('WIDGET ERROR (waqt): $e'); }
 
@@ -700,6 +705,11 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     // পর নামাজের সময় দ্রুত সঠিক হয়ে যায়।
     if (state == AppLifecycleState.resumed) {
       _fetchLocationAndWeather();
+      // অ্যাপ ব্যাকগ্রাউন্ডে থাকা অবস্থায় Timer.periodic থেমে থাকে, তাই
+      // widget-এর ওয়াক্ত/তথ্য ততক্ষণে পুরনো হয়ে যেতে পারে — অ্যাপ আবার
+      // সামনে এলেই সাথে সাথে widget নতুন করে আপডেট করা হচ্ছে, যাতে
+      // হোমস্ক্রিনে ফিরে গেলে সঠিক ওয়াক্ত/সময় দেখা যায়।
+      _updateHomeWidget();
     }
   }
 

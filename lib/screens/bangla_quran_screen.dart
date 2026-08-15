@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../utils/app_theme.dart';
@@ -199,7 +200,11 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
                           const SizedBox(height: 2),
                           Text(
                             '${_lastRead!['name']} (${widget.lang.toLocalNum(_lastRead!['aya'] as int)})',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -364,6 +369,7 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
   // আর dispose()-এ GlobalKey আবার না পড়ে সরাসরি এই ক্যাশ করা মান
   // ব্যবহার করা হয় — dispose-টাইমিং সমস্যা সম্পূর্ণ এড়িয়ে যায়।
   int? _lastKnownVisibleIndex;
+  Timer? _saveDebounceTimer;
 
   @override
   void initState() {
@@ -374,12 +380,15 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
   @override
   void dispose() {
     // স্ক্রিন থেকে বের হওয়ার সময়ও একবার সর্বশেষ পঠিত অবস্থান সেভ করা
-    // হচ্ছে (ইনস্ট্যান্ট, বিলম্ব ছাড়া) — কিন্তু GlobalKey recompute না
-    // করে, বরং সর্বশেষ scroll-idle এ যা ক্যাশ হয়েছিল সেটাই ব্যবহার
-    // করে (দেখুন _lastKnownVisibleIndex-এর কমেন্ট)। "সূরা" ট্যাব ও
-    // "বাংলা কোরআন" ট্যাব এখন সম্পূর্ণ আলাদা last-read key ব্যবহার করে,
+    // হচ্ছে (ইনস্ট্যান্ট, বিলম্ব ছাড়া)। dispose()-এর মুহূর্তে widget tree
+    // unmount হতে শুরু করে দিতে পারে বলে GlobalKey.currentContext অনেক
+    // সময় null হয়ে যায় — তাই এখানে নতুন করে recompute করার চেষ্টা না
+    // করে সরাসরি সবশেষ scroll ইভেন্টে (নিচে dY_ScrollListener দ্রষ্টব্য)
+    // ক্যাশ হওয়া _lastKnownVisibleIndex ব্যবহার করা হয়। "সূরা" ট্যাব ও
+    // "বাংলা কোরআন" ট্যাব সম্পূর্ণ আলাদা last-read key ব্যবহার করে,
     // তাই একটায় পড়া অন্যটার সর্বশেষ অবস্থান পাল্টায় না।
     _saveCurrentPositionAsLastRead();
+    _saveDebounceTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -695,18 +704,28 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
                     ),
                   ),
                 )
-              : NotificationListener<UserScrollNotification>(
-                  // ফিক্স: শুধু স্ক্রিন থেকে বের হওয়ার সময় (dispose) না,
-                  // বরং স্ক্রল থামার সাথে সাথেই "সর্বশেষ পঠিত অবস্থান"
-                  // আপডেট করা হচ্ছে — সূরা ডিটেইল স্ক্রিনের একই আচরণ,
-                  // যাতে ব্যবহারকারী অ্যাপ থেকে হুট করে (back বাটন, হোম
-                  // বাটন, বা অন্য অ্যাপে চলে গিয়ে) বের হয়ে গেলেও সর্বশেষ
-                  // অবস্থান দ্রুত সংরক্ষিত থাকে। এখানে widget tree এখনো
-                  // জীবিত, তাই আগে ক্যাশ রিফ্রেশ করে তারপর সেভ করা হয়।
+              : NotificationListener<ScrollNotification>(
+                  // ফিক্স: আগে শুধু UserScrollNotification.idle (আঙুল
+                  // তোলার পর momentum থেমে যাওয়ার ইভেন্ট) এর অপেক্ষা করা
+                  // হতো। কিন্তু ইউজার স্ক্রল করেই সাথে সাথে back বাটনে
+                  // চাপলে idle ইভেন্টটা dispose()-এর আগে আসার সুযোগই
+                  // পেত না, ফলে _lastKnownVisibleIndex কখনো আপডেট না
+                  // হয়ে পুরনো/শূন্য মানই থেকে যেত এবং ভুল আয়াত সেভ হতো।
+                  // এখন প্রতিটা ScrollUpdateNotification-এই (আঙুল টানার
+                  // সময়ও, শুধু idle নয়) cache রিফ্রেশ করা হয় — তাই
+                  // dispose()-এর সময় cache-টা প্রায় সবসময়ই একদম সবশেষ
+                  // অবস্থান ধরে রাখে। সেভ করাটা হালকা debounce করা হয়েছে
+                  // (setState/prefs-write ঘন ঘন না চালাতে), তবে cache
+                  // আপডেট নিজে সস্তা অপারেশন বলে debounce ছাড়াই হয়।
                   onNotification: (notification) {
-                    if (notification.direction == ScrollDirection.idle) {
+                    if (notification is ScrollUpdateNotification ||
+                        notification is ScrollEndNotification ||
+                        notification is UserScrollNotification) {
                       _updateLastKnownVisibleIndex();
-                      _saveCurrentPositionAsLastRead();
+                      _saveDebounceTimer?.cancel();
+                      _saveDebounceTimer = Timer(const Duration(milliseconds: 150), () {
+                        _saveCurrentPositionAsLastRead();
+                      });
                     }
                     return false;
                   },

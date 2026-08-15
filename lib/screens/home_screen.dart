@@ -372,6 +372,14 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (bangla_date): $e'); }
 
     try {
+      // বর্তমান ঋতুর নাম (যেমন "বর্ষাকাল") — toBanglaWithSeason "ঋতু, তারিখ" ফরম্যাটে
+      // রিটার্ন করে, তাই কমার আগের অংশটুকু নিলেই শুধু ঋতুর নাম পাওয়া যায়
+      final seasonFull = DateHelper.toBanglaWithSeason(now);
+      final season = seasonFull.contains(',') ? seasonFull.split(',').first.trim() : '';
+      await HomeWidget.saveWidgetData('widget_season', season);
+    } catch (e) { debugPrint('WIDGET ERROR (season): $e'); }
+
+    try {
       // widget-এ শুধু সময়টুকু (am/pm ছাড়া) পাঠানো হয়, আইকন/লেবেল layout XML-এ ফিক্সড থাকে
       await HomeWidget.saveWidgetData('widget_sunrise', _widgetTimeNoAmPm(pt.sunrise));
     } catch (e) { debugPrint('WIDGET ERROR (sunrise): $e'); }

@@ -9,6 +9,7 @@ import 'package:home_widget/home_widget.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
+import '../utils/time_format_prefs.dart';
 import '../utils/database_helper.dart';
 import '../utils/prayer_time_helper.dart';
 import '../utils/notification_helper.dart';
@@ -273,9 +274,14 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   // widget-এর জন্য বর্তমান সক্রিয় ওয়াক্তের নাম ও সময়সীমা বের করে —
   // ClockCard-এর মূল লজিকের সরলীকৃত সংস্করণ (ফরজ ওয়াক্তগুলো + ইশরাক/দুহা/
   // যাওয়াল/তাহাজ্জুদ), যাতে widget-ও ক্লক কার্ডের সাথে সামঞ্জস্যপূর্ণ থাকে।
-  // widget-এর জন্য am/pm ছাড়া শুধু সময় (যেমন "5:49"), যেহেতু widget-এর
-  // লেবেল/আইকন থেকেই সকাল-সন্ধ্যা বোঝা যায় এবং am/pm আলাদা দেখানোর দরকার নেই
+  // widget-এর জন্য am/pm ছাড়া শুধু সময় (যেমন "5:49" বা 24-ঘণ্টা হলে "17:49"),
+  // যেহেতু widget-এর লেবেল/আইকন থেকেই সকাল-সন্ধ্যা বোঝা যায়
   String _widgetTimeNoAmPm(DateTime time) {
+    if (TimeFormatPrefs.use24Hour) {
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    }
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
@@ -355,6 +361,11 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (time): $e'); }
 
     try {
+      // ব্যবহারকারীর ১২/২৪ ঘণ্টা পছন্দ widget-এও প্রতিফলিত হবে
+      await HomeWidget.saveWidgetData('widget_24hr', TimeFormatPrefs.use24Hour);
+    } catch (e) { debugPrint('WIDGET ERROR (24hr): $e'); }
+
+    try {
       await HomeWidget.saveWidgetData('widget_day', widget.lang.dayName(now.weekday));
     } catch (e) { debugPrint('WIDGET ERROR (day): $e'); }
 
@@ -368,16 +379,9 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (hijri): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_bangla_date', DateHelper.toBangla(now));
+      // "বর্ষাকাল, ৩১ শ্রাবণ ১৪৩৩" — ঋতু ও বাংলা তারিখ একসাথে, কমা দিয়ে, ফাঁকা ছাড়া
+      await HomeWidget.saveWidgetData('widget_bangla_date', DateHelper.toBanglaWithSeason(now));
     } catch (e) { debugPrint('WIDGET ERROR (bangla_date): $e'); }
-
-    try {
-      // বর্তমান ঋতুর নাম (যেমন "বর্ষাকাল") — toBanglaWithSeason "ঋতু, তারিখ" ফরম্যাটে
-      // রিটার্ন করে, তাই কমার আগের অংশটুকু নিলেই শুধু ঋতুর নাম পাওয়া যায়
-      final seasonFull = DateHelper.toBanglaWithSeason(now);
-      final season = seasonFull.contains(',') ? seasonFull.split(',').first.trim() : '';
-      await HomeWidget.saveWidgetData('widget_season', season);
-    } catch (e) { debugPrint('WIDGET ERROR (season): $e'); }
 
     try {
       // widget-এ শুধু সময়টুকু (am/pm ছাড়া) পাঠানো হয়, আইকন/লেবেল layout XML-এ ফিক্সড থাকে

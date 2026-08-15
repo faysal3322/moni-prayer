@@ -7,6 +7,7 @@ import 'screens/splash_screen.dart';
 import 'screens/surah_detail_screen.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_language.dart';
+import 'utils/time_format_prefs.dart';
 import 'utils/quran_audio_helper.dart';
 import 'utils/notification_helper.dart';
 
@@ -17,6 +18,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final String lang = prefs.getString('language') ?? 'bn';
   final String userName = prefs.getString('user_name') ?? 'FAYSAL';
+  await TimeFormatPrefs.load();
 
   // বাগ ফিক্স: আগে এখানে (main() এর ভেতরে, runApp()-এর আগে)
   // QuranAudioHelper.ensureAudioDirExists() কল করা হতো — কিন্তু এই

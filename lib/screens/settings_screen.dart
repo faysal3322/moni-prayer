@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import '../utils/time_format_prefs.dart';
 import '../utils/database_helper.dart';
 import '../utils/quran_collections_helper.dart';
 import '../utils/quran_prefs.dart';
@@ -28,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _nameCtrl;
   String _currentLang = 'bn';
   int _hijriAdjust = 0;
+  bool _use24Hour = false;
 
   @override
   void initState() {
@@ -42,7 +44,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _currentLang = prefs.getString('language') ?? 'bn';
       _nameCtrl.text = prefs.getString('user_name') ?? 'FAYSAL';
       _hijriAdjust = prefs.getInt('hijri_adjust') ?? 0;
+      _use24Hour = TimeFormatPrefs.use24Hour;
     });
+  }
+
+  Future<void> _setTimeFormat(bool use24Hour) async {
+    await TimeFormatPrefs.setUse24Hour(use24Hour);
+    setState(() => _use24Hour = use24Hour);
+    widget.onChanged();
   }
 
   Future<void> _saveName() async {
@@ -228,6 +237,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(child: _LangBtn(label: lang.bangla, selected: _currentLang == 'bn', onTap: () => _setLang('bn'))),
             const SizedBox(width: 12),
             Expanded(child: _LangBtn(label: lang.english, selected: _currentLang == 'en', onTap: () => _setLang('en'))),
+          ]),
+
+          const SizedBox(height: 24),
+
+          // Time Format (12/24 hour)
+          _sectionTitle(isBn ? 'সময়ের ফরম্যাট' : 'Time Format'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: _LangBtn(
+                label: isBn ? '১২ ঘণ্টা (am/pm)' : '12 Hour (am/pm)',
+                selected: !_use24Hour,
+                onTap: () => _setTimeFormat(false),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _LangBtn(
+                label: isBn ? '২৪ ঘণ্টা' : '24 Hour',
+                selected: _use24Hour,
+                onTap: () => _setTimeFormat(true),
+              ),
+            ),
           ]),
 
           const SizedBox(height: 24),

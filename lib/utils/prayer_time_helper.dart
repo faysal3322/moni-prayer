@@ -1,6 +1,7 @@
 import 'package:adhan/adhan.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'time_format_prefs.dart';
 
 class PrayerTimeHelper {
   static const double defaultLat = 23.8103;
@@ -73,6 +74,11 @@ class PrayerTimeHelper {
   }
 
   static String formatTime(DateTime time) {
+    if (TimeFormatPrefs.use24Hour) {
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    }
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour < 12 ? 'am' : 'pm';

@@ -209,6 +209,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   // পুরো জীবিত) বর্তমান ইনডেক্স এখানে ক্যাশ করে রাখা হয়, আর dispose()-এ
   // GlobalKey আবার না পড়ে সরাসরি এই ক্যাশ করা মান ব্যবহার করা হয়।
   int? _lastKnownVisibleIndex;
+  Timer? _saveDebounceTimer;
 
   // নিচের বার (সূরার নাম/জাম্প + প্লে বাটন + Page/List টগল) স্ক্রল করলে
   // লুকিয়ে/দেখা যাওয়ার জন্য — উপরের দিকে স্ক্রল করলে (নিচে পড়তে থাকলে)
@@ -271,6 +272,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // থেকে বের হয়ে গেলেও অন্তত এই সূরার শুরুটা "সর্বশেষ পড়া" হিসেবে
     // সংরক্ষিত থাকে।
     _saveCurrentPositionAsLastRead();
+    _saveDebounceTimer?.cancel();
     _scrollController.dispose();
     // স্ক্রিন থেকে বের হলেও সূরা প্লে ব্যাকগ্রাউন্ডে চলতে থাকবে (lock screen
     // এও যেমন চলে) — তাই এখানে ইচ্ছাকৃতভাবে audio বন্ধ করা হয় না।
@@ -972,17 +974,38 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     final showBismillah = widget.sura != 1 && widget.sura != 9 && _showArabic;
     final noLanguageOn = !_showArabic && !_showBangla && !_showTransliteration;
 
-    return NotificationListener<UserScrollNotification>(
-      onNotification: _handleScrollNotification,
-      child: Column(
-      children: [
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
-              : _error.isNotEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
+    return NotificationListener<ScrollNotification>(
+      // ফিক্স: আগে শুধু UserScrollNotification.idle (আঙুল তোলার পর
+      // momentum থেমে যাওয়ার ইভেন্ট)-এ cache আপডেট হতো — ইউজার স্ক্রল
+      // করেই সাথে সাথে back বাটনে চাপলে idle ইভেন্টটা dispose()-এর আগে
+      // আসার সুযোগই পেত না, ফলে ভুল/পুরনো আয়াত last-read হিসেবে সেভ
+      // হয়ে যেত। এখন প্রতিটা ScrollUpdateNotification-এই (আঙুল টানার
+      // সময়ও) cache রিফ্রেশ হয়, তাই dispose()-এর সময় cache প্রায়
+      // সবসময়ই সবশেষ অবস্থান ধরে রাখে। সেভ করাটা হালকা debounce করা,
+      // তবে cache আপডেট নিজে সস্তা অপারেশন বলে debounce ছাড়াই হয়। এই
+      // listener bottom-bar hide/show লজিক (নিচে UserScrollNotification
+      // listener) স্পর্শ করে না, শুধু cache+save করে।
+      onNotification: (notification) {
+        if (notification is ScrollUpdateNotification || notification is ScrollEndNotification) {
+          _updateLastKnownVisibleIndex();
+          _saveDebounceTimer?.cancel();
+          _saveDebounceTimer = Timer(const Duration(milliseconds: 150), () {
+            _saveCurrentPositionAsLastRead();
+          });
+        }
+        return false;
+      },
+      child: NotificationListener<UserScrollNotification>(
+        onNotification: _handleScrollNotification,
+        child: Column(
+        children: [
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.gold))
+                : _error.isNotEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
                         child: Text(
                           isBn ? 'আয়াত লোড করা যায়নি।\n$_error' : 'Could not load verses.\n$_error',
                           style: const TextStyle(color: AppTheme.missed, fontSize: 13),
@@ -1252,6 +1275,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         ),
       ],
       ),
+    ),
     );
   }
 }

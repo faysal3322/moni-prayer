@@ -7,6 +7,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -89,9 +92,17 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         } else {
             if (isBn) "pm" else "PM"
         }
-        // সময় ও am/pm এর মাঝে ফাঁকা কমানোর জন্য non-breaking narrow space
-        var timeStr = timeFormat.format(now.time) + "\u2009" + amPm
-        if (isBn) timeStr = toBanglaDigits(timeStr)
+        var timeDigits = timeFormat.format(now.time)
+        if (isBn) timeDigits = toBanglaDigits(timeDigits)
+
+        // am/pm অংশ ছোট ফন্টে দেখানোর জন্য SpannableString
+        val timeStr = SpannableString(timeDigits + "\u2009" + amPm)
+        timeStr.setSpan(
+            RelativeSizeSpan(0.45f),
+            timeDigits.length,
+            timeStr.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
 
         views.setTextViewText(R.id.widget_time, timeStr)
 

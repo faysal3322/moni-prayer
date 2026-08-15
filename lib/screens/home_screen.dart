@@ -273,6 +273,14 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   // widget-এর জন্য বর্তমান সক্রিয় ওয়াক্তের নাম ও সময়সীমা বের করে —
   // ClockCard-এর মূল লজিকের সরলীকৃত সংস্করণ (ফরজ ওয়াক্তগুলো + ইশরাক/দুহা/
   // যাওয়াল/তাহাজ্জুদ), যাতে widget-ও ক্লক কার্ডের সাথে সামঞ্জস্যপূর্ণ থাকে।
+  // widget-এর জন্য am/pm ছাড়া শুধু সময় (যেমন "5:49"), যেহেতু widget-এর
+  // লেবেল/আইকন থেকেই সকাল-সন্ধ্যা বোঝা যায় এবং am/pm আলাদা দেখানোর দরকার নেই
+  String _widgetTimeNoAmPm(DateTime time) {
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   Map<String, dynamic>? _currentWidgetWaqt(bool isBn, PrayerTimes pt, DateTime now) {
     final yesterday = _yesterdayPrayerTimes;
     final isPastMidnightBeforeFajr = now.isBefore(pt.fajr);
@@ -291,7 +299,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     final ishaaEnd = lastThird;
 
     String range(DateTime s, DateTime e) =>
-        '${PrayerTimeHelper.formatTime(s)} - ${PrayerTimeHelper.formatTime(e)}';
+        '${_widgetTimeNoAmPm(s)} - ${_widgetTimeNoAmPm(e)}';
 
     if (now.isAfter(pt.fajr) && now.isBefore(pt.sunrise)) {
       return {'name': isBn ? 'ফজর' : 'Fajr', 'range': range(pt.fajr, pt.sunrise), 'end': pt.sunrise};
@@ -364,20 +372,20 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (bangla_date): $e'); }
 
     try {
-      // widget-এ শুধু সময়টুকু পাঠানো হয়, আইকন/লেবেল layout XML-এ ফিক্সড থাকে
-      await HomeWidget.saveWidgetData('widget_sunrise', PrayerTimeHelper.formatTime(pt.sunrise));
+      // widget-এ শুধু সময়টুকু (am/pm ছাড়া) পাঠানো হয়, আইকন/লেবেল layout XML-এ ফিক্সড থাকে
+      await HomeWidget.saveWidgetData('widget_sunrise', _widgetTimeNoAmPm(pt.sunrise));
     } catch (e) { debugPrint('WIDGET ERROR (sunrise): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_sunset', PrayerTimeHelper.formatTime(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_sunset', _widgetTimeNoAmPm(pt.maghrib));
     } catch (e) { debugPrint('WIDGET ERROR (sunset): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_sehri', PrayerTimeHelper.formatTime(pt.fajr));
+      await HomeWidget.saveWidgetData('widget_sehri', _widgetTimeNoAmPm(pt.fajr));
     } catch (e) { debugPrint('WIDGET ERROR (sehri): $e'); }
 
     try {
-      await HomeWidget.saveWidgetData('widget_iftar', PrayerTimeHelper.formatTime(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_iftar', _widgetTimeNoAmPm(pt.maghrib));
     } catch (e) { debugPrint('WIDGET ERROR (iftar): $e'); }
 
     try {
@@ -393,7 +401,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         if (!diff.isNegative) {
           final hh = diff.inHours.toString().padLeft(2, '0');
           final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
-          remaining = (isBn ? 'বাকি ' : 'Remaining ') + '$hh:$mm';
+          remaining = (isBn ? 'ওয়াক্ত বাকি ' : 'Time left ') + '$hh:$mm';
         }
         await HomeWidget.saveWidgetData('widget_waqt_remaining', remaining);
       } else {

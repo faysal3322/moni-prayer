@@ -134,10 +134,10 @@ class QuranCollectionsHelper {
   }
 
   /// [afterItemId] আইটেমটার ঠিক পরে নতুন আয়াত ([sura]:[aya]) যোগ করে।
-  /// [afterItemId] যদি null হয় (বা কালেকশন খালি থাকে), তালিকার একদম
-  /// শুরুতে যোগ হয়। বিদ্যমান সব আইটেমের sort_order প্রয়োজনমতো একধাপ
-  /// করে সরিয়ে জায়গা করে দেওয়া হয়, যাতে পুরো ক্রম ঠিক থাকে।
-  /// একই আয়াত আগে থেকে থাকলে ডুপ্লিকেট করা হয় না।
+  /// [afterItemId] যদি null হয়, তালিকার একদম শেষে যোগ হয় (কালেকশন খালি
+  /// থাকলে এমনিতেই সেটাই একমাত্র/প্রথম আইটেম হয়ে যায়)। বিদ্যমান সব
+  /// আইটেমের sort_order প্রয়োজনমতো একধাপ করে সরিয়ে জায়গা করে দেওয়া হয়,
+  /// যাতে পুরো ক্রম ঠিক থাকে। একই আয়াত আগে থেকে থাকলে ডুপ্লিকেট করা হয় না।
   static Future<void> insertItemAfter(
     int collectionId,
     int sura,
@@ -161,8 +161,16 @@ class QuranCollectionsHelper {
     );
 
     int insertPosition; // items লিস্টে (০-ইনডেক্স) নতুন আয়াত যে অবস্থানে বসবে
-    if (afterItemId == null || items.isEmpty) {
+    // ফিক্স: আগে afterItemId == null-কে "তালিকার শুরুতে" (position 0)
+    // হিসেবে ধরা হতো, কিন্তু UI-তে (collection_detail_screen.dart)
+    // afterItemId == null আসলে ব্যবহারকারীর "তালিকার শেষে" নির্বাচনকে
+    // বোঝায়। ফলে "তালিকার শেষে" বেছে নিলেও আয়াত সবার উপরে যুক্ত হয়ে
+    // যাচ্ছিল। এখন null মানে তালিকার শেষ (items.length), আর নির্দিষ্ট
+    // আয়াতের পরে যোগ করতে চাইলে afterItemId পাঠানো হয় যথারীতি।
+    if (items.isEmpty) {
       insertPosition = 0;
+    } else if (afterItemId == null) {
+      insertPosition = items.length;
     } else {
       final idx = items.indexWhere((it) => it['id'] == afterItemId);
       insertPosition = idx == -1 ? items.length : idx + 1;
@@ -196,9 +204,10 @@ class QuranCollectionsHelper {
 
   /// [afterItemId] এর পরে একটা সম্পূর্ণ সূরা (আয়াত ১ থেকে [ayasCount])
   /// একসাথে ঢোকায়, সূরার নিজস্ব ক্রম ঠিক রেখে। [afterItemId] null হলে
-  /// তালিকার শুরুতে ঢোকে। insertItemAfter-কে বারবার কল করলে যেমন প্রতিবার
-  /// পুরো তালিকা আবার পড়তে হতো, তার বদলে এখানে একবারই তালিকা পড়ে পুরো
-  /// batch একসাথে কমিট করা হয় — বড় সূরাতেও (২৮৬ আয়াত পর্যন্ত) দ্রুত কাজ করে।
+  /// তালিকার শেষে ঢোকে (UI-তে "তালিকার শেষে" অপশনের সাথে সামঞ্জস্যপূর্ণ)।
+  /// insertItemAfter-কে বারবার কল করলে যেমন প্রতিবার পুরো তালিকা আবার
+  /// পড়তে হতো, তার বদলে এখানে একবারই তালিকা পড়ে পুরো batch একসাথে কমিট
+  /// করা হয় — বড় সূরাতেও (২৮৬ আয়াত পর্যন্ত) দ্রুত কাজ করে।
   static Future<void> insertFullSurahAfter(
     int collectionId,
     int sura,
@@ -223,8 +232,12 @@ class QuranCollectionsHelper {
     );
 
     int insertPosition;
-    if (afterItemId == null || items.isEmpty) {
+    // ফিক্স: afterItemId == null এখন তালিকার শেষে যোগ করে (আগে ভুলভাবে
+    // শুরুতে যোগ হতো) — insertItemAfter-এর সাথে সামঞ্জস্যপূর্ণ আচরণ।
+    if (items.isEmpty) {
       insertPosition = 0;
+    } else if (afterItemId == null) {
+      insertPosition = items.length;
     } else {
       final idx = items.indexWhere((it) => it['id'] == afterItemId);
       insertPosition = idx == -1 ? items.length : idx + 1;
@@ -266,7 +279,7 @@ class QuranCollectionsHelper {
   /// ক্রমান্বয়ে (ছোট থেকে বড়) একসাথে যোগ হয়। insertFullSurahAfter-এর
   /// মতোই কাজ করে, শুধু ১ থেকে ayasCount পর্যন্ত সব আয়াতের বদলে ব্যবহারকারীর
   /// দেওয়া নির্দিষ্ট আয়াত-তালিকা ব্যবহার করে। [afterItemId] null হলে
-  /// তালিকার শুরুতে ঢোকে। আগে থেকে যোগ করা আয়াত থাকলে ডুপ্লিকেট করা হয় না।
+  /// তালিকার শেষে ঢোকে। আগে থেকে যোগ করা আয়াত থাকলে ডুপ্লিকেট করা হয় না।
   static Future<void> insertMultipleAyasAfter(
     int collectionId,
     int sura,
@@ -291,8 +304,12 @@ class QuranCollectionsHelper {
     );
 
     int insertPosition;
-    if (afterItemId == null || items.isEmpty) {
+    // ফিক্স: afterItemId == null এখন তালিকার শেষে যোগ করে (আগে ভুলভাবে
+    // শুরুতে যোগ হতো) — insertItemAfter-এর সাথে সামঞ্জস্যপূর্ণ আচরণ।
+    if (items.isEmpty) {
       insertPosition = 0;
+    } else if (afterItemId == null) {
+      insertPosition = items.length;
     } else {
       final idx = items.indexWhere((it) => it['id'] == afterItemId);
       insertPosition = idx == -1 ? items.length : idx + 1;

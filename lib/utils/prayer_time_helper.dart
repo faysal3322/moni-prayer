@@ -17,26 +17,62 @@ class PrayerTimeHelper {
     return PrayerTimes(myCoordinates, dateComponents, params);
   }
 
+  // ফিক্স: আগে GPS ব্যর্থ হলে (timeout, সাময়িক service glitch, ইত্যাদি)
+  // সরাসরি ঢাকার কোঅর্ডিনেট (defaultLat/defaultLng) ব্যবহার হতো — কোনো
+  // সতর্কতা বা cache ছাড়াই। ব্যবহারকারী ভেলোরে থেকেও ঢাকার হিসাবে নামাজের
+  // সময় পাচ্ছিলেন, যা বাস্তব লোকেশনের সাথে না মিলে বড় গরমিল তৈরি করছিল।
+  //
+  // এখন crash/timeout হলে সবার আগে শেষবার সফলভাবে পাওয়া GPS লোকেশন
+  // (SharedPreferences-এ cache করা) ব্যবহার করা হয় — যেহেতু ব্যবহারকারী
+  // সচরাচর একই শহর/এলাকায় থাকেন, এই cache প্রায় সবসময়ই সঠিক এবং
+  // ঢাকার ডিফল্টের চেয়ে বহুগুণ নির্ভরযোগ্য। GPS সফল হলে নতুন cache
+  // সেভ হয়ে যায়। শুধুমাত্র প্রথমবার (কোনো cache-ই নেই) এবং GPS-ও
+  // ব্যর্থ হলে তখনই ঢাকার ডিফল্ট ব্যবহার হয়।
   static Future<List<double>> _getCoordinates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedLat = prefs.getDouble('lat');
+    final cachedLng = prefs.getDouble('lng');
+
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return [defaultLat, defaultLng];
+      if (!serviceEnabled) {
+        return _fallback(cachedLat, cachedLng);
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return [defaultLat, defaultLng];
+        if (permission == LocationPermission.denied) {
+          return _fallback(cachedLat, cachedLng);
+        }
       }
-      if (permission == LocationPermission.deniedForever) return [defaultLat, defaultLng];
+      if (permission == LocationPermission.deniedForever) {
+        return _fallback(cachedLat, cachedLng);
+      }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-        timeLimit: const Duration(seconds: 10),
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
+
+      // GPS সফল — cache আপডেট করা হচ্ছে পরবর্তী কোনো ব্যর্থতার জন্য
+      await prefs.setDouble('lat', position.latitude);
+      await prefs.setDouble('lng', position.longitude);
+
       return [position.latitude, position.longitude];
     } catch (_) {
-      return [defaultLat, defaultLng];
+      return _fallback(cachedLat, cachedLng);
     }
+  }
+
+  // GPS ব্যর্থ হলে: cache থাকলে cache ব্যবহার করা (সঠিক তথ্যের সবচেয়ে
+  // কাছাকাছি), না থাকলে (একদম প্রথমবার অ্যাপ ব্যবহারে GPS-ও fail করলে)
+  // ঢাকার ডিফল্ট কোঅর্ডিনেট।
+  static List<double> _fallback(double? cachedLat, double? cachedLng) {
+    if (cachedLat != null && cachedLng != null) {
+      return [cachedLat, cachedLng];
+    }
+    return [defaultLat, defaultLng];
   }
 
   static Future<void> refreshLocation() async {

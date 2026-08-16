@@ -112,8 +112,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text=""
-                android:textColor="#B0BEC5"
-                android:textSize="14sp"
+                android:textColor="#CE93D8"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView

@@ -597,6 +597,16 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       _lat = pos.latitude;
       _lng = pos.longitude;
 
+      // এখানকার সফল GPS ফলাফল prayer_time_helper-এর cache-এও সেভ করা
+      // হচ্ছে, যাতে PrayerTimeHelper.getPrayerTimes()-এর নিজস্ব GPS lookup
+      // কখনো ব্যর্থ হলেও (দুর্বল সিগন্যাল, timeout) এটা এখানকার সাম্প্রতিক
+      // সফল লোকেশনই ব্যবহার করে — দূরের কোনো ডিফল্ট শহরে fallback না করে।
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setDouble('lat', pos.latitude);
+        await prefs.setDouble('lng', pos.longitude);
+      } catch (_) {}
+
       if (locationChangedSignificantly) {
         final newTimes = await PrayerTimeHelper.getPrayerTimes();
         final newYesterdayTimes = await PrayerTimeHelper.getPrayerTimes(

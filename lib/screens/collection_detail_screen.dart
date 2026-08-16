@@ -148,6 +148,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   bool _showBangla = false;
   bool _showTransliteration = true;
   double _fontSize = 28.0;
+  static const double _minFontSize = 18.0;
+  static const double _maxFontSize = 40.0;
 
   // ══ অডিও প্লেয়ার স্টেট ══
   // ফিক্স: আগে কালেকশনের কোনো আয়াতই শোনার কোনো উপায় ছিল না। এখন প্রতিটা
@@ -226,6 +228,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _fontSize = fontSize;
       _loading = false;
     });
+  }
+
+  Future<void> _changeFontSize(double delta) async {
+    final newSize = (_fontSize + delta).clamp(_minFontSize, _maxFontSize);
+    if (newSize == _fontSize) return;
+    setState(() => _fontSize = newSize);
+    await QuranPrefs.setFontSize(newSize);
   }
 
   Future<void> _renameCollection() async {
@@ -860,6 +869,23 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       appBar: AppBar(
         title: Text(_title),
         actions: [
+          // ফিক্স: কালেকশন/ফোল্ডার ভিউতে ফন্ট সাইজ ছোট-বড় করার কোনো
+          // উপায় ছিল না (অন্য সূরা-পড়ার স্ক্রিনগুলোয় A-/A+ বাটন আছে,
+          // কিন্তু এখানে ছিল না)। এখন সেই একই কন্ট্রোল এখানেও যোগ করা
+          // হয়েছে, একই QuranPrefs.fontSize ব্যবহার করে — তাই এখানে
+          // পাল্টালে অন্য কোরআন স্ক্রিনেও তা প্রতিফলিত হয় (এবং উল্টোটাও)।
+          IconButton(
+            icon: const Icon(Icons.text_decrease),
+            tooltip: 'A-',
+            color: _fontSize > _minFontSize ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
+            onPressed: _fontSize > _minFontSize ? () => _changeFontSize(-2) : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.text_increase),
+            tooltip: 'A+',
+            color: _fontSize < _maxFontSize ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
+            onPressed: _fontSize < _maxFontSize ? () => _changeFontSize(2) : null,
+          ),
           if (_items.isNotEmpty)
             IconButton(
               icon: Icon(_sequencePlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),

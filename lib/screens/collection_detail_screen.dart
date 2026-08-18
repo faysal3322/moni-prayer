@@ -161,6 +161,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   int? _playingItemId;
   bool _sequencePlaying = false;
   bool _audioBusy = false; // ডাউনলোড/লোড হওয়ার সময় ডাবল-ট্যাপ ঠেকাতে
+  double _playbackSpeed = 1.0;
+  static const List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
   @override
   void initState() {
@@ -188,6 +190,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final showBangla = await QuranPrefs.getShowBangla();
     final showTranslit = await QuranPrefs.getShowTransliteration();
     final fontSize = await QuranPrefs.getFontSize();
+    final playbackSpeed = await QuranPrefs.getPlaybackSpeed();
 
     final cache = <int, Map<String, dynamic>>{};
     final suraNameMap = {
@@ -226,6 +229,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _showBangla = showBangla;
       _showTransliteration = showTranslit;
       _fontSize = fontSize;
+      _playbackSpeed = playbackSpeed;
       _loading = false;
     });
   }
@@ -235,6 +239,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     if (newSize == _fontSize) return;
     setState(() => _fontSize = newSize);
     await QuranPrefs.setFontSize(newSize);
+  }
+
+  Future<void> _setSpeed(double value) async {
+    setState(() => _playbackSpeed = value);
+    await QuranPrefs.setPlaybackSpeed(value);
+    // চলমান প্লেব্যাকেও সাথে সাথে নতুন স্পিড প্রয়োগ হয়, পরের আয়াতের
+    // জন্য অপেক্ষা করতে হয় না।
+    await QuranAudioHelper.setSpeed(value);
   }
 
   Future<void> _renameCollection() async {
@@ -807,6 +819,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             _audioBusy = false;
             _playingItemId = null;
           });
+          // ফিক্স: ডাটাবেসে অডিও তথ্য না পাওয়া গেলেও আগে চুপচাপ থেমে
+          // যেত। "সব শোনো" চলাকালীন এখন এই আয়াতটা স্কিপ করে পরেরটায়
+          // যাওয়া হয়, যাতে একটা আয়াতের সমস্যায় পুরো সিকোয়েন্স না আটকায়।
+          if (chainNext && _sequencePlaying) {
+            _playNextInSequence(itemId);
+          } else {
+            setState(() => _sequencePlaying = false);
+          }
         }
         return;
       }
@@ -827,6 +847,28 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           }
         },
       );
+    } catch (e) {
+      // ফিক্স: এটাই মূল বাগ ছিল — নতুন সূরার অডিও ফাইল ডাউনলোড করতে
+      // (network timeout, অসম্পূর্ণ ডাউনলোড ইত্যাদি) ব্যর্থ হলে এখান
+      // থেকে exception ছুঁড়ত, কিন্তু আগে কোনো catch ব্লক ছিল না — শুধু
+      // finally। ফলে exception silently গিলে ফেলা হতো (mounted অ্যাপে
+      // অ্যাসিঙ্ক এরর ধরা না পড়লে ডিফল্টভাবে uncaught থেকে যায়), onComplete
+      // কখনো কল হতো না, আর _sequencePlaying=true অবস্থাতেই প্লেব্যাক
+      // থেমে যেত — এটাই "সূরা ফাতিহার পরে থেমে যাওয়া" সমস্যার কারণ,
+      // কারণ Al-Baqara-র অডিও ফাইল তখনো ডাউনলোড করা ছিল না। এখন এই
+      // exception ধরে "সব শোনো" মোডে থাকলে পরের আয়াতে move করা হয়,
+      // যাতে একটা আয়াতের নেটওয়ার্ক সমস্যায় পুরো সিকোয়েন্স না থামে।
+      debugPrint('COLLECTION PLAY ERROR (sura $sura, aya $aya): $e');
+      if (mounted) {
+        if (chainNext && _sequencePlaying) {
+          _playNextInSequence(itemId);
+        } else {
+          setState(() {
+            _playingItemId = null;
+            _sequencePlaying = false;
+          });
+        }
+      }
     } finally {
       if (mounted) setState(() => _audioBusy = false);
     }
@@ -885,6 +927,39 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             tooltip: 'A+',
             color: _fontSize < _maxFontSize ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4),
             onPressed: _fontSize < _maxFontSize ? () => _changeFontSize(2) : null,
+          ),
+          // ফিক্স: কালেকশন/ফোল্ডার ভিউতে অডিও প্লেব্যাক স্পিড পাল্টানোর
+          // কোনো উপায় ছিল না। এখানে যোগ করা QuranPrefs.playbackSpeed-ই
+          // ব্যবহার করে, তাই "সব শোনো"/একক-আয়াত প্লে — দুই ক্ষেত্রেই এবং
+          // অন্য কোরআন স্ক্রিনেও একই স্পিড প্রযোজ্য হয়।
+          PopupMenuButton<double>(
+            tooltip: isBn ? 'প্লেব্যাক স্পিড' : 'Playback speed',
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.speed, color: AppTheme.gold, size: 22),
+                const SizedBox(width: 2),
+                Text(
+                  '${_playbackSpeed}x'.replaceAll('.0x', 'x'),
+                  style: const TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            color: AppTheme.cardBg,
+            onSelected: _setSpeed,
+            itemBuilder: (context) => _speedOptions.map((s) {
+              final label = '${s}x'.replaceAll('.0x', 'x');
+              return PopupMenuItem<double>(
+                value: s,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: s == _playbackSpeed ? AppTheme.gold : AppTheme.textPrimary,
+                    fontWeight: s == _playbackSpeed ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           if (_items.isNotEmpty)
             IconButton(

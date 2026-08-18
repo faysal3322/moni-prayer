@@ -485,6 +485,12 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     if (selected == null || selected == _playbackSpeed) return;
     setState(() => _playbackSpeed = selected);
     await QuranAudioHelper.setSpeed(selected);
+    // ফিক্স: আগে speed শুধু বর্তমান প্লেয়ার সেশনে প্রয়োগ হতো, prefs-এ
+    // সেভ হতো না। ফলে স্ক্রিন থেকে বের হয়ে আবার ঢুকলে বা অ্যাপ পুনরায়
+    // চালু করলে স্পিড 1.0x-এ রিসেট হয়ে যেত। এখন QuranPrefs-এও সেভ হয়,
+    // তাই কালেকশন স্ক্রিন সহ (collection_detail_screen.dart) পুরো
+    // অ্যাপ জুড়ে স্পিড ধারাবাহিকভাবে বজায় থাকে।
+    await QuranPrefs.setPlaybackSpeed(selected);
   }
 
   Future<void> _setViewMode(String mode) async {

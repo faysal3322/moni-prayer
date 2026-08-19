@@ -19,7 +19,7 @@ class QuranCollectionsHelper {
     final path = join(dbDir, 'quran_collections.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE collections (
@@ -35,9 +35,24 @@ class QuranCollectionsHelper {
             sura INTEGER NOT NULL,
             aya INTEGER NOT NULL,
             sort_order INTEGER NOT NULL,
+            group_key TEXT,
+            repeat_count INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE
           )
         ''');
+      },
+      // ফিচার সংযোজন: "সম্পূর্ণ সূরা N বার পড়ুন" গ্রুপিং সাপোর্ট করতে
+      // group_key ও repeat_count কলাম যোগ করা হচ্ছে। আগে থেকে ইনস্টল করা
+      // অ্যাপে থাকা বিদ্যমান কালেকশন/আইটেম কোনোভাবে মোছা বা পরিবর্তিত হয়
+      // না — শুধু নতুন কলাম দুটো ডিফল্ট মান (NULL, 1) নিয়ে যোগ হয়, যা
+      // "আলাদা আলাদা আয়াত" হিসেবেই আগের মতো দেখাতে থাকে যতক্ষণ না
+      // ব্যবহারকারী নতুন করে "সম্পূর্ণ সূরা" ফিচার ব্যবহার করেন।
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE collection_items ADD COLUMN group_key TEXT');
+          await db.execute(
+              'ALTER TABLE collection_items ADD COLUMN repeat_count INTEGER NOT NULL DEFAULT 1');
+        }
       },
     );
   }
@@ -77,215 +92,31 @@ class QuranCollectionsHelper {
   }
 
   static Future<void> addItem(int collectionId, int sura, int aya) async {
-    final db = await database;
-    final existing = await db.query(
-      'collection_items',
-      where: 'collection_id = ? AND sura = ? AND aya = ?',
-      whereArgs: [collectionId, sura, aya],
-    );
-    if (existing.isNotEmpty) return; // avoid duplicates
-
-    final maxOrderResult = await db.rawQuery(
-      'SELECT MAX(sort_order) as maxOrder FROM collection_items WHERE collection_id = ?',
-      [collectionId],
-    );
-    final maxOrder = (maxOrderResult.first['maxOrder'] as int?) ?? -1;
-
-    await db.insert('collection_items', {
-      'collection_id': collectionId,
-      'sura': sura,
-      'aya': aya,
-      'sort_order': maxOrder + 1,
-    });
+    await insertItemAfter(collectionId, sura, aya, afterItemId: null);
   }
 
-  /// একটা সম্পূর্ণ সূরার [ayasCount] সংখ্যক আয়াত (১ থেকে [ayasCount]
-  /// পর্যন্ত) একসাথে একটা কালেকশনে যোগ করে — একটা করে addItem কল করার
-  /// বদলে একটাই batch transaction ব্যবহার করা হয়, যাতে বড় সূরাতেও
-  /// (যেমন সূরা বাকারা, ২৮৬ আয়াত) দ্রুত ও নির্ভরযোগ্যভাবে যোগ হয়।
-  /// আগে থেকে যোগ করা আয়াত থাকলে সেগুলো ডুপ্লিকেট না করে বাদ দেওয়া হয়।
-  static Future<void> addFullSurah(int collectionId, int sura, int ayasCount) async {
-    final db = await database;
-    final existingRows = await db.query(
-      'collection_items',
-      columns: ['aya'],
-      where: 'collection_id = ? AND sura = ?',
-      whereArgs: [collectionId, sura],
-    );
-    final existingAyas = existingRows.map((r) => r['aya'] as int).toSet();
-
-    final maxOrderResult = await db.rawQuery(
-      'SELECT MAX(sort_order) as maxOrder FROM collection_items WHERE collection_id = ?',
-      [collectionId],
-    );
-    var nextOrder = ((maxOrderResult.first['maxOrder'] as int?) ?? -1) + 1;
-
-    final batch = db.batch();
-    for (var aya = 1; aya <= ayasCount; aya++) {
-      if (existingAyas.contains(aya)) continue; // ডুপ্লিকেট এড়ানো
-      batch.insert('collection_items', {
-        'collection_id': collectionId,
-        'sura': sura,
-        'aya': aya,
-        'sort_order': nextOrder++,
-      });
-    }
-    await batch.commit(noResult: true);
-  }
-
-  /// [afterItemId] আইটেমটার ঠিক পরে নতুন আয়াত ([sura]:[aya]) যোগ করে।
-  /// [afterItemId] যদি null হয়, তালিকার একদম শেষে যোগ হয় (কালেকশন খালি
-  /// থাকলে এমনিতেই সেটাই একমাত্র/প্রথম আইটেম হয়ে যায়)। বিদ্যমান সব
-  /// আইটেমের sort_order প্রয়োজনমতো একধাপ করে সরিয়ে জায়গা করে দেওয়া হয়,
-  /// যাতে পুরো ক্রম ঠিক থাকে। একই আয়াত আগে থেকে থাকলে ডুপ্লিকেট করা হয় না।
-  static Future<void> insertItemAfter(
-    int collectionId,
-    int sura,
-    int aya, {
-    int? afterItemId,
-  }) async {
-    final db = await database;
-
-    final existing = await db.query(
-      'collection_items',
-      where: 'collection_id = ? AND sura = ? AND aya = ?',
-      whereArgs: [collectionId, sura, aya],
-    );
-    if (existing.isNotEmpty) return; // ডুপ্লিকেট এড়ানো
-
-    final items = await db.query(
-      'collection_items',
-      where: 'collection_id = ?',
-      whereArgs: [collectionId],
-      orderBy: 'sort_order ASC',
-    );
-
-    int insertPosition; // items লিস্টে (০-ইনডেক্স) নতুন আয়াত যে অবস্থানে বসবে
-    // ফিক্স: আগে afterItemId == null-কে "তালিকার শুরুতে" (position 0)
-    // হিসেবে ধরা হতো, কিন্তু UI-তে (collection_detail_screen.dart)
-    // afterItemId == null আসলে ব্যবহারকারীর "তালিকার শেষে" নির্বাচনকে
-    // বোঝায়। ফলে "তালিকার শেষে" বেছে নিলেও আয়াত সবার উপরে যুক্ত হয়ে
-    // যাচ্ছিল। এখন null মানে তালিকার শেষ (items.length), আর নির্দিষ্ট
-    // আয়াতের পরে যোগ করতে চাইলে afterItemId পাঠানো হয় যথারীতি।
-    if (items.isEmpty) {
-      insertPosition = 0;
-    } else if (afterItemId == null) {
-      insertPosition = items.length;
-    } else {
-      final idx = items.indexWhere((it) => it['id'] == afterItemId);
-      insertPosition = idx == -1 ? items.length : idx + 1;
-    }
-
-    // নতুন আইটেম insert করার পর id সহ ফিরে পাওয়া হচ্ছে
-    final newItemId = await db.insert('collection_items', {
-      'collection_id': collectionId,
-      'sura': sura,
-      'aya': aya,
-      'sort_order': -1, // সাময়িক মান, নিচে পুরো তালিকা renumber হবে
-    });
-
-    // পুরনো তালিকায় সঠিক অবস্থানে নতুন আইটেমের id বসিয়ে পুরো ক্রম
-    // ০,১,২... হিসেবে আবার লেখা হচ্ছে — এতে sort_order-এ কোনো ফাঁক বা
-    // দ্বন্দ্ব থাকে না।
-    final orderedIds = items.map((it) => it['id'] as int).toList();
-    orderedIds.insert(insertPosition, newItemId);
-
-    final batch = db.batch();
-    for (var i = 0; i < orderedIds.length; i++) {
-      batch.update(
-        'collection_items',
-        {'sort_order': i},
-        where: 'id = ?',
-        whereArgs: [orderedIds[i]],
-      );
-    }
-    await batch.commit(noResult: true);
-  }
-
-  /// [afterItemId] এর পরে একটা সম্পূর্ণ সূরা (আয়াত ১ থেকে [ayasCount])
-  /// একসাথে ঢোকায়, সূরার নিজস্ব ক্রম ঠিক রেখে। [afterItemId] null হলে
-  /// তালিকার শেষে ঢোকে (UI-তে "তালিকার শেষে" অপশনের সাথে সামঞ্জস্যপূর্ণ)।
-  /// insertItemAfter-কে বারবার কল করলে যেমন প্রতিবার পুরো তালিকা আবার
-  /// পড়তে হতো, তার বদলে এখানে একবারই তালিকা পড়ে পুরো batch একসাথে কমিট
-  /// করা হয় — বড় সূরাতেও (২৮৬ আয়াত পর্যন্ত) দ্রুত কাজ করে।
-  static Future<void> insertFullSurahAfter(
-    int collectionId,
-    int sura,
-    int ayasCount, {
-    int? afterItemId,
-  }) async {
-    final db = await database;
-
-    final existingRows = await db.query(
-      'collection_items',
-      columns: ['aya'],
-      where: 'collection_id = ? AND sura = ?',
-      whereArgs: [collectionId, sura],
-    );
-    final existingAyas = existingRows.map((r) => r['aya'] as int).toSet();
-
-    final items = await db.query(
-      'collection_items',
-      where: 'collection_id = ?',
-      whereArgs: [collectionId],
-      orderBy: 'sort_order ASC',
-    );
-
-    int insertPosition;
-    // ফিক্স: afterItemId == null এখন তালিকার শেষে যোগ করে (আগে ভুলভাবে
-    // শুরুতে যোগ হতো) — insertItemAfter-এর সাথে সামঞ্জস্যপূর্ণ আচরণ।
-    if (items.isEmpty) {
-      insertPosition = 0;
-    } else if (afterItemId == null) {
-      insertPosition = items.length;
-    } else {
-      final idx = items.indexWhere((it) => it['id'] == afterItemId);
-      insertPosition = idx == -1 ? items.length : idx + 1;
-    }
-
-    final batch = db.batch();
-    final newIds = <int>[]; // insert ফলাফল পরে সংগ্রহ করা হবে, তাই আপাতত -1
-    for (var aya = 1; aya <= ayasCount; aya++) {
-      if (existingAyas.contains(aya)) continue; // ডুপ্লিকেট এড়ানো
-      batch.insert('collection_items', {
-        'collection_id': collectionId,
-        'sura': sura,
-        'aya': aya,
-        'sort_order': -1,
-      });
-    }
-    final results = await batch.commit();
-    for (final r in results) {
-      if (r is int) newIds.add(r);
-    }
-
-    final orderedIds = items.map((it) => it['id'] as int).toList();
-    orderedIds.insertAll(insertPosition, newIds);
-
-    final renumberBatch = db.batch();
-    for (var i = 0; i < orderedIds.length; i++) {
-      renumberBatch.update(
-        'collection_items',
-        {'sort_order': i},
-        where: 'id = ?',
-        whereArgs: [orderedIds[i]],
-      );
-    }
-    await renumberBatch.commit(noResult: true);
-  }
-
-  /// [afterItemId] এর পরে একই সূরার একাধিক নির্দিষ্ট আয়াত ([ayas]) একসাথে
-  /// ঢোকায় — যেমন ব্যবহারকারী "1-5,9,21-29" লিখলে সেই আয়াতগুলো
-  /// ক্রমান্বয়ে (ছোট থেকে বড়) একসাথে যোগ হয়। insertFullSurahAfter-এর
-  /// মতোই কাজ করে, শুধু ১ থেকে ayasCount পর্যন্ত সব আয়াতের বদলে ব্যবহারকারীর
-  /// দেওয়া নির্দিষ্ট আয়াত-তালিকা ব্যবহার করে। [afterItemId] null হলে
-  /// তালিকার শেষে ঢোকে। আগে থেকে যোগ করা আয়াত থাকলে ডুপ্লিকেট করা হয় না।
-  static Future<void> insertMultipleAyasAfter(
+  /// [afterItemId] এর পরে একই সূরার [ayas] আয়াতগুলো একটা "গ্রুপ" হিসেবে
+  /// একসাথে যোগ করে, প্রতিটা row-কে একই [group_key] ও [repeatCount]
+  /// দিয়ে ট্যাগ করে। কালেকশন ডিটেইল স্ক্রিন এই group_key দেখে বুঝতে
+  /// পারে কোন আয়াতগুলো একসাথে যোগ হয়েছিল, তাই সেগুলোকে একটা কার্ডে
+  /// দেখানো যায় (যেমন "সূরা ফাতিহা — ৭ বার")। [ayas] দৈর্ঘ্য ১ হলেও
+  /// (একটামাত্র আয়াত, যেমন আয়াতুল কুরসি ১০ বার) একই লজিক কাজ করে।
+  ///
+  /// [afterItemId] null হলে তালিকার শেষে যোগ হয়। আগে থেকে থাকা আয়াত
+  /// ডুপ্লিকেট করা হয় না (গ্রুপ থেকে বাদ পড়ে যায়, কিন্তু বাকিগুলো ঠিকই
+  /// যোগ হয় — যেমন সূরা ফাতিহা একবার আগে থেকে যোগ থাকলে, আবার "সম্পূর্ণ
+  /// সূরা" দিলে শুধু নতুন repeat-block হিসেবে বাকি অংশ যোগ হবে না, বরং
+  /// পুরো ব্যাপারটা এড়িয়ে যাওয়া হয় — ব্যবহারকারীকে আলাদা নামে/নতুন
+  /// কালেকশনে যোগ করতে বলা ভালো, কিন্তু সেই UI সিদ্ধান্ত collection_detail
+  /// screen-এর দায়িত্ব)।
+  static Future<void> insertGroupAfter(
     int collectionId,
     int sura,
     List<int> ayas, {
     int? afterItemId,
+    int repeatCount = 1,
   }) async {
+    if (ayas.isEmpty) return;
     final db = await database;
 
     final existingRows = await db.query(
@@ -304,8 +135,6 @@ class QuranCollectionsHelper {
     );
 
     int insertPosition;
-    // ফিক্স: afterItemId == null এখন তালিকার শেষে যোগ করে (আগে ভুলভাবে
-    // শুরুতে যোগ হতো) — insertItemAfter-এর সাথে সামঞ্জস্যপূর্ণ আচরণ।
     if (items.isEmpty) {
       insertPosition = 0;
     } else if (afterItemId == null) {
@@ -315,9 +144,12 @@ class QuranCollectionsHelper {
       insertPosition = idx == -1 ? items.length : idx + 1;
     }
 
-    // ক্রমান্বয়ে (ছোট থেকে বড়) ঢোকানোর জন্য sort করা হচ্ছে, ব্যবহারকারী
-    // ইনপুটে যে ক্রমেই লিখুক না কেন (যেমন "9,1-5" লিখলেও ১,২,৩,৪,৫,৯ হবে)।
     final sortedAyas = List<int>.from(ayas.toSet())..sort();
+    // একই গ্রুপের সব আয়াত একই group_key শেয়ার করে — timestamp + sura
+    // দিয়ে বানানো, যাতে একই সূরা বারবার আলাদা আলাদা গ্রুপ হিসেবে যোগ
+    // করলেও (যেমন একবার ফাতিহা ৭ বার, পরে আবার ফাতিহা ৩ বার আলাদা
+    // জায়গায়) key দুটো আলাদা থাকে, একসাথে মিশে না যায়।
+    final groupKey = 'g_${DateTime.now().microsecondsSinceEpoch}_$sura';
 
     final batch = db.batch();
     final newIds = <int>[];
@@ -328,12 +160,15 @@ class QuranCollectionsHelper {
         'sura': sura,
         'aya': aya,
         'sort_order': -1,
+        'group_key': groupKey,
+        'repeat_count': repeatCount,
       });
     }
     final results = await batch.commit();
     for (final r in results) {
       if (r is int) newIds.add(r);
     }
+    if (newIds.isEmpty) return; // সবই আগে থেকে ছিল, কিছু নতুন যোগ হয়নি
 
     final orderedIds = items.map((it) => it['id'] as int).toList();
     orderedIds.insertAll(insertPosition, newIds);
@@ -348,6 +183,82 @@ class QuranCollectionsHelper {
       );
     }
     await renumberBatch.commit(noResult: true);
+  }
+
+  /// একটা সম্পূর্ণ সূরার [ayasCount] সংখ্যক আয়াত (১ থেকে [ayasCount]
+  /// পর্যন্ত) কালেকশনের শেষে একসাথে যোগ করে, [repeatCount] বার পড়ার
+  /// জন্য গ্রুপ করে। insertGroupAfter-এর thin wrapper — পুরনো কলার
+  /// (backup import ইত্যাদি) এর জন্য backward-compatible রাখা হয়েছে।
+  static Future<void> addFullSurah(
+    int collectionId,
+    int sura,
+    int ayasCount, {
+    int repeatCount = 1,
+  }) async {
+    await insertGroupAfter(
+      collectionId,
+      sura,
+      List<int>.generate(ayasCount, (i) => i + 1),
+      afterItemId: null,
+      repeatCount: repeatCount,
+    );
+  }
+
+  /// [afterItemId] আইটেমটার ঠিক পরে নতুন আয়াত ([sura]:[aya]) যোগ করে,
+  /// [repeatCount] বার পড়ার জন্য (ডিফল্ট ১, অর্থাৎ স্বাভাবিক একবার)।
+  /// [afterItemId] null হলে তালিকার শেষে যোগ হয়।
+  static Future<void> insertItemAfter(
+    int collectionId,
+    int sura,
+    int aya, {
+    int? afterItemId,
+    int repeatCount = 1,
+  }) async {
+    await insertGroupAfter(
+      collectionId,
+      sura,
+      [aya],
+      afterItemId: afterItemId,
+      repeatCount: repeatCount,
+    );
+  }
+
+  /// [afterItemId] এর পরে একটা সম্পূর্ণ সূরা (আয়াত ১ থেকে [ayasCount])
+  /// একসাথে ঢোকায়, [repeatCount] বার পড়ার জন্য গ্রুপ করে। [afterItemId]
+  /// null হলে তালিকার শেষে ঢোকে।
+  static Future<void> insertFullSurahAfter(
+    int collectionId,
+    int sura,
+    int ayasCount, {
+    int? afterItemId,
+    int repeatCount = 1,
+  }) async {
+    await insertGroupAfter(
+      collectionId,
+      sura,
+      List<int>.generate(ayasCount, (i) => i + 1),
+      afterItemId: afterItemId,
+      repeatCount: repeatCount,
+    );
+  }
+
+  /// [afterItemId] এর পরে একই সূরার একাধিক নির্দিষ্ট আয়াত ([ayas]) একসাথে
+  /// ঢোকায় (যেমন "1-5,9,21-29"), [repeatCount] বার পড়ার জন্য গ্রুপ করে।
+  /// [afterItemId] null হলে তালিকার শেষে ঢোকে।
+  static Future<void> insertMultipleAyasAfter(
+    int collectionId,
+    int sura,
+    List<int> ayas, {
+    int? afterItemId,
+    int repeatCount = 1,
+  }) async {
+    await insertGroupAfter(
+      collectionId,
+      sura,
+      ayas,
+      afterItemId: afterItemId,
+      repeatCount: repeatCount,
+    );
   }
 
   /// ব্যাকআপের জন্য সব কালেকশন ও তাদের আইটেম একসাথে বের করে আনে।
@@ -373,6 +284,8 @@ class QuranCollectionsHelper {
                   'sura': it['sura'],
                   'aya': it['aya'],
                   'sort_order': it['sort_order'],
+                  'group_key': it['group_key'],
+                  'repeat_count': it['repeat_count'],
                 })
             .toList(),
       });
@@ -403,6 +316,11 @@ class QuranCollectionsHelper {
           'sura': itemMap['sura'],
           'aya': itemMap['aya'],
           'sort_order': itemMap['sort_order'],
+          // পুরনো ব্যাকআপ ফাইলে (নতুন ফিচার যোগ হওয়ার আগের) এই দুটো
+          // key না-ও থাকতে পারে — তখন null/1 ডিফল্ট ব্যবহার হয়, যা
+          // "আলাদা আলাদা আয়াত, একবার করে" হিসেবে স্বাভাবিকভাবেই দেখাবে।
+          'group_key': itemMap['group_key'],
+          'repeat_count': itemMap['repeat_count'] ?? 1,
         });
       }
       await batch.commit(noResult: true);
@@ -412,6 +330,89 @@ class QuranCollectionsHelper {
   static Future<void> removeItem(int itemId) async {
     final db = await database;
     await db.delete('collection_items', where: 'id = ?', whereArgs: [itemId]);
+  }
+
+  /// সূচিপত্র তৈরির জন্য — কালেকশনের সব আইটেম সূরা অনুযায়ী গ্রুপ করে,
+  /// প্রতিটা সূরার আয়াত নম্বরগুলোকে কম্প্যাক্ট রেঞ্জ-স্ট্রিং বানিয়ে দেয়
+  /// (যেমন সূরা বাকারার [1,2,3,4,5,163,255,256,257,284,285,286] থেকে
+  /// "১-৫, ১৬৩, ২৫৫-২৫৭, ২৮৪-২৮৬")। রিটার্ন করা লিস্ট কালেকশনে সূরাগুলো
+  /// প্রথম যে ক্রমে এসেছে (sort_order অনুযায়ী) সেই ক্রমেই থাকে, প্রতিটা
+  /// এন্ট্রিতে থাকে {sura, suraName, ayaCount, rangeText}। UI নিজের
+  /// ভাষা/সংখ্যা-ফরম্যাট অনুযায়ী rangeText থেকে বাংলা/ইংরেজি সংখ্যায়
+  /// বদলে নিতে পারে (এখানে ইংরেজি সংখ্যাতেই রাখা হয়েছে, যাতে ভাষা-নিরপেক্ষ
+  /// থাকে — collection_detail_screen.dart প্রয়োজনে বাংলায় রূপান্তর করবে)।
+  static Future<List<Map<String, dynamic>>> getTableOfContents(int collectionId) async {
+    final items = await getCollectionItems(collectionId);
+    if (items.isEmpty) return [];
+
+    final suraOrder = <int>[]; // সূরা প্রথম যে ক্রমে দেখা গেছে
+    final suraAyas = <int, List<int>>{};
+    for (final item in items) {
+      final sura = item['sura'] as int;
+      final aya = item['aya'] as int;
+      if (!suraAyas.containsKey(sura)) {
+        suraAyas[sura] = [];
+        suraOrder.add(sura);
+      }
+      suraAyas[sura]!.add(aya);
+    }
+
+    final result = <Map<String, dynamic>>[];
+    for (final sura in suraOrder) {
+      final ayas = List<int>.from(suraAyas[sura]!.toSet())..sort();
+      result.add({
+        'sura': sura,
+        'ayaCount': ayas.length,
+        'rangeText': _formatAyaRanges(ayas),
+      });
+    }
+    return result;
+  }
+
+  /// [1,2,3,4,5,163,255,256,257] → "1-5, 163, 255-257" — ধারাবাহিক
+  /// আয়াত নম্বরগুলোকে একটা রেঞ্জে একত্র করে, বিচ্ছিন্ন নম্বর আলাদা থাকে।
+  static String _formatAyaRanges(List<int> sortedAyas) {
+    if (sortedAyas.isEmpty) return '';
+    final parts = <String>[];
+    var rangeStart = sortedAyas.first;
+    var rangeEnd = sortedAyas.first;
+
+    void flush() {
+      parts.add(rangeStart == rangeEnd ? '$rangeStart' : '$rangeStart-$rangeEnd');
+    }
+
+    for (var i = 1; i < sortedAyas.length; i++) {
+      final n = sortedAyas[i];
+      if (n == rangeEnd + 1) {
+        rangeEnd = n;
+      } else {
+        flush();
+        rangeStart = n;
+        rangeEnd = n;
+      }
+    }
+    flush();
+    return parts.join(', ');
+  }
+
+  /// [1,5,7]-এর মতো itemId তালিকা থেকে একটা "গ্রুপ" (একই group_key শেয়ার
+  /// করা সব আইটেম) মুছে ফেলে — কালেকশন ডিটেইল স্ক্রিনে "সূরা ফাতিহা (৭
+  /// বার)" কার্ডের ✕ বাটনে চাপলে পুরো গ্রুপ একসাথে সরাতে ব্যবহৃত হয়।
+  static Future<void> removeGroup(String groupKey) async {
+    final db = await database;
+    await db.delete('collection_items', where: 'group_key = ?', whereArgs: [groupKey]);
+  }
+
+  /// একটা গ্রুপের repeat_count আপডেট করে (যেমন ব্যবহারকারী "সূরা ফাতিহা
+  /// ৭ বার" থেকে বদলে "৩ বার" করতে চাইলে) — গ্রুপের সব row-এ একই মান বসে।
+  static Future<void> updateGroupRepeatCount(String groupKey, int repeatCount) async {
+    final db = await database;
+    await db.update(
+      'collection_items',
+      {'repeat_count': repeatCount},
+      where: 'group_key = ?',
+      whereArgs: [groupKey],
+    );
   }
 
   /// Persist a new item order after drag-and-drop reordering.

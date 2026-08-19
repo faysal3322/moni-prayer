@@ -163,6 +163,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   bool _audioBusy = false; // ডাউনলোড/লোড হওয়ার সময় ডাবল-ট্যাপ ঠেকাতে
   double _playbackSpeed = 1.0;
   static const List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+  // বর্তমানে চলা আইটেমটা কতবার (ইতিমধ্যে) পুনরাবৃত্তি হয়েছে — যেমন
+  // repeat_count=7 হলে এই মান 0..6 পর্যন্ত যাবে, তারপর পরের আইটেমে যাবে।
+  int _currentRepeatIndex = 0;
 
   @override
   void initState() {
@@ -239,6 +242,69 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     if (newSize == _fontSize) return;
     setState(() => _fontSize = newSize);
     await QuranPrefs.setFontSize(newSize);
+  }
+
+  /// _items (flat, sort_order অনুযায়ী) থেকে প্রদর্শনযোগ্য গ্রুপ বানায়।
+  /// একই group_key-এর consecutive আইটেমগুলো (যেমন একটা "সম্পূর্ণ সূরা"
+  /// যোগ করার ফলাফল) একটা "group" এন্ট্রিতে মিশে যায়, যাতে UI-তে
+  /// "সূরা ফাতিহা — ৭ বার" এর মতো একটাই কার্ড দেখানো যায়। একক আয়াত
+  /// (group_key null, অথবা কোনো group-এ মাত্র ১টা আইটেম থাকলে — যেমন
+  /// পুরনো ডাটা যেখানে গ্রুপিং ছিলই না) আলাদা "single" এন্ট্রি থাকে,
+  /// আগের UI-এর মতোই। প্রতিটা এন্ট্রিতে থাকে:
+  /// {type: 'group'|'single', items: [...], groupKey, repeatCount, sura}
+  List<Map<String, dynamic>> _buildDisplayGroups() {
+    final result = <Map<String, dynamic>>[];
+    var i = 0;
+    while (i < _items.length) {
+      final item = _items[i];
+      final groupKey = item['group_key'] as String?;
+      if (groupKey == null) {
+        result.add({'type': 'single', 'items': [item]});
+        i++;
+        continue;
+      }
+      // একই group_key-এর ধারাবাহিক (consecutive) আইটেমগুলো জড়ো করা —
+      // reorder (moveUp/moveDown) করলে একটা গ্রুপ ভেঙে দুই টুকরো হয়ে
+      // যেতে পারে, সেক্ষেত্রে প্রতিটা টুকরো নিজের মতো আলাদা গ্রুপ কার্ড
+      // হিসেবে দেখানো হবে — এটা একটা যুক্তিসঙ্গত সীমাবদ্ধতা এবং কোনো
+      // ডাটা হারায় না।
+      final groupItems = <Map<String, dynamic>>[item];
+      var j = i + 1;
+      while (j < _items.length && _items[j]['group_key'] == groupKey) {
+        groupItems.add(_items[j]);
+        j++;
+      }
+      if (groupItems.length == 1) {
+        result.add({'type': 'single', 'items': groupItems});
+      } else {
+        result.add({
+          'type': 'group',
+          'items': groupItems,
+          'groupKey': groupKey,
+          'repeatCount': (groupItems.first['repeat_count'] as int?) ?? 1,
+          'sura': groupItems.first['sura'] as int,
+        });
+      }
+      i = j;
+    }
+    return result;
+  }
+
+  /// একটা গ্রুপ পুরো সূরা কিনা যাচাই করে — গ্রুপের আয়াতগুলো ১ থেকে সূরার
+  /// মোট আয়াত সংখ্যা পর্যন্ত ধারাবাহিকভাবে সবগুলো কভার করলে সেটা "সম্পূর্ণ
+  /// সূরা"; নাহলে এটা একাধিক নির্দিষ্ট আয়াতের গ্রুপ (যেমন "1-5,9,21-29")।
+  bool _isFullSurahGroup(Map<String, dynamic> group) {
+    final sura = group['sura'] as int;
+    final items = group['items'] as List<Map<String, dynamic>>;
+    final chapter = _chapters.firstWhere((c) => c['sura'] == sura, orElse: () => {});
+    final totalAyas = chapter['ayas_count'] as int?;
+    if (totalAyas == null) return false;
+    if (items.length != totalAyas) return false;
+    final ayaSet = items.map((it) => it['aya'] as int).toSet();
+    for (var a = 1; a <= totalAyas; a++) {
+      if (!ayaSet.contains(a)) return false;
+    }
+    return true;
   }
 
   Future<void> _setSpeed(double value) async {
@@ -354,6 +420,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final ayaController = TextEditingController();
     String? errorText;
     bool submitting = false;
+    int repeatCount = 1;
 
     // পজিশন নির্বাচন — শুধু কোনো নির্দিষ্ট আয়াতের কার্ড থেকে না এসে
     // FAB থেকে খোলা হলে এবং কালেকশনে অন্তত একটা আয়াত থাকলেই দেখানো হয়।
@@ -637,6 +704,48 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         ),
                       ),
                   ],
+                  const SizedBox(height: 14),
+                  // "কতবার পড়া হবে" — যেকোনো মোডেই (নির্দিষ্ট আয়াত বা
+                  // সম্পূর্ণ সূরা) প্রযোজ্য। ডিফল্ট ১ (স্বাভাবিক একবার),
+                  // বাড়ালে সেই আয়াত/সূরাটা প্লে করার সময় পরপর ততবার
+                  // চলবে — যেমন আয়াতুল কুরসি মুখস্থ করার জন্য ১০ বার,
+                  // বা সূরা ফাতিহা তাহাজ্জুদে ৭ বার।
+                  Text(
+                    isBn ? 'কতবার পড়া হবে' : 'Repeat count',
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _RepeatStepperButton(
+                        icon: Icons.remove,
+                        enabled: repeatCount > 1,
+                        onTap: () => setSheetState(() => repeatCount = (repeatCount - 1).clamp(1, 99)),
+                      ),
+                      Container(
+                        width: 56,
+                        alignment: Alignment.center,
+                        child: Text(
+                          widget.lang.toLocalNum(repeatCount),
+                          style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      _RepeatStepperButton(
+                        icon: Icons.add,
+                        enabled: repeatCount < 99,
+                        onTap: () => setSheetState(() => repeatCount = (repeatCount + 1).clamp(1, 99)),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isBn ? '(ডিফল্ট ১ বার)' : '(default: once)',
+                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
                   if (errorText != null) ...[
                     const SizedBox(height: 8),
                     Text(errorText!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
@@ -674,9 +783,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                     sura,
                                     maxAya,
                                     afterItemId: insertAfterId,
+                                    repeatCount: repeatCount,
                                   );
                                 } else {
-                                  await QuranCollectionsHelper.addFullSurah(widget.collectionId, sura, maxAya);
+                                  await QuranCollectionsHelper.addFullSurah(
+                                    widget.collectionId,
+                                    sura,
+                                    maxAya,
+                                    repeatCount: repeatCount,
+                                  );
                                 }
                                 if (context.mounted) Navigator.pop(sheetContext);
                                 _load();
@@ -710,8 +825,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                   sura,
                                   ayaNums,
                                   afterItemId: insertAfterId,
+                                  repeatCount: repeatCount,
                                 );
-                              } else if (ayaNums.length == 1) {
+                              } else if (ayaNums.length == 1 && repeatCount == 1) {
                                 await QuranCollectionsHelper.addItem(widget.collectionId, sura, ayaNums.first);
                               } else {
                                 await QuranCollectionsHelper.insertMultipleAyasAfter(
@@ -719,6 +835,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                   sura,
                                   ayaNums,
                                   afterItemId: null,
+                                  repeatCount: repeatCount,
                                 );
                               }
                               if (context.mounted) Navigator.pop(sheetContext);
@@ -747,6 +864,73 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     );
   }
 
+  /// [1,2,3,163,255,256,257] → "1-3, 163, 255-257" — গ্রুপ কার্ডের
+  /// টাইটেলে সংক্ষিপ্ত রেঞ্জ দেখানোর জন্য (সূচিপত্রের মতোই লজিক, কিন্তু
+  /// এখানে সরাসরি UI-লেয়ারে ছোট তালিকার জন্য synchronous গণনা)।
+  String _formatAyaRangesLocal(List<int> sortedAyas) {
+    if (sortedAyas.isEmpty) return '';
+    final parts = <String>[];
+    var rangeStart = sortedAyas.first;
+    var rangeEnd = sortedAyas.first;
+    void flush() => parts.add(rangeStart == rangeEnd ? '$rangeStart' : '$rangeStart-$rangeEnd');
+    for (var i = 1; i < sortedAyas.length; i++) {
+      final n = sortedAyas[i];
+      if (n == rangeEnd + 1) {
+        rangeEnd = n;
+      } else {
+        flush();
+        rangeStart = n;
+        rangeEnd = n;
+      }
+    }
+    flush();
+    return parts.join(', ');
+  }
+
+  /// একটা গ্রুপকে (একাধিক consecutive আইটেম) এক ধাপ উপরে সরায় — অর্থাৎ
+  /// গ্রুপের ঠিক আগের আইটেমটার সাথে গ্রুপের অবস্থান অদল-বদল করে। যদি
+  /// আগের আইটেমও একটা গ্রুপের অংশ হয়, পুরো সেই গ্রুপটাই একসাথে সরে যায়
+  /// (যাতে দুটো গ্রুপ কখনো একে অপরের মধ্যে মিশে না যায়)।
+  Future<void> _moveGroupUp(int firstIndex, int groupLength) async {
+    if (firstIndex <= 0) return;
+    final prevGroupKey = _items[firstIndex - 1]['group_key'] as String?;
+    var prevBlockStart = firstIndex - 1;
+    if (prevGroupKey != null) {
+      while (prevBlockStart > 0 && _items[prevBlockStart - 1]['group_key'] == prevGroupKey) {
+        prevBlockStart--;
+      }
+    }
+    final prevBlockLength = firstIndex - prevBlockStart;
+    setState(() {
+      final movingBlock = _items.sublist(firstIndex, firstIndex + groupLength);
+      _items.removeRange(firstIndex, firstIndex + groupLength);
+      _items.insertAll(prevBlockStart, movingBlock);
+    });
+    final orderedIds = _items.map((e) => e['id'] as int).toList();
+    await QuranCollectionsHelper.reorderItems(orderedIds);
+  }
+
+  /// _moveGroupUp-এর বিপরীত — গ্রুপকে এক ধাপ নিচে সরায়।
+  Future<void> _moveGroupDown(int firstIndex, int groupLength) async {
+    final lastIndex = firstIndex + groupLength - 1;
+    if (lastIndex >= _items.length - 1) return;
+    final nextGroupKey = _items[lastIndex + 1]['group_key'] as String?;
+    var nextBlockEnd = lastIndex + 1;
+    if (nextGroupKey != null) {
+      while (nextBlockEnd + 1 < _items.length && _items[nextBlockEnd + 1]['group_key'] == nextGroupKey) {
+        nextBlockEnd++;
+      }
+    }
+    final nextBlockLength = nextBlockEnd - lastIndex;
+    setState(() {
+      final movingBlock = _items.sublist(firstIndex, firstIndex + groupLength);
+      _items.removeRange(firstIndex, firstIndex + groupLength);
+      _items.insertAll(firstIndex + nextBlockLength, movingBlock);
+    });
+    final orderedIds = _items.map((e) => e['id'] as int).toList();
+    await QuranCollectionsHelper.reorderItems(orderedIds);
+  }
+
   Future<void> _removeItem(int itemId) async {
     if (_playingItemId == itemId) {
       await QuranAudioHelper.stop();
@@ -757,6 +941,78 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
     await QuranCollectionsHelper.removeItem(itemId);
     _load();
+  }
+
+  /// একটা গ্রুপ কার্ডের ✕ বাটনে চাপলে পুরো গ্রুপের সব আয়াত একসাথে মুছে
+  /// ফেলে (যেমন "সূরা ফাতিহা — ৭ বার" কার্ড মুছলে ফাতিহার সব কটা আয়াতই
+  /// একসাথে চলে যায়, একটা একটা করে মুছতে হয় না)।
+  Future<void> _removeGroup(String groupKey, List<Map<String, dynamic>> items) async {
+    if (_playingItemId != null && items.any((it) => it['id'] == _playingItemId)) {
+      await QuranAudioHelper.stop();
+      setState(() {
+        _playingItemId = null;
+        _sequencePlaying = false;
+        _currentRepeatIndex = 0;
+      });
+    }
+    await QuranCollectionsHelper.removeGroup(groupKey);
+    _load();
+  }
+
+  /// একটা গ্রুপের repeat count পাল্টানোর ছোট ডায়ালগ — তালিকায় প্রতিটা
+  /// গ্রুপ কার্ডের পাশে একটা "✎ N বার" বাটন থেকে খোলে।
+  Future<void> _showEditRepeatDialog(Map<String, dynamic> group) async {
+    final isBn = widget.lang.isBn;
+    int value = group['repeatCount'] as int;
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: Text(
+            isBn ? 'কতবার পড়া হবে' : 'Repeat count',
+            style: const TextStyle(color: AppTheme.textPrimary),
+          ),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _RepeatStepperButton(
+                icon: Icons.remove,
+                enabled: value > 1,
+                onTap: () => setDialogState(() => value = (value - 1).clamp(1, 99)),
+              ),
+              Container(
+                width: 60,
+                alignment: Alignment.center,
+                child: Text(
+                  widget.lang.toLocalNum(value),
+                  style: const TextStyle(color: AppTheme.gold, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+              _RepeatStepperButton(
+                icon: Icons.add,
+                enabled: value < 99,
+                onTap: () => setDialogState(() => value = (value + 1).clamp(1, 99)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(isBn ? 'বাতিল' : 'Cancel', style: const TextStyle(color: AppTheme.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, value),
+              child: Text(isBn ? 'সংরক্ষণ' : 'Save', style: const TextStyle(color: AppTheme.gold)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result != null && result != group['repeatCount']) {
+      await QuranCollectionsHelper.updateGroupRepeatCount(group['groupKey'] as String, result);
+      _load();
+    }
   }
 
   /// [index] নম্বর আইটেমটাকে এক ধাপ উপরে সরায়। প্রথম আইটেম হলে কিছু করে না।
@@ -792,14 +1048,55 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         setState(() {
           _playingItemId = null;
           _sequencePlaying = false;
+          _currentRepeatIndex = 0;
         });
       }
       return;
     }
+    // এককভাবে একটা আয়াতের প্লে বাটনে চাপলেও তার নিজস্ব repeat_count
+    // অনুযায়ী কয়েকবার বাজবে (যেমন আয়াতুল কুরসি ১০ বার সেট করা থাকলে)।
+    setState(() => _currentRepeatIndex = 0);
     await _playItem(item, chainNext: false);
   }
 
-  Future<void> _playItem(Map<String, dynamic> item, {required bool chainNext}) async {
+  /// একটা group-এর (সম্পূর্ণ সূরা বা একাধিক-আয়াত ব্লক) প্লে বাটনে চাপলে —
+  /// গ্রুপের প্রথম আয়াত থেকে শুরু করে, সবগুলো আয়াত ক্রমান্বয়ে একবার শেষ
+  /// করে, তারপর গ্রুপের repeat_count অনুযায়ী পুরো গ্রুপটাই আবার শুরু
+  /// থেকে বাজে — যেমন "সূরা ফাতিহা ৭ বার" মানে ফাতিহার ৭টা আয়াত
+  /// ক্রমান্বয়ে বাজিয়ে, শেষ হলে আবার ১ নম্বর থেকে শুরু, মোট ৭ বার পুরো
+  /// সূরা।
+  Future<void> _togglePlayGroup(Map<String, dynamic> group) async {
+    final items = group['items'] as List<Map<String, dynamic>>;
+    if (items.isEmpty) return;
+    final firstItemId = items.first['id'] as int;
+    if (_sequencePlaying && _playingItemId != null &&
+        items.any((it) => it['id'] == _playingItemId)) {
+      await QuranAudioHelper.stop();
+      if (mounted) {
+        setState(() {
+          _playingItemId = null;
+          _sequencePlaying = false;
+          _currentRepeatIndex = 0;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _sequencePlaying = true;
+      _currentRepeatIndex = 0;
+    });
+    await _playItem(items.first, chainNext: true, groupPassStart: firstItemId);
+  }
+
+  /// [groupPassStart] দেওয়া থাকলে (group-play মোডে), এই itemId-টা যেই
+  /// গ্রুপের প্রথম আয়াত সেই গ্রুপের "এক পাস" শুরুর id হিসেবে মনে রাখা
+  /// হয় — যাতে গ্রুপের শেষ আয়াত শেষ হওয়ার পর দরকার হলে আবার এখান
+  /// থেকেই শুরু করা যায় (গ্রুপ-লেভেল repeat)।
+  Future<void> _playItem(
+    Map<String, dynamic> item, {
+    required bool chainNext,
+    int? groupPassStart,
+  }) async {
     if (_audioBusy) return;
     final sura = item['sura'] as int;
     final aya = item['aya'] as int;
@@ -823,7 +1120,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           // যেত। "সব শোনো" চলাকালীন এখন এই আয়াতটা স্কিপ করে পরেরটায়
           // যাওয়া হয়, যাতে একটা আয়াতের সমস্যায় পুরো সিকোয়েন্স না আটকায়।
           if (chainNext && _sequencePlaying) {
-            _playNextInSequence(itemId);
+            _playNextInSequence(item, groupPassStart: groupPassStart);
           } else {
             setState(() => _sequencePlaying = false);
           }
@@ -838,11 +1135,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         onComplete: () {
           if (!mounted) return;
           if (chainNext && _sequencePlaying) {
-            _playNextInSequence(itemId);
+            _playNextInSequence(item, groupPassStart: groupPassStart);
           } else {
             setState(() {
               _playingItemId = null;
               _sequencePlaying = false;
+              _currentRepeatIndex = 0;
             });
           }
         },
@@ -861,11 +1159,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       debugPrint('COLLECTION PLAY ERROR (sura $sura, aya $aya): $e');
       if (mounted) {
         if (chainNext && _sequencePlaying) {
-          _playNextInSequence(itemId);
+          _playNextInSequence(item, groupPassStart: groupPassStart);
         } else {
           setState(() {
             _playingItemId = null;
             _sequencePlaying = false;
+            _currentRepeatIndex = 0;
           });
         }
       }
@@ -874,7 +1173,52 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
   }
 
-  void _playNextInSequence(int justFinishedItemId) {
+  /// [justFinishedItem] শেষ হওয়ার পর পরবর্তী ধাপ ঠিক করে — তিনটা সম্ভাবনা:
+  /// (১) এই আইটেমের নিজস্ব repeat_count এখনো বাকি থাকলে, একই আইটেম আবার
+  ///     বাজে (_currentRepeatIndex বাড়িয়ে) — একক-আয়াত repeat (যেমন
+  ///     আয়াতুল কুরসি ১০ বার) এভাবেই কাজ করে।
+  /// (২) এই আইটেম কোনো গ্রুপের অংশ হলে ([groupPassStart] দেওয়া) এবং
+  ///     গ্রুপের শেষ আয়াত না হলে, গ্রুপের পরের আয়াতে যায়।
+  /// (৩) গ্রুপের শেষ আয়াত শেষ হলে, গ্রুপের repeat_count অনুযায়ী পুরো
+  ///     গ্রুপটাই আবার শুরু থেকে বাজতে পারে (group-level repeat, যেমন
+  ///     "সূরা ফাতিহা ৭ বার" মানে পুরো সূরা ৭ বার, প্রতিটা আয়াত একবার
+  ///     করেই প্রতি পাসে)। সব রিপিট শেষ হলে বা এটা কোনো গ্রুপের অংশ না
+  ///     হলে, কালেকশনের পরবর্তী আইটেমে (_items-এর ক্রম অনুযায়ী) যায়।
+  void _playNextInSequence(Map<String, dynamic> justFinishedItem, {int? groupPassStart}) {
+    final justFinishedItemId = justFinishedItem['id'] as int;
+    final repeatCount = (justFinishedItem['repeat_count'] as int?) ?? 1;
+
+    if (groupPassStart == null && _currentRepeatIndex + 1 < repeatCount) {
+      // একক আয়াতের নিজস্ব repeat বাকি আছে — একই আয়াত আবার।
+      setState(() => _currentRepeatIndex++);
+      _playItem(justFinishedItem, chainNext: true);
+      return;
+    }
+
+    if (groupPassStart != null) {
+      final groupKey = justFinishedItem['group_key'] as String?;
+      final currentIndex = _items.indexWhere((it) => it['id'] == justFinishedItemId);
+      final hasNextInGroup = currentIndex >= 0 &&
+          currentIndex + 1 < _items.length &&
+          _items[currentIndex + 1]['group_key'] == groupKey;
+
+      if (hasNextInGroup) {
+        _playItem(_items[currentIndex + 1], chainNext: true, groupPassStart: groupPassStart);
+        return;
+      }
+
+      // গ্রুপের শেষ আয়াত শেষ হলো — পুরো গ্রুপ আবার শুরু করতে হবে কিনা
+      // দেখা হচ্ছে (group-level repeat)।
+      if (_currentRepeatIndex + 1 < repeatCount) {
+        setState(() => _currentRepeatIndex++);
+        final firstItem = _items.firstWhere((it) => it['id'] == groupPassStart, orElse: () => justFinishedItem);
+        _playItem(firstItem, chainNext: true, groupPassStart: groupPassStart);
+        return;
+      }
+    }
+
+    // এই আইটেম/গ্রুপের সব রিপিট শেষ — কালেকশনের সরাসরি পরের আইটেমে যাওয়া।
+    setState(() => _currentRepeatIndex = 0);
     final currentIndex = _items.indexWhere((it) => it['id'] == justFinishedItemId);
     if (currentIndex < 0 || currentIndex + 1 >= _items.length) {
       // কালেকশনের শেষ আইটেম শেষ হয়ে গেছে।
@@ -884,11 +1228,22 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       });
       return;
     }
-    _playItem(_items[currentIndex + 1], chainNext: true);
+    final nextItem = _items[currentIndex + 1];
+    final nextGroupKey = nextItem['group_key'] as String?;
+    // পরের আইটেম যদি নতুন কোনো গ্রুপের প্রথম সদস্য হয়, সেটাকেও group-play
+    // মোডে চালানো হচ্ছে, যাতে সেই গ্রুপের নিজস্ব repeat/pass ঠিকমতো কাজ করে।
+    final nextIsGroupStart = nextGroupKey != null &&
+        (currentIndex + 1 == 0 || _items[currentIndex]['group_key'] != nextGroupKey);
+    _playItem(
+      nextItem,
+      chainNext: true,
+      groupPassStart: nextGroupKey != null && nextIsGroupStart ? (nextItem['id'] as int) : null,
+    );
   }
 
   /// AppBar-এর "সব শোনো" বাটন — কালেকশনের প্রথম আইটেম থেকে শুরু করে
-  /// একটার পর একটা ক্রমান্বয়ে (sort_order অনুযায়ী) বাজায়।
+  /// একটার পর একটা ক্রমান্বয়ে (sort_order অনুযায়ী) বাজায়। কোনো আইটেম
+  /// কোনো গ্রুপের অংশ হলে সেই গ্রুপের repeat_count-ও প্রযোজ্য হয়।
   Future<void> _playAll() async {
     if (_items.isEmpty) return;
     if (_sequencePlaying) {
@@ -896,11 +1251,21 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       setState(() {
         _playingItemId = null;
         _sequencePlaying = false;
+        _currentRepeatIndex = 0;
       });
       return;
     }
-    setState(() => _sequencePlaying = true);
-    await _playItem(_items.first, chainNext: true);
+    setState(() {
+      _sequencePlaying = true;
+      _currentRepeatIndex = 0;
+    });
+    final first = _items.first;
+    final firstGroupKey = first['group_key'] as String?;
+    await _playItem(
+      first,
+      chainNext: true,
+      groupPassStart: firstGroupKey != null ? (first['id'] as int) : null,
+    );
   }
 
   @override
@@ -994,159 +1359,490 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    final item = _items[index];
-                    final itemId = item['id'] as int;
-                    final sura = item['sura'] as int;
-                    final aya = item['aya'] as int;
-                    final cached = _ayaCache[itemId] ?? {};
-                    final isPlayingThis = _playingItemId == itemId;
+              : Builder(builder: (context) {
+                  final groups = _buildDisplayGroups();
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
+                    // +১ — সবার উপরে সূচিপত্র (TOC) কার্ডের জন্য একটা অতিরিক্ত স্লট।
+                    itemCount: groups.length + 1,
+                    itemBuilder: (context, listIndex) {
+                      if (listIndex == 0) {
+                        return _buildTocCard(isBn);
+                      }
+                      final entry = groups[listIndex - 1];
+                      if (entry['type'] == 'group') {
+                        return _buildGroupCard(entry, isBn);
+                      }
+                      final item = (entry['items'] as List<Map<String, dynamic>>).first;
+                      final index = _items.indexWhere((it) => it['id'] == item['id']);
+                      return _buildSingleItemCard(item, index, isBn);
+                    },
+                  );
+                }),
+    );
+  }
 
-                    return Container(
-                      key: ValueKey(itemId),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isPlayingThis ? AppTheme.gold.withOpacity(0.08) : AppTheme.cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isPlayingThis ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+  /// "সূচিপত্র" কার্ড — কালেকশনের একদম উপরে, ভাঁজ-করা (collapsed) অবস্থায়
+  /// শুরু হয়, চাপলে খুলে সূরা-ভিত্তিক সংক্ষিপ্ত তালিকা দেখায় (যেমন "সূরা
+  /// বাকারা: ১-৫, ১৬৩, ২৫৫-২৫৭, ২৮৪-২৮৬")। এটা ডাটাবেসে কিছু সংরক্ষণ করে
+  /// না — প্রতিবার _items থেকে তাৎক্ষণিকভাবে হিসাব হয়, তাই সবসময় হালনাগাদ।
+  Widget _buildTocCard(bool isBn) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: QuranCollectionsHelper.getTableOfContents(widget.collectionId),
+      builder: (context, snapshot) {
+        final toc = snapshot.data ?? [];
+        if (toc.isEmpty) return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.primary.withOpacity(0.35)),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+              childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              iconColor: AppTheme.gold,
+              collapsedIconColor: AppTheme.gold,
+              title: Row(
+                children: [
+                  const Icon(Icons.list_alt, color: AppTheme.gold, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    isBn
+                        ? 'সূচিপত্র (${widget.lang.toLocalNum(toc.length)} সূরা)'
+                        : 'Table of contents (${toc.length} surahs)',
+                    style: const TextStyle(color: AppTheme.gold, fontSize: 13.5, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              children: [
+                for (final entry in toc)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 96,
+                          child: Text(
+                            _suraNameFor(entry['sura'] as int),
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _localizeRangeText(entry['rangeText'] as String, isBn),
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _suraNameFor(int sura) {
+    final chapter = _chapters.firstWhere((c) => c['sura'] == sura, orElse: () => {});
+    return chapter['name_transliteration'] as String? ?? 'Surah $sura';
+  }
+
+  /// "1-5, 163, 255-257" — বাংলা মোডে থাকলে সংখ্যাগুলো বাংলা অঙ্কে,
+  /// ইংরেজি মোডে অপরিবর্তিত রাখে।
+  String _localizeRangeText(String rangeText, bool isBn) {
+    if (!isBn) return rangeText;
+    return rangeText.replaceAllMapped(RegExp(r'\d+'), (m) => widget.lang.toLocalNum(int.parse(m.group(0)!)));
+  }
+
+  /// একটা "গ্রুপ" কার্ড — সম্পূর্ণ সূরা বা একাধিক-আয়াত ব্লক একসাথে যোগ
+  /// করার ফলাফল। আলাদা আলাদা আয়াত না দেখিয়ে একটাই কার্ডে সূরার নাম +
+  /// আয়াত-রেঞ্জ + কতবার পড়া হবে তা সংক্ষেপে দেখায়; ট্যাপ করলে ভেতরের
+  /// প্রতিটা আয়াত খুলে দেখা যায় (ExpansionTile)।
+  Widget _buildGroupCard(Map<String, dynamic> entry, bool isBn) {
+    final items = entry['items'] as List<Map<String, dynamic>>;
+    final sura = entry['sura'] as int;
+    final groupKey = entry['groupKey'] as String;
+    final repeatCount = entry['repeatCount'] as int;
+    final isFullSurah = _isFullSurahGroup(entry);
+    final ayaNums = items.map((it) => it['aya'] as int).toList()..sort();
+    final localRangeText = _localizeRangeText(_formatAyaRangesLocal(ayaNums), isBn);
+    final isGroupPlaying = _playingItemId != null && items.any((it) => it['id'] == _playingItemId);
+    final firstIndex = _items.indexWhere((it) => it['id'] == items.first['id']);
+    final lastIndex = _items.indexWhere((it) => it['id'] == items.last['id']);
+
+    return Container(
+      key: ValueKey(groupKey),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isGroupPlaying ? AppTheme.gold.withOpacity(0.08) : AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isGroupPlaying ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+          iconColor: AppTheme.textSecondary,
+          collapsedIconColor: AppTheme.textSecondary,
+          title: Row(
+            children: [
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _togglePlayGroup(entry),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    isGroupPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
+                    color: AppTheme.gold,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isFullSurah
+                          ? '${_suraNameFor(sura)} (${widget.lang.toLocalNum(items.length)})'
+                          : '${_suraNameFor(sura)} • $localRangeText',
+                      style: const TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      isBn ? '${widget.lang.toLocalNum(repeatCount)} বার পড়া হবে' : 'Repeats ${repeatCount}x',
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _showEditRepeatDialog(entry),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.repeat, color: AppTheme.textSecondary, size: 18),
+                ),
+              ),
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _showAddVerseSheet(afterItemId: items.last['id'] as int),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.add_circle_outline, color: AppTheme.textSecondary, size: 20),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
+                onPressed: () => _removeGroup(groupKey, items),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 6),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: firstIndex <= 0 ? null : () => _moveGroupUp(firstIndex, items.length),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      child: Icon(
+                        Icons.keyboard_arrow_up,
+                        color: firstIndex <= 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: lastIndex >= _items.length - 1
+                        ? null
+                        : () => _moveGroupDown(firstIndex, items.length),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: lastIndex >= _items.length - 1
+                            ? AppTheme.textSecondary.withOpacity(0.3)
+                            : AppTheme.gold,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          children: [
+            for (final item in items) _buildInnerAyaText(item, isBn),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// গ্রুপ কার্ড খুললে ভেতরে দেখানো প্রতিটা আয়াতের টেক্সট — একক কার্ডের
+  /// মতো প্লে/মুছা বাটন ছাড়া, শুধু পড়ার জন্য (গ্রুপ হিসেবেই manage হয়)।
+  Widget _buildInnerAyaText(Map<String, dynamic> item, bool isBn) {
+    final itemId = item['id'] as int;
+    final aya = item['aya'] as int;
+    final cached = _ayaCache[itemId] ?? {};
+    final isPlayingThis = _playingItemId == itemId;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isPlayingThis ? AppTheme.gold.withOpacity(0.06) : Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${isBn ? "আয়াত" : "Verse"} ${widget.lang.toLocalNum(aya)}',
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+          if (_showArabic) ...[
+            const SizedBox(height: 6),
+            Text(
+              cached['arabic'] as String? ?? '',
+              style: TextStyle(
+                fontSize: _fontSize * 0.85,
+                color: AppTheme.textPrimary,
+                fontFamily: 'ScheherazadeNew',
+                height: 2.0,
+              ),
+              textAlign: TextAlign.right,
+              textDirection: TextDirection.rtl,
+            ),
+          ],
+          if (_showBangla && (cached['bangla'] as String? ?? '').isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              cached['bangla'] as String,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13.5, height: 1.5),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// একক আয়াতের কার্ড (আগের মতোই), সাথে repeat_count > 1 হলে একটা
+  /// ছোট "N বার" ব্যাজও দেখায় (যেমন আয়াতুল কুরসি ১০ বার সেট করা থাকলে)।
+  Widget _buildSingleItemCard(Map<String, dynamic> item, int index, bool isBn) {
+    final itemId = item['id'] as int;
+    final aya = item['aya'] as int;
+    final cached = _ayaCache[itemId] ?? {};
+    final isPlayingThis = _playingItemId == itemId;
+    final repeatCount = (item['repeat_count'] as int?) ?? 1;
+
+    return Container(
+      key: ValueKey(itemId),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isPlayingThis ? AppTheme.gold.withOpacity(0.08) : AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isPlayingThis ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // ফিক্স: আগে কালেকশনের কোনো আয়াতই শোনার কোনো
+              // উপায় ছিল না — এখানে প্রতিটা আইটেমের সাথে
+              // একটা প্লে/পজ বাটন যোগ করা হলো।
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _togglePlayItem(item),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    isPlayingThis ? Icons.pause_circle_filled : Icons.play_circle_outline,
+                    color: AppTheme.gold,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '${cached['suraName'] ?? ''} • ${isBn ? "আয়াত" : "Verse"} ${widget.lang.toLocalNum(aya)}',
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (repeatCount > 1) ...[
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () => _showEditRepeatDialog({
+                          'groupKey': item['group_key'],
+                          'repeatCount': repeatCount,
+                          'items': [item],
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.gold.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
+                            style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              // ফিক্স: আগে কালেকশনের কোনো আয়াতই শোনার কোনো
-                              // উপায় ছিল না — এখানে প্রতিটা আইটেমের সাথে
-                              // একটা প্লে/পজ বাটন যোগ করা হলো।
-                              InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: () => _togglePlayItem(item),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(2),
-                                  child: Icon(
-                                    isPlayingThis ? Icons.pause_circle_filled : Icons.play_circle_outline,
-                                    color: AppTheme.gold,
-                                    size: 26,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${cached['suraName'] ?? ''} • ${isBn ? "আয়াত" : "Verse"} ${widget.lang.toLocalNum(aya)}',
-                                  style: const TextStyle(color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              // এই আয়াতের ঠিক পরে নতুন আয়াত যোগ করার শর্টকাট —
-                              // যেমন ৯ নং আয়াতের কার্ডে চাপলে ১০ নং অবস্থানে
-                              // (৯ এর পরে, আগের ১০ নং যা ছিল তার আগে) বসবে।
-                              InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: () => _showAddVerseSheet(afterItemId: itemId),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(2),
-                                  child: Icon(Icons.add_circle_outline, color: AppTheme.textSecondary, size: 20),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton(
-                                icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
-                                onPressed: () => _removeItem(itemId),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 14),
-                              // ফিক্স: আগে ড্র্যাগ-করে সরানোর (ReorderableListView)
-                              // ব্যবস্থা ছিল, কিন্তু বিভিন্ন ডিভাইসে/জেসচারে এটা
-                              // অনির্ভরযোগ্য প্রমাণিত হয়েছে — ড্র্যাগ প্রায়ই শুরুই
-                              // হতো না বা মাঝপথে বাতিল হয়ে যেত। তার বদলে এখন
-                              // সাধারণ ⬆ ⬇ বাটন।
-                              // ফিক্স: InkWell-কে সরাসরি Container-এর ভেতরে
-                              // (কোনো Material widget ছাড়া) বসানো হয়েছিল —
-                              // InkWell সবসময় Material widget-এর descendant
-                              // হতে হয়, নাহলে splash/hit-test ঠিকভাবে কাজ
-                              // করে না। এখানে পুরো কার্ডের জন্যই কোনো Material
-                              // ছিল না, ফলে বাটনে ট্যাপ করলেও কিছুই ঘটছিল না।
-                              // এখন GestureDetector + সরাসরি hitTestBehavior
-                              // ব্যবহার করা হলো, যেটা Material-নির্ভর নয় এবং
-                              // যেকোনো widget-tree-তে নির্ভরযোগ্যভাবে কাজ করে।
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: index == 0 ? null : () => _moveUp(index),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_up,
-                                        color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: index == _items.length - 1 ? null : () => _moveDown(index),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      child: Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: index == _items.length - 1
-                                            ? AppTheme.textSecondary.withOpacity(0.3)
-                                            : AppTheme.gold,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (_showArabic) ...[
-                            const SizedBox(height: 10),
-                            Text(
-                              cached['arabic'] as String? ?? '',
-                              style: TextStyle(
-                                fontSize: _fontSize,
-                                color: AppTheme.textPrimary,
-                                fontFamily: 'ScheherazadeNew',
-                                height: 2.0,
-                              ),
-                              textAlign: TextAlign.right,
-                              textDirection: TextDirection.rtl,
-                            ),
-                          ],
-                          if (_showBangla && (cached['bangla'] as String? ?? '').isNotEmpty) ...[
-                            const Divider(color: Colors.white12, height: 20),
-                            Text(
-                              cached['bangla'] as String,
-                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, height: 1.6),
-                            ),
-                          ],
-                          if (_showTransliteration && (cached['translit'] as String? ?? '').isNotEmpty) ...[
-                            const Divider(color: Colors.white12, height: 20),
-                            Text(
-                              cached['translit'] as String,
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                height: 1.5,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  },
+                    ],
+                  ],
                 ),
+              ),
+              // এই আয়াতের ঠিক পরে নতুন আয়াত যোগ করার শর্টকাট —
+              // যেমন ৯ নং আয়াতের কার্ডে চাপলে ১০ নং অবস্থানে
+              // (৯ এর পরে, আগের ১০ নং যা ছিল তার আগে) বসবে।
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _showAddVerseSheet(afterItemId: itemId),
+                child: const Padding(
+                  padding: EdgeInsets.all(2),
+                  child: Icon(Icons.add_circle_outline, color: AppTheme.textSecondary, size: 20),
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton(
+                icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
+                onPressed: () => _removeItem(itemId),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 14),
+              // ফিক্স: আগে ড্র্যাগ-করে সরানোর (ReorderableListView)
+              // ব্যবস্থা ছিল, কিন্তু বিভিন্ন ডিভাইসে/জেসচারে এটা
+              // অনির্ভরযোগ্য প্রমাণিত হয়েছে — ড্র্যাগ প্রায়ই শুরুই
+              // হতো না বা মাঝপথে বাতিল হয়ে যেত। তার বদলে এখন
+              // সাধারণ ⬆ ⬇ বাটন।
+              // ফিক্স: InkWell-কে সরাসরি Container-এর ভেতরে
+              // (কোনো Material widget ছাড়া) বসানো হয়েছিল —
+              // InkWell সবসময় Material widget-এর descendant
+              // হতে হয়, নাহলে splash/hit-test ঠিকভাবে কাজ
+              // করে না। এখানে পুরো কার্ডের জন্যই কোনো Material
+              // ছিল না, ফলে বাটনে ট্যাপ করলেও কিছুই ঘটছিল না।
+              // এখন GestureDetector + সরাসরি hitTestBehavior
+              // ব্যবহার করা হলো, যেটা Material-নির্ভর নয় এবং
+              // যেকোনো widget-tree-তে নির্ভরযোগ্যভাবে কাজ করে।
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: index == 0 ? null : () => _moveUp(index),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      child: Icon(
+                        Icons.keyboard_arrow_up,
+                        color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: index == _items.length - 1 ? null : () => _moveDown(index),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: index == _items.length - 1
+                            ? AppTheme.textSecondary.withOpacity(0.3)
+                            : AppTheme.gold,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (_showArabic) ...[
+            const SizedBox(height: 10),
+            Text(
+              cached['arabic'] as String? ?? '',
+              style: TextStyle(
+                fontSize: _fontSize,
+                color: AppTheme.textPrimary,
+                fontFamily: 'ScheherazadeNew',
+                height: 2.0,
+              ),
+              textAlign: TextAlign.right,
+              textDirection: TextDirection.rtl,
+            ),
+          ],
+          if (_showBangla && (cached['bangla'] as String? ?? '').isNotEmpty) ...[
+            const Divider(color: Colors.white12, height: 20),
+            Text(
+              cached['bangla'] as String,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, height: 1.6),
+            ),
+          ],
+          if (_showTransliteration && (cached['translit'] as String? ?? '').isNotEmpty) ...[
+            const Divider(color: Colors.white12, height: 20),
+            Text(
+              cached['translit'] as String,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// "কতবার পড়া হবে" স্টেপারের ছোট গোলাকার +/− বাটন — reusable, disabled
+/// অবস্থায় ধূসর দেখায় (repeatCount সীমা 1-99 এ পৌঁছালে)।
+class _RepeatStepperButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+  const _RepeatStepperButton({required this.icon, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: enabled ? AppTheme.gold.withOpacity(0.15) : Colors.white.withOpacity(0.04),
+          border: Border.all(color: enabled ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.3)),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? AppTheme.gold : AppTheme.textSecondary.withOpacity(0.4)),
+      ),
     );
   }
 }

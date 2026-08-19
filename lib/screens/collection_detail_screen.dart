@@ -93,6 +93,17 @@ Future<Map<String, dynamic>?> showSearchableSurahPicker({
                         final sura = c['sura'] as int;
                         final name = c['name_transliteration'] as String? ?? '';
                         final nameAr = c['name_arabic'] as String? ?? '';
+                        final ayasCount = c['ayas_count'] as int?;
+                        // যোগ করা হয়েছে: প্রতিটা সূরার নামের পাশে মোট আয়াত
+                        // সংখ্যা দেখানো হচ্ছে (chapters টেবিলের ayas_count
+                        // কলাম থেকে), যাতে "নির্দিষ্ট আয়াত" যোগ করার সময়
+                        // ব্যবহারকারী আলাদাভাবে না খুঁজে এখান থেকেই বুঝতে
+                        // পারেন সূরাটায় সর্বোচ্চ কত নম্বর আয়াত পর্যন্ত আছে।
+                        final ayahCountLabel = ayasCount != null
+                            ? (isBn
+                                ? '${lang.toLocalNum(ayasCount)} আয়াত'
+                                : '$ayasCount ayahs')
+                            : null;
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: AppTheme.gold.withOpacity(0.15),
@@ -102,6 +113,12 @@ Future<Map<String, dynamic>?> showSearchableSurahPicker({
                             ),
                           ),
                           title: Text(name, style: const TextStyle(color: AppTheme.textPrimary)),
+                          subtitle: ayahCountLabel != null
+                              ? Text(
+                                  ayahCountLabel,
+                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                )
+                              : null,
                           trailing: Text(
                             nameAr,
                             style: const TextStyle(color: AppTheme.textSecondary, fontFamily: 'ScheherazadeNew', fontSize: 18),

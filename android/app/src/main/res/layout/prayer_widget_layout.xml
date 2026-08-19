@@ -93,24 +93,24 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_range"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#ECEFF1"
-                android:textSize="18sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_remaining_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="1dp"
                 android:text=""
                 android:textColor="#CE93D8"
                 android:textSize="15sp"
@@ -141,7 +141,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="19sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:singleLine="true"
                 android:ellipsize="end"
@@ -151,10 +151,10 @@
                 android:id="@+id/widget_gregorian"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="15sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -162,7 +162,7 @@
                 android:id="@+id/widget_hijri"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#CE93D8"
                 android:textSize="15sp"

@@ -114,7 +114,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     required int endMs,
     void Function()? onComplete,
   }) async {
-    _sequenceToken++; // invalidate any in-flight full-surah sequence
+    final myToken = ++_sequenceToken; // invalidate any in-flight full-surah sequence
     await _positionSub?.cancel();
     await _completionSub?.cancel();
     _onAyaComplete = onComplete;
@@ -136,7 +136,33 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         player.pause();
         _positionSub?.cancel();
         _positionSub = null;
-        _onAyaComplete?.call();
+        _completionSub?.cancel();
+        final cb = _onAyaComplete;
+        _onAyaComplete = null;
+        cb?.call();
+      }
+    });
+
+    // ফিক্স: "আমার কোরআন" কালেকশনে সূরা ফাতিহার পর থেমে যাওয়ার আসল কারণ
+    // এটাই ছিল। endMs যদি ফাইলের একদম শেষের কাছাকাছি হয় (যেমন সূরা
+    // ফাতিহার মতো পুরো একটা সূরা/আয়াত-গ্রুপ, যার শেষ আয়াতের endMs ==
+    // ফাইলের প্রকৃত দৈর্ঘ্য), তাহলে player নিজে থেকেই ফাইল শেষ হয়ে
+    // ProcessingState.completed-এ চলে যায় — position stream তখন আর নতুন
+    // event পাঠায় না, তাই উপরের positionStream listener-এর
+    // "ms >= endMs" শর্ত কখনো ট্রিগার হয় না এবং onComplete কখনো call
+    // হয় না। ফলে chainNext/_playNextInSequence কখনো চলত না এবং পুরো
+    // "সব শোনো" সিকোয়েন্স নিঃশব্দে আটকে যেত। এখানে playerStateStream-এ
+    // completed state-ও আলাদাভাবে শোনা হচ্ছে, যাতে ফাইল স্বাভাবিকভাবে
+    // শেষ হয়ে গেলেও onComplete reliably call হয়।
+    _completionSub = player.playerStateStream.listen((state) {
+      if (myToken != _sequenceToken) return;
+      if (state.processingState == ProcessingState.completed) {
+        _completionSub?.cancel();
+        _positionSub?.cancel();
+        _positionSub = null;
+        final cb = _onAyaComplete;
+        _onAyaComplete = null;
+        cb?.call();
       }
     });
   }

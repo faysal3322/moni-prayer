@@ -120,7 +120,36 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _onAyaComplete = onComplete;
     _currentStopAtMs = endMs;
 
-    await _loadAndPlay(filePath, Duration(milliseconds: startMs));
+    // ফিক্স: "আমার কোরআন" কালেকশনে একই সূরার একাধিক আয়াত পরপর বাজানোর
+    // সময় (যেমন সূরা ফাতিহার ৭টা আয়াত একে একে) আগে প্রতিটা আয়াতের জন্য
+    // setAudioSource() নতুন করে কল হতো, এমনকি ফাইলটা আগের আয়াতেরই হলেও।
+    // just_audio-তে setAudioSource() পুরো mp3 নতুন করে খোলে এবং buffer
+    // রিসেট করে — এতে প্রতিটা আয়াতের মাঝখানে একটা ছোট থেমে-যাওয়া/আটকানো
+    // (stutter) হতো, আর fresh-loaded source-এ সাথে সাথে seek করাতে
+    // মাঝেমধ্যে audio শুরুর কয়েক milliseconds/শব্দ বাদও পড়ে যেত (buffering
+    // এখনো seek position-এ পৌঁছায়নি এমন অবস্থায় play শুরু হওয়ার কারণে)।
+    // এখন playFullSurah-এর মতোই — ফাইল আগের থেকে একই থাকলে
+    // setAudioSource() আর কল হয় না, শুধু seek() হয়, যেটা অনেক দ্রুত ও
+    // মসৃণ (audio source-টা আগে থেকেই buffered/loaded অবস্থায় থাকে)।
+    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
+    if (!sameFileAlreadyLoaded) {
+      if (player.processingState == ProcessingState.completed) {
+        await player.stop();
+      }
+      await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
+      _currentFilePath = filePath;
+      // playAya শুরু করলে এটা আর কোনো playFullSurah সেশনের অংশ না, তাই
+      // পুরনো সূরা-সিকোয়েন্স স্টেট (থাকলে) পরিষ্কার করা হচ্ছে যাতে
+      // seekToIndex/chain-continuation ভুল ফাইলে কাজ করার চেষ্টা না করে।
+      _currentSegments = null;
+      _currentOnAyaStart = null;
+      _currentOnSequenceComplete = null;
+    }
+    await player.seek(Duration(milliseconds: startMs));
+    // await করা যাবে না — just_audio-তে play()-এর future audio শেষ না হওয়া
+    // পর্যন্ত resolve হয় না।
+    unawaited(player.play());
+    if (myToken != _sequenceToken) return; // stopped/superseded while loading
 
     _positionSub = player.positionStream.listen((pos) {
       final ms = pos.inMilliseconds;
@@ -376,6 +405,12 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     _onAyaComplete = null;
     _currentSuraNumber = null;
     _currentSuraName = '';
+    // playAya-র "একই ফাইল হলে setAudioSource() আবার কল করবো না" optimization
+    // পুরোপুরি stop()-এর পরও ভুল ফাইল ধরে না রাখুক তার জন্য রিসেট করা হচ্ছে।
+    _currentFilePath = null;
+    _currentSegments = null;
+    _currentOnAyaStart = null;
+    _currentOnSequenceComplete = null;
     mediaItem.add(null);
     await player.stop();
     await super.stop();

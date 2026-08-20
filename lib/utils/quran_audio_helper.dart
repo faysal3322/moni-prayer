@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -88,6 +89,17 @@ class QuranActiveSession {
 class QuranAudioHelper {
   static const String _reciterFolder = 'saad-al-ghamdi';
   static Directory? _cachedDir;
+
+  // "নিজের দোয়া/অডিও" ফিচার: ব্যবহারকারী file picker দিয়ে যে mp3 বেছে
+  // নেন, সেটা এই সাব-ফোল্ডারে কপি হয়ে সংরক্ষিত থাকে —
+  // /storage/emulated/0/Music/Recitations/custom-duas/
+  // কোরআন তেলাওয়াতের ফোল্ডারের (saad-al-ghamdi) ঠিক পাশেই, একই প্যারেন্ট
+  // Music/Recitations/ এর নিচে — যাতে অ্যাপ আনইনস্টল করলেও এই কাস্টম
+  // দোয়ার mp3 গুলো মুছে না যায়, এবং আবার ইনস্টল করলে আগের মতোই এই
+  // ফোল্ডার থেকে ডেটা পাওয়া যায় (ব্যবহারকারীর existing সেটআপের সাথে
+  // সামঞ্জস্যপূর্ণ)।
+  static const String _customDuaFolder = 'custom-duas';
+  static Directory? _cachedCustomDuaDir;
 
   // যোগ করা হয়েছে: আউযুবিল্লাহ ও বিসমিল্লাহর bundled asset path (Saad
   // Al-Ghamdi কণ্ঠে)। এই দুটো mp3 assets/audio/quran/ এ bundle করা আছে
@@ -257,6 +269,94 @@ class QuranAudioHelper {
 
     _cachedDir = dir;
     return dir;
+  }
+
+  /// Returns (and creates if needed) the Recitations/custom-duas folder —
+  /// একই [_getAudioDir]-এর মতো পাবলিক-ফার্স্ট/app-specific-fallback
+  /// কৌশল ব্যবহার করে, যাতে এই ফোল্ডারও আনইনস্টলে টিকে থাকে এবং
+  /// ব্যবহারকারী চাইলে নিজেও ফাইল ম্যানেজার দিয়ে সরাসরি এখানে mp3 রেখে
+  /// দিতে পারেন (শুধু app-এর ভেতরের "+" বাটন ব্যবহার করা বাধ্যতামূলক না)।
+  static Future<Directory> _getCustomDuaDir() async {
+    if (_cachedCustomDuaDir != null) return _cachedCustomDuaDir!;
+
+    Directory? dir;
+    if (Platform.isAndroid) {
+      try {
+        final publicDir = Directory(
+          '/storage/emulated/0/Music/Recitations/$_customDuaFolder',
+        );
+        if (!await publicDir.exists()) {
+          await publicDir.create(recursive: true);
+        }
+        final probe = File('${publicDir.path}/.write_test');
+        await probe.writeAsBytes(const [0]);
+        await probe.delete();
+        dir = publicDir;
+      } catch (_) {
+        dir = null;
+      }
+    }
+
+    if (dir == null) {
+      final base = await getExternalStorageDirectory();
+      dir = Directory('${base!.path}/Download/Recitations/$_customDuaFolder');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+    }
+
+    _cachedCustomDuaDir = dir;
+    return dir;
+  }
+
+  /// অ্যাপ শুরুতেই custom-duas ফোল্ডার তৈরি করে রাখে (saad-al-ghamdi
+  /// ফোল্ডারের মতোই), যাতে ব্যবহারকারী চাইলে ইনস্টলের পরপরই ফাইল
+  /// ম্যানেজার দিয়ে সরাসরি এখানে mp3 কপি করে রাখতে পারেন।
+  static Future<void> ensureCustomDuaDirExists() async {
+    try {
+      if (Platform.isAndroid) {
+        await _ensureManageExternalStoragePermission();
+      }
+      await _getCustomDuaDir();
+    } catch (_) {
+      // ফোল্ডার তৈরি ব্যর্থ হলেও অ্যাপ চালু থাকবে — পরে প্রয়োজন হলে
+      // lazily আবার চেষ্টা হবে।
+    }
+  }
+
+  /// ফোনের file picker দিয়ে একটা mp3 বেছে নিয়ে custom-duas ফোল্ডারে
+  /// কপি করে — রিটার্ন করে কপি করা ফাইলের চূড়ান্ত পাথ (ব্যর্থ/বাতিল হলে
+  /// null)। ফাইলের নাম সংঘর্ষ এড়াতে টাইমস্ট্যাম্প prefix যোগ করা হয়,
+  /// যাতে দুইবার একই নামের mp3 বেছে নিলেও আগেরটা overwrite না হয়ে যায়।
+  static Future<String?> pickAndCopyCustomAudio() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null) return null;
+    final pickedPath = result.files.single.path;
+    if (pickedPath == null) return null;
+    if (!pickedPath.toLowerCase().endsWith('.mp3')) return null;
+
+    final destDir = await _getCustomDuaDir();
+    final originalName = pickedPath.split('/').last;
+    final safeName = '${DateTime.now().millisecondsSinceEpoch}_$originalName';
+    final destFile = File('${destDir.path}/$safeName');
+    await destFile.writeAsBytes(await File(pickedPath).readAsBytes());
+    return destFile.path;
+  }
+
+  /// custom-duas ফোল্ডারে থাকা সব mp3 ফাইলের পাথ লিস্ট করে (নতুন যোগ
+  /// হওয়া ফাইল উপরে থাকে) — ব্যবহারকারী নিজে ম্যানুয়ালি ফোল্ডারে ফাইল
+  /// রেখে দিলেও এই লিস্টে দেখা যাবে, শুধু app দিয়ে "+" চেপে যোগ করা
+  /// ফাইলই না।
+  static Future<List<File>> listCustomAudioFiles() async {
+    final dir = await _getCustomDuaDir();
+    if (!await dir.exists()) return [];
+    final entries = await dir.list().toList();
+    final files = entries
+        .whereType<File>()
+        .where((f) => f.path.toLowerCase().endsWith('.mp3'))
+        .toList();
+    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    return files;
   }
 
   /// Creates the Recitations/saad-al-ghamdi folder immediately (e.g. at app
@@ -450,6 +550,18 @@ class QuranAudioHelper {
   /// Plays a single ayah by seeking into the surah's gapless mp3 and
   /// stopping automatically once the ayah's end timestamp is reached.
   /// Downloads the surah file first if not already present.
+  /// "নিজের দোয়া/অডিও" আইটেম চালানোর জন্য — playAya-র মতো কোনো ডাউনলোড/
+  /// segment লজিক লাগে না, কারণ ফাইলটা আগে থেকেই ডিভাইসে
+  /// (Music/Recitations/custom-duas/) আছে।
+  static Future<void> playCustomAudio({
+    required String filePath,
+    void Function()? onComplete,
+  }) async {
+    final handler = await _ensureHandler();
+    await handler.player.setSpeed(await QuranPrefs.getPlaybackSpeed());
+    await handler.playFile(filePath: filePath, onComplete: onComplete);
+  }
+
   static Future<void> playAya({
     required int sura,
     required String surahAudioUrl,

@@ -348,6 +348,46 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     });
   }
 
+  /// "নিজের দোয়া/অডিও" আইটেমের জন্য — পুরো mp3 ফাইলটা শুরু থেকে শেষ
+  /// পর্যন্ত বাজায় (কোনো timestamp segment/ayah boundary নেই, পুরো ফাইলটাই
+  /// একটা একক "আইটেম")। ফাইল শেষ হলে [onComplete] কল হয় — playAya-র মতোই
+  /// এখানেও sequence token দিয়ে আগের কোনো চলমান সেশন থেকে এটাকে আলাদা
+  /// করা হচ্ছে, যাতে stop()/নতুন প্লে কল করলে পুরনো completion callback
+  /// silently no-op করে (পরের আইটেমের সাথে মিশে না যায়)।
+  Future<void> playFile({
+    required String filePath,
+    void Function()? onComplete,
+  }) async {
+    final myToken = ++_sequenceToken;
+    await _positionSub?.cancel();
+    await _completionSub?.cancel();
+    _positionSub = null;
+    _currentStopAtMs = null;
+    _onAyaComplete = null;
+    // playAya/playFullSurah সেশন-স্টেট এখানে প্রযোজ্য না — পরিষ্কার করে
+    // দেওয়া হচ্ছে, যাতে এর পরপরই কেউ seekToIndex() কল করলে ভুল ফাইলে
+    // কাজ করার চেষ্টা না করে।
+    _currentFilePath = null;
+    _currentSegments = null;
+    _currentOnAyaStart = null;
+    _currentOnSequenceComplete = null;
+
+    if (player.processingState == ProcessingState.completed) {
+      await player.stop();
+    }
+    await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
+    unawaited(player.play());
+    if (myToken != _sequenceToken) return; // stopped/superseded while loading
+
+    _completionSub = player.playerStateStream.listen((state) {
+      if (myToken != _sequenceToken) return;
+      if (state.processingState == ProcessingState.completed) {
+        _completionSub?.cancel();
+        onComplete?.call();
+      }
+    });
+  }
+
   /// Prev/Next বাটনের জন্য দ্রুত সিক — audio source নতুন করে লোড না করে
   /// ঠিক টার্গেট আয়াতের timestamp-এ সরাসরি seek করে, তাই প্রায় তাৎক্ষণিক।
   /// শুধুমাত্র playFullSurah ইতিমধ্যে চলমান/পজড থাকলে কাজ করে (session data লাগে)।

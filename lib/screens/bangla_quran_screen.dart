@@ -483,10 +483,58 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
       );
       return;
     }
-    if (attemptsLeft <= 0) return;
+    if (attemptsLeft <= 0) {
+      // ফিক্স: সূরা বাকারার মতো লম্বা সূরায় (বা "সর্বশেষ পঠিত অবস্থান"
+      // কার্ড থেকে সরাসরি ১৮ নম্বর আয়াতে জাম্প করার সময়) টার্গেট আয়াতটা
+      // ListView.builder-এ তখনও build-ই হয়নি বলে GlobalKey-র context
+      // সবসময় null থেকে যেত — কয়েকবার রিট্রাই করেও কিছু হতো না এবং
+      // ব্যবহারকারী চুপচাপ সূরার একদম শুরুতেই (আয়াত ১) পড়ে থাকতেন, মনে
+      // হতো "১৮ নম্বরে না গিয়ে ১ নম্বরে নিয়ে যাচ্ছে"। এখন surah_detail_
+      // screen.dart-এর মতোই একটা fallback যোগ করা হলো: প্রতিটা আয়াতের
+      // গড় উচ্চতা ধরে একটা আনুমানিক scroll অবস্থানে সরাসরি লাফ দেওয়া
+      // হয়, যাতে টার্গেট আয়াত viewport-এর কাছাকাছি চলে আসে এবং তখন তার
+      // context তৈরি হয়ে যায় — এরপর একটা শেষ নিখুঁত ensureVisible কল
+      // দিয়ে ঠিক জায়গায় align করা হয়।
+      _scrollToVerseFallback(ayaIndex);
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 150), () {
         _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
+      });
+    });
+  }
+
+  /// Best-effort scroll যখন টার্গেট GlobalKey-র context কখনোই তৈরি হয়নি
+  /// (যেমন লম্বা সূরায় আয়াতটা তখনও অফ-স্ক্রিনে build হয়নি)। মোট
+  /// scroll-extent-এর মধ্যে আয়াতের index অনুপাত হিসেব করে একটা আনুমানিক
+  /// অবস্থানে জাম্প করে দেয়, যাতে অন্তত কাছাকাছি জায়গায় পৌঁছানো যায় —
+  /// কিছুই না করার চেয়ে অনেক ভালো।
+  void _scrollToVerseFallback(int ayaIndex) {
+    if (!_scrollController.hasClients) return;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (_ayat.isEmpty || maxExtent <= 0) return;
+    final estimated = (ayaIndex / _ayat.length) * maxExtent;
+    _scrollController.animateTo(
+      estimated.clamp(0.0, maxExtent),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+    // আনুমানিক জাম্পের পর টার্গেট কার্ডটা এখন viewport-এর কাছাকাছি চলে
+    // এসেছে বলে ধরে নিয়ে, এর context এতক্ষণে তৈরি হয়ে থাকার কথা — তাই
+    // একবার নিখুঁতভাবে align করার শেষ চেষ্টা।
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        final ctx = _ayaKeys[ayaIndex].currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.linear,
+            alignment: 0.35,
+          );
+        }
       });
     });
   }

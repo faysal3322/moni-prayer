@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
@@ -219,6 +220,10 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
     for (final item in items) {
       final itemId = item['id'] as int;
+      // "নিজের দোয়া/অডিও" আইটেমে sura/aya null থাকে — কোরআনের টেক্সট
+      // ক্যাশে এদের জন্য কিছু লুকআপ করার দরকার নেই, স্কিপ করা হচ্ছে
+      // (নাহলে নিচের `as int` cast null-এ ব্যর্থ হয়ে ক্র্যাশ করত)।
+      if ((item['item_type'] as String? ?? 'aya') == 'custom') continue;
       final sura = item['sura'] as int;
       final aya = item['aya'] as int;
       final arabicRow = await QuranDatabaseHelper.getSingleAya(sura, aya);
@@ -433,6 +438,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   void _showAddVerseSheet({int? afterItemId}) {
     final isBn = widget.lang.isBn;
     bool fullSurahMode = false;
+    // "নিজের দোয়া/অডিও" — তৃতীয় মোড, কোরআনের সূরা/আয়াতের বাইরে গিয়ে
+    // ব্যবহারকারীর নিজের রাখা mp3-কে কালেকশনে একটা আইটেম হিসেবে যোগ
+    // করে। fullSurahMode এর পাশাপাশি আলাদা বুলিয়ান হিসেবে রাখা হলো
+    // (তিনটা true/false এর জটিল কম্বিনেশন এড়াতে বাকি দুইটা মোডের
+    // বিদ্যমান কোড অপরিবর্তিত রাখা সহজ হয়)।
+    bool customAudioMode = false;
+    String? pickedCustomAudioPath;
+    String? pickedCustomAudioName;
+    final customTitleController = TextEditingController();
+    bool pickingFile = false;
     Map<String, dynamic>? selectedChapter;
     final ayaController = TextEditingController();
     String? errorText;
@@ -449,8 +464,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       if (itemId == null) {
         return isBn ? 'তালিকার শেষে' : 'At the end';
       }
-      final cached = _ayaCache[itemId];
       final item = _items.firstWhere((it) => it['id'] == itemId, orElse: () => {});
+      if ((item['item_type'] as String? ?? 'aya') == 'custom') {
+        final title = item['custom_title'] as String? ?? (isBn ? 'কাস্টম অডিও' : 'Custom audio');
+        return isBn ? '$title এর পরে' : 'After $title';
+      }
+      final cached = _ayaCache[itemId];
       final aya = item['aya'];
       final suraName = cached?['suraName'] ?? '';
       return isBn
@@ -476,6 +495,50 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 setSheetState(() {
                   selectedChapter = chosen;
                   errorText = null;
+                });
+              }
+            }
+
+            // "নিজের দোয়া/অডিও" মোডে — file picker দিয়ে ডিভাইসের যেকোনো
+            // mp3 বেছে নিয়ে Music/Recitations/custom-duas/ ফোল্ডারে
+            // কপি করে (QuranAudioHelper.pickAndCopyCustomAudio)। কপি হয়ে
+            // যাওয়ার পর সেই পাথটাই সংরক্ষণ হয়, তাই পরে মূল ফাইলটা
+            // (Downloads/WhatsApp ইত্যাদি থেকে) মুছে গেলেও কালেকশনে
+            // প্লে করা বন্ধ হয়ে যাবে না।
+            Future<void> pickCustomAudio() async {
+              setSheetState(() => pickingFile = true);
+              try {
+                final copiedPath = await QuranAudioHelper.pickAndCopyCustomAudio();
+                if (copiedPath == null) {
+                  setSheetState(() {
+                    pickingFile = false;
+                    errorText = isBn ? 'শুধু mp3 ফাইল নির্বাচন করুন' : 'Please select an mp3 file';
+                  });
+                  return;
+                }
+                setSheetState(() {
+                  pickingFile = false;
+                  pickedCustomAudioPath = copiedPath;
+                  pickedCustomAudioName = copiedPath.split('/').last;
+                  errorText = null;
+                  // ব্যবহারকারী শিরোনাম আগে থেকে না লিখলে ফাইলের নাম
+                  // (টাইমস্ট্যাম্প prefix বাদ দিয়ে) ডিফল্ট শিরোনাম
+                  // হিসেবে বসিয়ে দেওয়া হচ্ছে, যাতে খালি রেখে জমা দিলেও
+                  // একটা অর্থবহ নাম দেখা যায়।
+                  if (customTitleController.text.trim().isEmpty) {
+                    final name = pickedCustomAudioName!;
+                    final underscoreIdx = name.indexOf('_');
+                    final withoutTimestamp = (underscoreIdx > 0 && underscoreIdx < 20)
+                        ? name.substring(underscoreIdx + 1)
+                        : name;
+                    customTitleController.text =
+                        withoutTimestamp.replaceAll('.mp3', '').replaceAll('_', ' ');
+                  }
+                });
+              } catch (e) {
+                setSheetState(() {
+                  pickingFile = false;
+                  errorText = isBn ? 'ফাইল যোগ করতে সমস্যা হয়েছে' : 'Failed to add file';
                 });
               }
             }
@@ -510,7 +573,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     style: const TextStyle(color: AppTheme.gold, fontSize: 17, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 14),
-                  // মোড নির্বাচন — নির্দিষ্ট আয়াত বনাম সম্পূর্ণ সূরা
+                  // মোড নির্বাচন — নির্দিষ্ট আয়াত / সম্পূর্ণ সূরা / নিজের দোয়া
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -523,19 +586,20 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           child: GestureDetector(
                             onTap: () => setSheetState(() {
                               fullSurahMode = false;
+                              customAudioMode = false;
                               errorText = null;
                             }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               decoration: BoxDecoration(
-                                color: !fullSurahMode ? AppTheme.gold : Colors.transparent,
+                                color: (!fullSurahMode && !customAudioMode) ? AppTheme.gold : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 isBn ? 'নির্দিষ্ট আয়াত' : 'Single Verse',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: !fullSurahMode ? Colors.black : AppTheme.textSecondary,
+                                  color: (!fullSurahMode && !customAudioMode) ? Colors.black : AppTheme.textSecondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -547,19 +611,44 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           child: GestureDetector(
                             onTap: () => setSheetState(() {
                               fullSurahMode = true;
+                              customAudioMode = false;
                               errorText = null;
                             }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               decoration: BoxDecoration(
-                                color: fullSurahMode ? AppTheme.gold : Colors.transparent,
+                                color: (fullSurahMode && !customAudioMode) ? AppTheme.gold : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 isBn ? 'সম্পূর্ণ সূরা' : 'Full Surah',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: fullSurahMode ? Colors.black : AppTheme.textSecondary,
+                                  color: (fullSurahMode && !customAudioMode) ? Colors.black : AppTheme.textSecondary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setSheetState(() {
+                              customAudioMode = true;
+                              errorText = null;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: customAudioMode ? AppTheme.gold : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isBn ? 'নিজের দোয়া' : 'My Audio',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: customAudioMode ? Colors.black : AppTheme.textSecondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -646,6 +735,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: 14),
+                  if (!customAudioMode) ...[
                   // সূরা নির্বাচন — এখন সার্চযোগ্য bottom sheet খোলে (আগে
                   // ছিল plain dropdown, স্ক্রল করে ১১৪টা সূরা খুঁজতে হতো)
                   InkWell(
@@ -721,6 +811,62 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         ),
                       ),
                   ],
+                  ] else ...[
+                    // "নিজের দোয়া/অডিও" মোড — mp3 বেছে নেওয়া + শিরোনাম
+                    InkWell(
+                      onTap: pickingFile ? null : pickCustomAudio,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: isBn ? 'mp3 ফাইল নির্বাচন করুন' : 'Select mp3 file',
+                          labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                          suffixIcon: pickingFile
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    height: 16, width: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
+                                  ),
+                                )
+                              : const Icon(Icons.audio_file_outlined, color: AppTheme.textSecondary),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppTheme.accent),
+                          ),
+                        ),
+                        child: Text(
+                          pickedCustomAudioName ?? (isBn ? 'চাপুন এবং ফাইল বেছে নিন...' : 'Tap to pick a file...'),
+                          style: TextStyle(
+                            color: pickedCustomAudioName == null ? AppTheme.textSecondary : AppTheme.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: customTitleController,
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                      decoration: InputDecoration(
+                        labelText: isBn ? 'দোয়ার নাম' : 'Title',
+                        labelStyle: const TextStyle(color: AppTheme.textSecondary),
+                        hintText: isBn ? 'যেমন: দরুদ শরীফ' : 'e.g. Durood Shorif',
+                        hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppTheme.accent),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   // "কতবার পড়া হবে" — যেকোনো মোডেই (নির্দিষ্ট আয়াত বা
                   // সম্পূর্ণ সূরা) প্রযোজ্য। ডিফল্ট ১ (স্বাভাবিক একবার),
@@ -778,6 +924,27 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       onPressed: submitting
                           ? null
                           : () async {
+                              if (customAudioMode) {
+                                if (pickedCustomAudioPath == null) {
+                                  setSheetState(() => errorText =
+                                      isBn ? 'একটি mp3 ফাইল নির্বাচন করুন' : 'Select an mp3 file');
+                                  return;
+                                }
+                                final title = customTitleController.text.trim().isEmpty
+                                    ? (isBn ? 'কাস্টম অডিও' : 'Custom audio')
+                                    : customTitleController.text.trim();
+                                setSheetState(() => submitting = true);
+                                await QuranCollectionsHelper.insertCustomAudioAfter(
+                                  widget.collectionId,
+                                  title,
+                                  pickedCustomAudioPath!,
+                                  afterItemId: insertAfterId,
+                                );
+                                if (context.mounted) Navigator.pop(sheetContext);
+                                _load();
+                                return;
+                              }
+
                               if (selectedChapter == null) {
                                 setSheetState(() => errorText = isBn ? 'সূরা নির্বাচন করুন' : 'Select a surah');
                                 return;
@@ -864,9 +1031,11 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                             )
                           : Text(
-                              fullSurahMode
-                                  ? (isBn ? 'সম্পূর্ণ সূরা যোগ করুন' : 'Add Full Surah')
-                                  : (isBn ? 'যোগ করুন' : 'Add'),
+                              customAudioMode
+                                  ? (isBn ? 'দোয়া যোগ করুন' : 'Add Audio')
+                                  : fullSurahMode
+                                      ? (isBn ? 'সম্পূর্ণ সূরা যোগ করুন' : 'Add Full Surah')
+                                      : (isBn ? 'যোগ করুন' : 'Add'),
                               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                             ),
                     ),
@@ -1027,8 +1196,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       ),
     );
     if (result != null && result != group['repeatCount']) {
-      await QuranCollectionsHelper.updateGroupRepeatCount(group['groupKey'] as String, result);
-      _load();
+      final groupKey = group['groupKey'] as String?;
+      if (groupKey != null) {
+        // group_key null মানে এই একক আইটেম (যেমন কাস্টম অডিও) কখনো কোনো
+        // গ্রুপের অংশ ছিল না — এখানে পৌঁছানোর কথাই না (UI বাটনটাই
+        // repeatCount > 1 না হলে দেখায় না), তবু নিরাপত্তার জন্য গার্ড।
+        await QuranCollectionsHelper.updateGroupRepeatCount(groupKey, result);
+        _load();
+      }
     }
   }
 
@@ -1115,9 +1290,71 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     int? groupPassStart,
   }) async {
     if (_audioBusy) return;
+    final itemId = item['id'] as int;
+    final itemType = item['item_type'] as String? ?? 'aya';
+
+    // "নিজের দোয়া/অডিও" আইটেম — কোনো সূরা/আয়াত/সেগমেন্ট লুকআপ লাগে না,
+    // সরাসরি সংরক্ষিত mp3 ফাইলটাই শুরু থেকে শেষ পর্যন্ত বাজে। বাকি
+    // চেইন-লজিক (পরের আইটেমে যাওয়া, repeat) সাধারণ আয়াতের মতোই কাজ
+    // করে যাতে একই কালেকশনে সূরা ও কাস্টম দোয়া মিশিয়ে রাখলেও
+    // "সব শোনো" নিরবচ্ছিন্নভাবে চলতে থাকে।
+    if (itemType == 'custom') {
+      final filePath = item['custom_file_path'] as String?;
+      setState(() {
+        _audioBusy = true;
+        _playingItemId = itemId;
+      });
+      if (filePath == null || !await File(filePath).exists()) {
+        if (mounted) {
+          setState(() {
+            _audioBusy = false;
+            _playingItemId = null;
+          });
+          if (chainNext && _sequencePlaying) {
+            _playNextInSequence(item, groupPassStart: groupPassStart);
+          } else {
+            setState(() => _sequencePlaying = false);
+          }
+        }
+        return;
+      }
+      try {
+        await QuranAudioHelper.playCustomAudio(
+          filePath: filePath,
+          onComplete: () {
+            if (!mounted) return;
+            if (chainNext && _sequencePlaying) {
+              _playNextInSequence(item, groupPassStart: groupPassStart);
+            } else {
+              setState(() {
+                _playingItemId = null;
+                _sequencePlaying = false;
+                _currentRepeatIndex = 0;
+              });
+            }
+          },
+        );
+      } catch (e) {
+        debugPrint('COLLECTION CUSTOM AUDIO PLAY ERROR ($filePath): $e');
+        if (mounted) {
+          if (chainNext && _sequencePlaying) {
+            _playNextInSequence(item, groupPassStart: groupPassStart);
+          } else {
+            setState(() {
+              _playingItemId = null;
+              _sequencePlaying = false;
+              _currentRepeatIndex = 0;
+            });
+          }
+        }
+      } finally {
+        if (mounted) setState(() => _audioBusy = false);
+      }
+      return;
+    }
+
     final sura = item['sura'] as int;
     final aya = item['aya'] as int;
-    final itemId = item['id'] as int;
 
     setState(() {
       _audioBusy = true;
@@ -1660,6 +1897,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   /// একক আয়াতের কার্ড (আগের মতোই), সাথে repeat_count > 1 হলে একটা
   /// ছোট "N বার" ব্যাজও দেখায় (যেমন আয়াতুল কুরসি ১০ বার সেট করা থাকলে)।
   Widget _buildSingleItemCard(Map<String, dynamic> item, int index, bool isBn) {
+    if ((item['item_type'] as String? ?? 'aya') == 'custom') {
+      return _buildCustomAudioCard(item, index, isBn);
+    }
     final itemId = item['id'] as int;
     final aya = item['aya'] as int;
     final cached = _ayaCache[itemId] ?? {};
@@ -1831,6 +2071,130 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// "নিজের দোয়া/অডিও" আইটেমের কার্ড — আয়াতের মতো আরবি/বাংলা টেক্সট নেই
+  /// (শুধু নাম + প্লে), কিন্তু প্লে/মুছা/আগে-পরে সরানো/এখানে নতুন আইটেম
+  /// যোগ করার সব বাটন একই আচরণ বজায় রাখে, যাতে ব্যবহারকারীর অভিজ্ঞতা
+  /// সূরার আয়াত কার্ডের সাথে সামঞ্জস্যপূর্ণ থাকে।
+  Widget _buildCustomAudioCard(Map<String, dynamic> item, int index, bool isBn) {
+    final itemId = item['id'] as int;
+    final title = item['custom_title'] as String? ?? (isBn ? 'কাস্টম অডিও' : 'Custom audio');
+    final isPlayingThis = _playingItemId == itemId;
+    final repeatCount = (item['repeat_count'] as int?) ?? 1;
+
+    return Container(
+      key: ValueKey(itemId),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isPlayingThis ? AppTheme.gold.withOpacity(0.08) : AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isPlayingThis ? AppTheme.gold.withOpacity(0.6) : AppTheme.primary.withOpacity(0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => _togglePlayItem(item),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Icon(
+                isPlayingThis ? Icons.pause_circle_filled : Icons.play_circle_outline,
+                color: AppTheme.gold,
+                size: 26,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.mic_none, color: AppTheme.gold, size: 15),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: const TextStyle(color: AppTheme.gold, fontSize: 12.5, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (repeatCount > 1) ...[
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () => _showEditRepeatDialog({
+                      'groupKey': item['group_key'],
+                      'repeatCount': repeatCount,
+                      'items': [item],
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => _showAddVerseSheet(afterItemId: itemId),
+            child: const Padding(
+              padding: EdgeInsets.all(2),
+              child: Icon(Icons.add_circle_outline, color: AppTheme.textSecondary, size: 20),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 18),
+            onPressed: () => _removeItem(itemId),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: index == 0 ? null : () => _moveUp(index),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  child: Icon(
+                    Icons.keyboard_arrow_up,
+                    color: index == 0 ? AppTheme.textSecondary.withOpacity(0.3) : AppTheme.gold,
+                    size: 24,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: index == _items.length - 1 ? null : () => _moveDown(index),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: index == _items.length - 1
+                        ? AppTheme.textSecondary.withOpacity(0.3)
+                        : AppTheme.gold,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

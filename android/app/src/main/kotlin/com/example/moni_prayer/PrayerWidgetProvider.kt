@@ -137,6 +137,15 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
 
+        // নামাজের নিষিদ্ধ সময়ে (Dart পাশ থেকে গণনা করা widget_is_forbidden
+        // flag অনুযায়ী) পুরো widget-এর ব্যাকগ্রাউন্ড লাল করে দেওয়া হয়,
+        // অন্যথায় স্বাভাবিক (ডিফল্ট) ব্যাকগ্রাউন্ড থাকে।
+        try {
+            val isForbidden = prefs.getBoolean("widget_is_forbidden", false)
+            val bgRes = if (isForbidden) R.drawable.widget_background_forbidden else R.drawable.widget_background
+            views.setInt(R.id.widget_root, "setBackgroundResource", bgRes)
+        } catch (e: Exception) { }
+
         // rotating alert - crash safe
         try {
             val alertFull = prefs.getString("widget_alert", "") ?: ""

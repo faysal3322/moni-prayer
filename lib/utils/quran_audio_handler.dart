@@ -32,6 +32,18 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   // বাস্তব Basmalah দৈর্ঘ্যের সাথে না মিললে এই মান পরিবর্তন করে ঠিক করা যায়।
   static const int _basmalahDurationMs = 5000;
 
+  // যোগ করা হয়েছে: just_audio-র positionStream সাধারণত প্রতি ~২০০-৫০০ms
+  // পরপর event পাঠায়, নতুন প্রতিটা millisecond-এ না। ফলে হাইলাইট আসল
+  // audio-র চেয়ে কিছুটা "দেরিতে" পরের আয়াতে যেত — অডিওতে নতুন আয়াত
+  // শুরু হয়ে কয়েক শব্দ পড়া হয়ে যাওয়ার পরও স্ক্রিনে তখনও আগের আয়াতই
+  // হাইলাইট হয়ে থাকত, যেটাকে "আগের লাইন থেকে রিডিং শুরু হচ্ছে" মনে হতো।
+  // এই মান দিয়ে হাইলাইট থ্রেশহোল্ড কিছুটা আগে (early) নিয়ে আসা হচ্ছে,
+  // যাতে stream lag পুষিয়ে হাইলাইট আসল audio-র সাথে অনেক কাছাকাছি সময়ে
+  // বদলায়। প্রয়োজনে এই মান আরও বাড়ানো/কমানো যায় (150-250ms এর মধ্যে
+  // সাধারণত ভালো ফল দেয়); খুব বেশি বাড়ালে হাইলাইট আবার আগেভাগেই বদলে
+  // যেতে পারে।
+  static const int _highlightLeadMs = 180;
+
   int _sequenceToken = 0;
 
   // পরে prev/next বাটনে দ্রুত সিক করার জন্য বর্তমান সেশনের ফাইল/সেগমেন্ট/
@@ -257,7 +269,11 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       final sura = segments[i]['sura'] as int?;
       final aya = segments[i]['aya'] as int?;
       final isBasmalahAya = aya == 1 && sura != 1;
-      return base + (isBasmalahAya ? _basmalahDurationMs : 0);
+      final withBasmalah = base + (isBasmalahAya ? _basmalahDurationMs : 0);
+      // স্ট্রিম-ল্যাগ পুষিয়ে নিতে থ্রেশহোল্ড কিছুটা আগে আনা হচ্ছে, কিন্তু
+      // ০-এর নিচে (বা আগের আয়াতের ভেতরে) যেন না চলে যায় সেটা নিশ্চিত
+      // করা হচ্ছে।
+      return (withBasmalah - _highlightLeadMs).clamp(0, withBasmalah);
     }
 
     if (!sameFileAlreadyLoaded) {
@@ -368,7 +384,11 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         final next = segments[currentIndex + 1];
         final nextBase = next['timestamp_from_ms'] as int;
         final nextIsBasmalahAya = next['aya'] == 1 && next['sura'] != 1;
-        final threshold = nextBase + (nextIsBasmalahAya ? _basmalahDurationMs : 0);
+        final nextWithBasmalah = nextBase + (nextIsBasmalahAya ? _basmalahDurationMs : 0);
+        // playFullSurah-এর highlightThreshold()-এর মতোই stream-lag
+        // compensation, যাতে prev/next বাটন দিয়ে seek করার পরও হাইলাইট
+        // একই আচরণ করে (সামঞ্জস্যপূর্ণ থাকে)।
+        final threshold = (nextWithBasmalah - _highlightLeadMs).clamp(0, nextWithBasmalah);
         if (ms < threshold) break;
         currentIndex++;
         _currentAyaIndex = currentIndex;

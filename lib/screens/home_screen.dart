@@ -401,6 +401,24 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (iftar): $e'); }
 
     try {
+      // নামাজের নিষিদ্ধ সময় (দিনে ৩ বার): সূর্যোদয়-পরবর্তী ১৫ মিনিট,
+      // দ্বিপ্রহর/যাওয়াল (দুহুরের ৫ মিনিট আগে-পরে), আর সূর্যাস্তের ঠিক
+      // আগের ১৫ মিনিট — ঠিক একই হিসাব যা prayer_time_screen.dart-এর
+      // "সালাতের নিষিদ্ধ সময়" কার্ডে দেখানো হয়। এই সময়গুলোতে widget-এর
+      // ব্যাকগ্রাউন্ড সম্পূর্ণ লাল হয়ে যাবে (অন্য একটা ইসলামিক অ্যাপের
+      // widget-এর মতো), যাতে এক নজরেই বোঝা যায় এখন নামাজ পড়া নিষিদ্ধ।
+      final fajrForbiddenEnd = pt.sunrise.add(const Duration(minutes: 15));
+      final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
+      final zawalEnd = pt.dhuhr.add(const Duration(minutes: 5));
+      final asrForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
+      final isForbidden =
+          (now.isAfter(pt.sunrise) && now.isBefore(fajrForbiddenEnd)) ||
+          (now.isAfter(zawalStart) && now.isBefore(zawalEnd)) ||
+          (now.isAfter(asrForbiddenStart) && now.isBefore(pt.maghrib));
+      await HomeWidget.saveWidgetData('widget_is_forbidden', isForbidden);
+    } catch (e) { debugPrint('WIDGET ERROR (forbidden): $e'); }
+
+    try {
       // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়
       // (widget প্রতি মিনিটে আপডেট হয় বলে সেকেন্ড না দেখিয়ে HH:MM আকারে দেখানো হচ্ছে)
       // লেবেল ("ওয়াক্ত বাকি") ও সময় (HH:MM) আলাদা key-তে পাঠানো হয়, যাতে

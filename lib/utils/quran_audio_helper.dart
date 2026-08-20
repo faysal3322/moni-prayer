@@ -89,6 +89,17 @@ class QuranAudioHelper {
   static const String _reciterFolder = 'saad-al-ghamdi';
   static Directory? _cachedDir;
 
+  // যোগ করা হয়েছে: আউযুবিল্লাহ ও বিসমিল্লাহর bundled asset path (Saad
+  // Al-Ghamdi কণ্ঠে)। এই দুটো mp3 assets/audio/quran/ এ bundle করা আছে
+  // (pubspec.yaml-এ assets/audio/ আগে থেকেই wildcard হিসেবে declare করা,
+  // তাই আলাদা করে নতুন এন্ট্রি যোগ করার দরকার হয়নি)। এখনো কোনো playback
+  // flow-তে এগুলো ব্যবহার করা হচ্ছে না — শুধু bundle ও রেফারেন্সের জন্য
+  // প্রস্তুত রাখা হলো, যাতে ভবিষ্যতে সূরা শুরুর আগে "আউযুবিল্লাহ +
+  // বিসমিল্লাহ" চালানোর ফিচার লাগলে সহজে এখান থেকেই ব্যবহার করা যায়।
+  static const String isti3athaAssetPath = 'assets/audio/quran/isti3atha.mp3';
+  static const String bismillahAssetPath = 'assets/audio/quran/bismillah.mp3';
+
+
   static QuranPlaybackHandler? _handler;
   static Future<QuranPlaybackHandler>? _initFuture;
 

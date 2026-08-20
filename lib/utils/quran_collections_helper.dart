@@ -19,7 +19,7 @@ class QuranCollectionsHelper {
     final path = join(dbDir, 'quran_collections.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE collections (
@@ -32,11 +32,14 @@ class QuranCollectionsHelper {
           CREATE TABLE collection_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             collection_id INTEGER NOT NULL,
-            sura INTEGER NOT NULL,
-            aya INTEGER NOT NULL,
+            sura INTEGER,
+            aya INTEGER,
             sort_order INTEGER NOT NULL,
             group_key TEXT,
             repeat_count INTEGER NOT NULL DEFAULT 1,
+            item_type TEXT NOT NULL DEFAULT 'aya',
+            custom_title TEXT,
+            custom_file_path TEXT,
             FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE
           )
         ''');
@@ -52,6 +55,39 @@ class QuranCollectionsHelper {
           await db.execute('ALTER TABLE collection_items ADD COLUMN group_key TEXT');
           await db.execute(
               'ALTER TABLE collection_items ADD COLUMN repeat_count INTEGER NOT NULL DEFAULT 1');
+        }
+        // ফিচার সংযোজন: "নিজের দোয়া/অডিও" — কোরআনের বাইরের যেকোনো mp3
+        // (custom_file_path) কালেকশনে সূরা/আয়াতের মতোই একটা আইটেম
+        // হিসেবে যোগ করা যায়। sura/aya এখন থেকে nullable (custom
+        // আইটেমে এগুলো লাগে না), কিন্তু SQLite-এ কলামকে "nullable" করতে
+        // ALTER TABLE লাগে না — আগের NOT NULL constraint নতুন সংস্করণে
+        // শুধু নতুন insert-এ প্রযোজ্য না হওয়ার জন্য পুরো টেবিল আগের
+        // ডেটাসহ নতুন স্কিমায় copy করা হচ্ছে, যাতে পুরনো সূরা/আয়াত
+        // আইটেমগুলো (item_type='aya') কোনোভাবে ক্ষতিগ্রস্ত না হয়।
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE collection_items RENAME TO collection_items_old');
+          await db.execute('''
+            CREATE TABLE collection_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              collection_id INTEGER NOT NULL,
+              sura INTEGER,
+              aya INTEGER,
+              sort_order INTEGER NOT NULL,
+              group_key TEXT,
+              repeat_count INTEGER NOT NULL DEFAULT 1,
+              item_type TEXT NOT NULL DEFAULT 'aya',
+              custom_title TEXT,
+              custom_file_path TEXT,
+              FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute('''
+            INSERT INTO collection_items
+              (id, collection_id, sura, aya, sort_order, group_key, repeat_count, item_type)
+            SELECT id, collection_id, sura, aya, sort_order, group_key, repeat_count, 'aya'
+            FROM collection_items_old
+          ''');
+          await db.execute('DROP TABLE collection_items_old');
         }
       },
     );
@@ -261,6 +297,64 @@ class QuranCollectionsHelper {
     );
   }
 
+  /// [afterItemId] এর পরে "নিজের দোয়া/অডিও" আইটেম (কোরআনের বাইরের, নিজের
+  /// রাখা mp3) যোগ করে — sura/aya এখানে null থাকে, বদলে item_type='custom'
+  /// আর custom_title/custom_file_path সেট হয়। [afterItemId] null হলে
+  /// তালিকার শেষে যোগ হয়। এই আইটেম insertGroupAfter-এর গ্রুপিং লজিকের
+  /// বাইরে — প্রতিটা কাস্টম অডিও নিজেই একটা স্বতন্ত্র আইটেম (রিপিট/গ্রুপ
+  /// কার্ড হিসেবে দেখানোর দরকার নেই, কারণ এটা একটামাত্র সম্পূর্ণ ফাইল)।
+  static Future<void> insertCustomAudioAfter(
+    int collectionId,
+    String title,
+    String filePath, {
+    int? afterItemId,
+  }) async {
+    final db = await database;
+
+    final items = await db.query(
+      'collection_items',
+      where: 'collection_id = ?',
+      whereArgs: [collectionId],
+      orderBy: 'sort_order ASC',
+    );
+
+    int insertPosition;
+    if (items.isEmpty) {
+      insertPosition = 0;
+    } else if (afterItemId == null) {
+      insertPosition = items.length;
+    } else {
+      final idx = items.indexWhere((it) => it['id'] == afterItemId);
+      insertPosition = idx == -1 ? items.length : idx + 1;
+    }
+
+    final newId = await db.insert('collection_items', {
+      'collection_id': collectionId,
+      'sura': null,
+      'aya': null,
+      'sort_order': -1,
+      'group_key': null,
+      'repeat_count': 1,
+      'item_type': 'custom',
+      'custom_title': title,
+      'custom_file_path': filePath,
+    });
+
+    final orderedIds = items.map((it) => it['id'] as int).toList();
+    orderedIds.insert(insertPosition, newId);
+
+    final renumberBatch = db.batch();
+    for (var i = 0; i < orderedIds.length; i++) {
+      renumberBatch.update(
+        'collection_items',
+        {'sort_order': i},
+        where: 'id = ?',
+        whereArgs: [orderedIds[i]],
+      );
+    }
+    await renumberBatch.commit(noResult: true);
+  }
+
   /// ব্যাকআপের জন্য সব কালেকশন ও তাদের আইটেম একসাথে বের করে আনে।
   /// প্রতিটা কালেকশনের ভেতরে তার নিজস্ব আইটেমগুলো (sura, aya, sort_order)
   /// নেস্টেড আকারে থাকে, যাতে রিস্টোরের সময় collection_id নতুন করে বসাতে
@@ -286,6 +380,9 @@ class QuranCollectionsHelper {
                   'sort_order': it['sort_order'],
                   'group_key': it['group_key'],
                   'repeat_count': it['repeat_count'],
+                  'item_type': it['item_type'],
+                  'custom_title': it['custom_title'],
+                  'custom_file_path': it['custom_file_path'],
                 })
             .toList(),
       });
@@ -316,11 +413,14 @@ class QuranCollectionsHelper {
           'sura': itemMap['sura'],
           'aya': itemMap['aya'],
           'sort_order': itemMap['sort_order'],
-          // পুরনো ব্যাকআপ ফাইলে (নতুন ফিচার যোগ হওয়ার আগের) এই দুটো
-          // key না-ও থাকতে পারে — তখন null/1 ডিফল্ট ব্যবহার হয়, যা
+          // পুরনো ব্যাকআপ ফাইলে (নতুন ফিচার যোগ হওয়ার আগের) এই key গুলো
+          // না-ও থাকতে পারে — তখন null/1/'aya' ডিফল্ট ব্যবহার হয়, যা
           // "আলাদা আলাদা আয়াত, একবার করে" হিসেবে স্বাভাবিকভাবেই দেখাবে।
           'group_key': itemMap['group_key'],
           'repeat_count': itemMap['repeat_count'] ?? 1,
+          'item_type': itemMap['item_type'] ?? 'aya',
+          'custom_title': itemMap['custom_title'],
+          'custom_file_path': itemMap['custom_file_path'],
         });
       }
       await batch.commit(noResult: true);
@@ -348,6 +448,9 @@ class QuranCollectionsHelper {
     final suraOrder = <int>[]; // সূরা প্রথম যে ক্রমে দেখা গেছে
     final suraAyas = <int, List<int>>{};
     for (final item in items) {
+      // "নিজের দোয়া/অডিও" আইটেমে sura/aya null থাকে — এগুলো
+      // সূচিপত্রে কোরআনের সূরা হিসেবে গণনা হয় না, তাই স্কিপ করা হচ্ছে।
+      if (item['item_type'] == 'custom') continue;
       final sura = item['sura'] as int;
       final aya = item['aya'] as int;
       if (!suraAyas.containsKey(sura)) {

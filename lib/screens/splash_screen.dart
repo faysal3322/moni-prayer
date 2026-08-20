@@ -22,6 +22,12 @@ class _SplashScreenState extends State<SplashScreen> {
     // দেখানোর সময়, UI ইতিমধ্যে প্রস্তুত) কল করলে পারমিশন ডায়ালগ/সেটিংস
     // স্ক্রিন ঠিকভাবে খোলে ও কাজ করে।
     QuranAudioHelper.ensureAudioDirExists();
+    // একই কারণে (UI প্রস্তুত হওয়ার পরে পারমিশন-রিকোয়েস্ট নির্ভরযোগ্যভাবে
+    // কাজ করে) — "নিজের দোয়া/অডিও" ফোল্ডারও এখানেই আগেভাগে তৈরি করা
+    // হচ্ছে, যাতে ব্যবহারকারী চাইলে অ্যাপ খোলার পরপরই ফাইল ম্যানেজার
+    // দিয়ে সরাসরি Music/Recitations/custom-duas/ ফোল্ডারে mp3 রেখে
+    // দিতে পারেন, app-এর "+" বাটন ব্যবহার না করেও।
+    QuranAudioHelper.ensureCustomDuaDirExists();
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(

@@ -205,7 +205,7 @@
                 android:layout_height="wrap_content"
                 android:text="সাহরি শেষ"
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -232,7 +232,7 @@
                 android:layout_height="wrap_content"
                 android:text="সূর্যোদয়"
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -259,7 +259,7 @@
                 android:layout_height="wrap_content"
                 android:text="সূর্যাস্ত"
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -286,7 +286,7 @@
                 android:layout_height="wrap_content"
                 android:text="ইফতার শুরু"
                 android:textColor="#00E676"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -315,7 +315,7 @@
         android:background="#55000000"
         android:text=""
         android:textColor="#FFD54F"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:gravity="start"
         android:maxLines="10"

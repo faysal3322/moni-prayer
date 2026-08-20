@@ -93,14 +93,14 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_range"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
+                android:layout_marginTop="-2dp"
                 android:text=""
                 android:textColor="#ECEFF1"
                 android:textSize="18sp"
@@ -110,17 +110,17 @@
                 android:id="@+id/widget_waqt_remaining_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#CE93D8"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_remaining_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#FFFFFF"
                 android:textSize="18sp"
@@ -141,7 +141,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#00E676"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:singleLine="true"
                 android:ellipsize="end"
@@ -154,7 +154,7 @@
                 android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#E0E0E0"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -165,7 +165,7 @@
                 android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#CE93D8"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -173,10 +173,10 @@
                 android:id="@+id/widget_bangla_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="0dp"
                 android:text=""
                 android:textColor="#80DEEA"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="end" />
 

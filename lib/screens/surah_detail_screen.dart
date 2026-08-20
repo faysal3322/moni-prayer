@@ -599,28 +599,32 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
         curve: Curves.easeInOut,
         alignment: 0.3,
       );
-      // বাগ ফিক্স: bottom sheet বন্ধ হওয়ার transition বা অন্য কোনো
-      // চলমান animation/rebuild-এর মাঝে ensureVisible কল হলে ভুল বা
-      // পুরনো geometry দিয়ে হিসাব হয়ে সম্পূর্ণ ভুল আয়াতে চলে যেতে
-      // পারত। তাই scroll শুরুর কিছুক্ষণ পরে (animation শেষ হওয়ার মতো
-      // সময় দিয়ে) আরেকবার একই টার্গেটে ensureVisible কল করা হচ্ছে —
-      // যদি প্রথমবারেই সঠিক জায়গায় পৌঁছে থাকে তাহলে এই দ্বিতীয় কলে
-      // কোনো নড়াচড়া হবে না (already visible at alignment), কিন্তু
-      // যদি প্রথমবার ভুল geometry দিয়ে ভুল জায়গায় গিয়ে থাকে, এই
-      // দ্বিতীয় কল সঠিক (এতক্ষণে স্থির হওয়া) geometry দিয়ে ঠিক
-      // জায়গায় সংশোধন করে দেবে।
-      Future.delayed(const Duration(milliseconds: 320), () {
-        if (!mounted) return;
-        final ctx2 = _ayaKeys[ayaIndex].currentContext;
-        if (ctx2 != null) {
-          Scrollable.ensureVisible(
-            ctx2,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: 0.3,
-          );
-        }
-      });
+      // ফিক্স: আগে এখানে মাত্র একবার (৩২০ms পর) সংশোধনী ensureVisible কল
+      // ছিল। সূরা বাকারার মতো বড় সূরায়, page (মুশাফ) ভিউতে সবগুলো আয়াত
+      // (২৮৬টা) একসাথে একটামাত্র বিশাল Text.rich-এ থাকে — এই বিরাট
+      // inline layout ধীরগতির ডিভাইসে ৩২০ms-এর মধ্যেও পুরোপুরি স্থির
+      // (settled) নাও হতে পারে। ফলে সেই একমাত্র সংশোধনী কলটাও অসম্পূর্ণ/
+      // এখনো-বদলাতে-থাকা geometry দিয়ে হিসাব করে ফেলত, আর তারপর আর কোনো
+      // সংশোধন না থাকায় ব্যবহারকারী টার্গেট আয়াতের (যেমন ১৭১) অনেক
+      // আগেই (যেমন ১০২ নং আয়াতে) আটকে থাকতেন। এখন একাধিক ধাপে, বাড়তে
+      // থাকা বিলম্বে (৩২০ms, ৭০০ms, ১২০০ms) বারবার সংশোধন করা হচ্ছে —
+      // layout ইতিমধ্যে স্থির হয়ে থাকলে পরের কলগুলো কার্যত কিছুই বদলাবে
+      // না (already at correct alignment), কিন্তু layout দেরিতে স্থির
+      // হলে শেষ পর্যন্ত ঠিক জায়গায় পৌঁছে যাবে।
+      for (final delayMs in [320, 700, 1200]) {
+        Future.delayed(Duration(milliseconds: delayMs), () {
+          if (!mounted) return;
+          final ctx2 = _ayaKeys[ayaIndex].currentContext;
+          if (ctx2 != null) {
+            Scrollable.ensureVisible(
+              ctx2,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              alignment: 0.3,
+            );
+          }
+        });
+      }
       return;
     }
     if (attemptsLeft <= 0) {

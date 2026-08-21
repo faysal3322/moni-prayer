@@ -268,6 +268,27 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _playbackSpeed = playbackSpeed;
       _loading = false;
     });
+    // ব্যাকগ্রাউন্ডে অডিও আগে থেকেই চলমান থাকলে (ব্যবহারকারী স্ক্রিন
+    // থেকে বেরিয়ে আবার ঢুকলে) UI-কে সেই সাথে মিলিয়ে নেওয়া হচ্ছে —
+    // নাহলে অডিও আসলে চলছে থাকলেও স্ক্রিন থেমে-আছে এমন দেখাত।
+    final np = QuranAudioHelper.nowPlaying.value;
+    if (np != null) {
+      final match = _items.firstWhere(
+        (it) =>
+            (it['item_type'] as String? ?? 'aya') == 'aya' &&
+            it['sura'] == np.sura &&
+            it['aya'] == np.ayaNumber,
+        orElse: () => {},
+      );
+      if (match.isNotEmpty && mounted) {
+        setState(() {
+          _playingItemId = match['id'] as int;
+          _sequencePlaying = true;
+          _sequencePaused = np.isPaused;
+        });
+        _scrollToPlayingItem(match['id'] as int);
+      }
+    }
   }
 
   Future<void> _changeFontSize(double delta) async {
@@ -1259,10 +1280,23 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       }
       return;
     }
-    // এককভাবে একটা আয়াতের প্লে বাটনে চাপলেও তার নিজস্ব repeat_count
-    // অনুযায়ী কয়েকবার বাজবে (যেমন আয়াতুল কুরসি ১০ বার সেট করা থাকলে)।
-    setState(() => _currentRepeatIndex = 0);
-    await _playItem(item, chainNext: false);
+    // একক আয়াতে চাপলেও এখন থেকে এই আয়াত শেষ হওয়ার পর কালেকশনের পরের
+    // আইটেমে চলে যাবে (আগে থেমে যেত) — chainNext:true এবং
+    // _sequencePlaying:true সেট করে "সব শোনো"-র মতোই চেইন চলবে।
+    final groupKey = item['group_key'] as String?;
+    final groupFirstId = groupKey != null
+        ? (_items.firstWhere((it) => it['group_key'] == groupKey, orElse: () => item)['id'] as int)
+        : null;
+    setState(() {
+      _currentRepeatIndex = 0;
+      _sequencePlaying = true;
+      _sequencePaused = false;
+    });
+    await _playItem(
+      item,
+      chainNext: true,
+      groupPassStart: groupFirstId,
+    );
   }
 
   /// একটা group-এর (সম্পূর্ণ সূরা বা একাধিক-আয়াত ব্লক) প্লে বাটনে চাপলে —

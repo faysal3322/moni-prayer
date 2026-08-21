@@ -124,6 +124,9 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     required String filePath,
     required int startMs,
     required int endMs,
+    int? suraNumber,
+    String? suraName,
+    int? ayaNumber,
     void Function()? onComplete,
   }) async {
     final myToken = ++_sequenceToken; // invalidate any in-flight full-surah sequence
@@ -131,6 +134,11 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     await _completionSub?.cancel();
     _onAyaComplete = onComplete;
     _currentStopAtMs = endMs;
+    if (suraNumber != null && suraName != null) {
+      _currentSuraNumber = suraNumber;
+      _currentSuraName = suraName;
+      _publishMediaItem(ayaNumber ?? 0, ayaNumber ?? 0);
+    }
 
     // ফিক্স: "আমার কোরআন" কালেকশনে একই সূরার একাধিক আয়াত পরপর বাজানোর
     // সময় (যেমন সূরা ফাতিহার ৭টা আয়াত একে একে) আগে প্রতিটা আয়াতের জন্য

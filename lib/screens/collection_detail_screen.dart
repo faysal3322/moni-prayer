@@ -178,12 +178,30 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   // পরেরটায় নিজে থেকে যাবে)।
   int? _playingItemId;
   bool _sequencePlaying = false;
+  // "সব শোনো" চলমান অবস্থায় pause করা হয়েছে কিনা — stop থেকে আলাদা,
+  // কারণ pause হলে audio position ধরে রাখা হয় এবং resume করলে সেখান
+  // থেকেই আবার শুরু হয়, শুরু থেকে না।
+  bool _sequencePaused = false;
   bool _audioBusy = false; // ডাউনলোড/লোড হওয়ার সময় ডাবল-ট্যাপ ঠেকাতে
   double _playbackSpeed = 1.0;
   static const List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
   // বর্তমানে চলা আইটেমটা কতবার (ইতিমধ্যে) পুনরাবৃত্তি হয়েছে — যেমন
   // repeat_count=7 হলে এই মান 0..6 পর্যন্ত যাবে, তারপর পরের আইটেমে যাবে।
   int _currentRepeatIndex = 0;
+
+  // ফিক্স: "সব শোনো" চলাকালীন লিস্ট নিজে থেকে স্ক্রল হতো না — কোন
+  // আয়াত এখন বাজছে সেটা বোঝাই যেত না যদি না ব্যবহারকারী নিজে স্ক্রল
+  // করে খুঁজে বের করেন। প্রতিটা কার্ডের নিজস্ব GlobalKey রাখা হচ্ছে
+  // (item id দিয়ে), যাতে _playingItemId বদলালে Scrollable.ensureVisible
+  // দিয়ে সেই কার্ডে স্বয়ংক্রিয়ভাবে স্ক্রল করা যায়।
+  final Map<int, GlobalKey> _itemKeys = {};
+  GlobalKey _keyFor(int itemId) => _itemKeys.putIfAbsent(itemId, () => GlobalKey());
+  // গ্রুপ কার্ডের (যেমন পুরো সূরা) বাইরের wrapper-এর জন্য আলাদা key
+  // namespace — কারণ গ্রুপের প্রথম আয়াতের id দিয়েই যদি এই key বানানো হতো,
+  // তাহলে সেই একই id-এর ভেতরের আয়াত (_buildInnerAyaText) তার নিজের key
+  // এর সাথে সংঘর্ষ (duplicate GlobalKey) বাধিয়ে ফেলত।
+  final Map<String, GlobalKey> _groupKeys = {};
+  GlobalKey _groupKeyFor(String groupKey) => _groupKeys.putIfAbsent(groupKey, () => GlobalKey());
 
   @override
   void initState() {
@@ -194,13 +212,6 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   @override
   void dispose() {
-    // স্ক্রিন থেকে বেরিয়ে গেলে কালেকশনের অডিও থামিয়ে দেওয়া হচ্ছে — সূরা
-    // পড়ার স্ক্রিনের ব্যাকগ্রাউন্ড-প্লেব্যাকের বিপরীতে, কালেকশনের প্লেব্যাক
-    // এখানেই সীমাবদ্ধ, তাই persistent ব্যানার এই স্বল্প ক্লিপগুলোর জন্য
-    // অপ্রয়োজনীয়ভাবে থেকে যাওয়ার দরকার নেই।
-    if (_playingItemId != null) {
-      QuranAudioHelper.stop();
-    }
     super.dispose();
   }
 
@@ -1123,6 +1134,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       setState(() {
         _playingItemId = null;
         _sequencePlaying = false;
+        _sequencePaused = false;
       });
     }
     await QuranCollectionsHelper.removeItem(itemId);
@@ -1138,6 +1150,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       setState(() {
         _playingItemId = null;
         _sequencePlaying = false;
+        _sequencePaused = false;
         _currentRepeatIndex = 0;
       });
     }
@@ -1240,6 +1253,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         setState(() {
           _playingItemId = null;
           _sequencePlaying = false;
+          _sequencePaused = false;
           _currentRepeatIndex = 0;
         });
       }
@@ -1268,6 +1282,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         setState(() {
           _playingItemId = null;
           _sequencePlaying = false;
+          _sequencePaused = false;
           _currentRepeatIndex = 0;
         });
       }
@@ -1278,6 +1293,43 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _currentRepeatIndex = 0;
     });
     await _playItem(items.first, chainNext: true, groupPassStart: firstItemId);
+  }
+
+  /// বর্তমানে যেই আইটেম বাজছে সেই কার্ডে স্মুথলি স্ক্রল করে নিয়ে যায়।
+  /// গ্রুপের ভেতরের আয়াত হলে (যেমন পুরো সূরা চলছে), গ্রুপ কার্ড আগেই
+  /// initiallyExpanded দিয়ে খুলে যায় (দেখুন _buildGroupCard), তাই এখানে
+  /// দুই ফ্রেম অপেক্ষা করা হচ্ছে — একটা গ্রুপ খোলার অ্যানিমেশন শুরু
+  /// হওয়ার জন্য, তারপর নির্দিষ্ট আয়াতের key attach হওয়ার জন্য।
+  /// নির্দিষ্ট আয়াতের key এখনও না পাওয়া গেলে (এখনো খুলছে) গ্রুপ কার্ডেই
+  /// স্ক্রল হয়, যা তখনও অনেকটা কাছাকাছি নিয়ে যায়।
+  void _scrollToPlayingItem(int itemId) {
+    void attempt() {
+      if (!mounted) return;
+      var ctx = _itemKeys[itemId]?.currentContext;
+      if (ctx == null) {
+        final groupKey = _items.firstWhere(
+          (it) => it['id'] == itemId,
+          orElse: () => {},
+        )['group_key'] as String?;
+        if (groupKey != null) {
+          ctx = _groupKeys[groupKey]?.currentContext;
+        }
+      }
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+          alignment: 0.3, // স্ক্রিনের মাঝামাঝির একটু উপরে রাখা হচ্ছে, একদম উপরের কিনারায় না
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // গ্রুপ কার্ড এই ফ্রেমেই সবেমাত্র খোলা শুরু হয়েছে হতে পারে —
+      // ভেতরের আয়াতের key attach হতে একটা ফ্রেম দেরি দেওয়া হচ্ছে।
+      WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+    });
   }
 
   /// [groupPassStart] দেওয়া থাকলে (group-play মোডে), এই itemId-টা যেই
@@ -1304,6 +1356,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         _audioBusy = true;
         _playingItemId = itemId;
       });
+      _scrollToPlayingItem(itemId);
       if (filePath == null || !await File(filePath).exists()) {
         if (mounted) {
           setState(() {
@@ -1313,7 +1366,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           if (chainNext && _sequencePlaying) {
             _playNextInSequence(item, groupPassStart: groupPassStart);
           } else {
-            setState(() => _sequencePlaying = false);
+            setState(() { _sequencePlaying = false; _sequencePaused = false; });
           }
         }
         return;
@@ -1329,6 +1382,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               setState(() {
                 _playingItemId = null;
                 _sequencePlaying = false;
+                _sequencePaused = false;
                 _currentRepeatIndex = 0;
               });
             }
@@ -1343,6 +1397,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             setState(() {
               _playingItemId = null;
               _sequencePlaying = false;
+              _sequencePaused = false;
               _currentRepeatIndex = 0;
             });
           }
@@ -1360,6 +1415,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _audioBusy = true;
       _playingItemId = itemId;
     });
+    _scrollToPlayingItem(itemId);
 
     try {
       final surahAudio = await QuranDatabaseHelper.getSurahAudio(sura);
@@ -1376,7 +1432,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           if (chainNext && _sequencePlaying) {
             _playNextInSequence(item, groupPassStart: groupPassStart);
           } else {
-            setState(() => _sequencePlaying = false);
+            setState(() { _sequencePlaying = false; _sequencePaused = false; });
           }
         }
         return;
@@ -1394,6 +1450,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             setState(() {
               _playingItemId = null;
               _sequencePlaying = false;
+              _sequencePaused = false;
               _currentRepeatIndex = 0;
             });
           }
@@ -1418,6 +1475,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           setState(() {
             _playingItemId = null;
             _sequencePlaying = false;
+            _sequencePaused = false;
             _currentRepeatIndex = 0;
           });
         }
@@ -1479,6 +1537,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       setState(() {
         _playingItemId = null;
         _sequencePlaying = false;
+        _sequencePaused = false;
       });
       return;
     }
@@ -1500,17 +1559,27 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   /// কোনো গ্রুপের অংশ হলে সেই গ্রুপের repeat_count-ও প্রযোজ্য হয়।
   Future<void> _playAll() async {
     if (_items.isEmpty) return;
+    // ফিক্স: আগে এই বাটনে চাপলে সবসময় QuranAudioHelper.stop() কল হতো,
+    // যা প্লেয়ারকে সম্পূর্ণ থামিয়ে position মুছে দিত। ফলে অর্ধেক পর্যন্ত
+    // শোনার পর এই বাটনে ভুলবশত চাপ পড়লে (বা ইচ্ছাকৃত থামালে) আবার চাপলে
+    // একদম শুরু থেকে বাজত, মাঝখান থেকে resume হতো না। এখন যদি আগে থেকেই
+    // চলমান থাকে (এই বাটন দিয়েই শুরু করা হয়েছিল, _sequencePlaying true),
+    // তাহলে stop() না করে pause()/resume() ব্যবহার হচ্ছে — যা player-এর
+    // বর্তমান অবস্থান অক্ষুণ্ণ রাখে, তাই আবার চাপলে ঠিক যেখানে ছিল
+    // সেখান থেকেই চলতে থাকে।
     if (_sequencePlaying) {
-      await QuranAudioHelper.stop();
-      setState(() {
-        _playingItemId = null;
-        _sequencePlaying = false;
-        _currentRepeatIndex = 0;
-      });
+      if (_sequencePaused) {
+        setState(() => _sequencePaused = false);
+        await QuranAudioHelper.resume();
+      } else {
+        setState(() => _sequencePaused = true);
+        await QuranAudioHelper.pause();
+      }
       return;
     }
     setState(() {
       _sequencePlaying = true;
+      _sequencePaused = false;
       _currentRepeatIndex = 0;
     });
     final first = _items.first;
@@ -1582,8 +1651,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           ),
           if (_items.isNotEmpty)
             IconButton(
-              icon: Icon(_sequencePlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),
-              tooltip: isBn ? 'সব শোনো' : 'Play All',
+              icon: Icon(
+                !_sequencePlaying
+                    ? Icons.play_circle_outline
+                    : (_sequencePaused ? Icons.play_circle_outline : Icons.pause_circle_outline),
+              ),
+              tooltip: !_sequencePlaying
+                  ? (isBn ? 'সব শোনো' : 'Play All')
+                  : (_sequencePaused ? (isBn ? 'আবার চালু করুন' : 'Resume') : (isBn ? 'পজ করুন' : 'Pause')),
               onPressed: _playAll,
             ),
           IconButton(
@@ -1624,12 +1699,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         return _buildTocCard(isBn);
                       }
                       final entry = groups[listIndex - 1];
+                      final entryItems = entry['items'] as List<Map<String, dynamic>>;
                       if (entry['type'] == 'group') {
-                        return _buildGroupCard(entry, isBn);
+                        final groupKey = entry['groupKey'] as String;
+                        return KeyedSubtree(key: _groupKeyFor(groupKey), child: _buildGroupCard(entry, isBn));
                       }
-                      final item = (entry['items'] as List<Map<String, dynamic>>).first;
+                      final item = entryItems.first;
                       final index = _items.indexWhere((it) => it['id'] == item['id']);
-                      return _buildSingleItemCard(item, index, isBn);
+                      return KeyedSubtree(key: _keyFor(item['id'] as int), child: _buildSingleItemCard(item, index, isBn));
                     },
                   );
                 }),
@@ -1744,6 +1821,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          // ফিক্স: "সব শোনো" মোডে গ্রুপ কার্ড (যেমন পুরো সূরা) ডিফল্টভাবে
+          // বন্ধ থাকত, তাই বাজতে থাকা আয়াতটা হাইলাইট হলেও তা দেখা যেত না
+          // যতক্ষণ না ব্যবহারকারী নিজে ম্যানুয়ালি খুলতেন। এখন গ্রুপের
+          // ভেতরের কোনো আয়াত বাজতে শুরু করলে (isGroupPlaying == true)
+          // গ্রুপটা নিজে থেকেই খুলে যায়।
+          initiallyExpanded: isGroupPlaying,
+          key: ValueKey('${groupKey}_$isGroupPlaying'),
           tilePadding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
           iconColor: AppTheme.textSecondary,
@@ -1855,6 +1939,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final cached = _ayaCache[itemId] ?? {};
     final isPlayingThis = _playingItemId == itemId;
     return Container(
+      key: _keyFor(itemId),
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -1864,9 +1949,26 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${isBn ? "আয়াত" : "Verse"} ${widget.lang.toLocalNum(aya)}',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _togglePlayItem(item),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    isPlayingThis ? Icons.pause_circle_filled : Icons.play_circle_outline,
+                    color: AppTheme.gold,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${isBn ? "আয়াত" : "Verse"} ${widget.lang.toLocalNum(aya)}',
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
           if (_showArabic) ...[
             const SizedBox(height: 6),

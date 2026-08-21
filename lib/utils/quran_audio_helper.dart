@@ -567,6 +567,8 @@ class QuranAudioHelper {
     required String surahAudioUrl,
     required int startMs,
     required int endMs,
+    String? suraName,
+    int? ayaNumber,
     void Function()? onComplete,
   }) async {
     final handler = await _ensureHandler();
@@ -577,11 +579,24 @@ class QuranAudioHelper {
     if (!await file.exists()) {
       await downloadSurah(sura, surahAudioUrl);
     }
+    if (suraName != null) {
+      nowPlaying.value = QuranNowPlaying(
+        sura: sura,
+        suraName: suraName,
+        ayaNumber: ayaNumber,
+      );
+    }
     await handler.playAya(
       filePath: file.path,
       startMs: startMs,
       endMs: endMs,
-      onComplete: onComplete,
+      suraNumber: sura,
+      suraName: suraName,
+      ayaNumber: ayaNumber,
+      onComplete: () {
+        if (suraName != null) nowPlaying.value = null;
+        onComplete?.call();
+      },
     );
   }
 

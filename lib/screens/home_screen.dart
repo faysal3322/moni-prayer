@@ -334,7 +334,9 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
       return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd), 'end': ishaaEnd};
     }
-    if (now.isAfter(nightIsha) && !now.isBefore(lastThird)) {
+    if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(pt.fajr)) {
+      // ফিক্স: ClockCard-এর _currentWaqt-এর মতোই এখানেও pt.fajr upper
+      // bound ছাড়া তাহাজ্জুদ ফজরের পরেও widget-এ দেখাতে থাকত।
       return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr), 'end': pt.fajr};
     }
     if (now.isAfter(nightIsha)) {
@@ -1970,8 +1972,20 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
       return {'name': isBn ? 'এশা' : 'Isha', 'start': pt.isha, 'end': ishaaEnd};
     }
-    if (now.isAfter(nightIsha) && !now.isBefore(lastThird)) {
+    if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(pt.fajr)) {
       // তাহাজ্জুদের সময় চলছে (রাতের শেষ ১/৩ অংশ, ফজরের আগ পর্যন্ত)
+      // ফিক্স: এই শর্তে আগে pt.fajr-এর কোনো upper bound ছিল না
+      // (শুধু now.isAfter(nightIsha) && !now.isBefore(lastThird))। ফজর
+      // শুরু হয়ে যাওয়ার পরও (৪:৪৯-এর পরেও, যেমন ৪:৫০ বা ৪:৫৫-তে) এই
+      // শর্ত true-ই থেকে যেত, কারণ nightIsha ও lastThird উভয় শর্তই তখনও
+      // পূরণ হতো। ফলে সবার আগে (উপরে) থাকা "ফজর" শর্তটা যদি কোনো কারণে
+      // এক ফ্রেমে মিস হয়ে যেত (বা এই শর্ত পর্যন্ত execution পৌঁছালে),
+      // তাহাজ্জুদ কার্ডই দেখাতে থাকত ফজরের সময় পার হয়ে যাওয়ার পরেও, আর
+      // pt.fajr অতীতের সময় হয়ে যাওয়ায় _countdown() ঋণাত্মক difference
+      // পেয়ে খালি স্ট্রিং ('--:--:--') ফেরত দিত। এখন now.isBefore(pt.fajr)
+      // স্পষ্টভাবে upper bound হিসেবে যোগ করা হলো, যাতে ফজর শুরু হওয়ার
+      // সাথে সাথেই এই শর্ত false হয়ে যায় এবং ফজরের শর্তই (উপরে) দখল
+      // নেয় — কোনো ওভারল্যাপ থাকে না।
       return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'start': lastThird, 'end': pt.fajr};
     }
     // বাকি সময়টুকু (এশার পর, তাহাজ্জুদ শুরুর আগ পর্যন্ত)

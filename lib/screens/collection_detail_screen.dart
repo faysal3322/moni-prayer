@@ -1386,10 +1386,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     // "সব শোনো" নিরবচ্ছিন্নভাবে চলতে থাকে।
     if (itemType == 'custom') {
       final filePath = item['custom_file_path'] as String?;
-      setState(() {
-        _audioBusy = true;
-        _playingItemId = itemId;
-      });
+      if (mounted) {
+        setState(() {
+          _audioBusy = true;
+          _playingItemId = itemId;
+        });
+      }
       _scrollToPlayingItem(itemId);
       if (filePath == null || !await File(filePath).exists()) {
         // ফিক্স: আগে এখানে "if (mounted)" গার্ড থাকায় ব্যবহারকারী স্ক্রিন
@@ -1450,10 +1452,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final sura = item['sura'] as int;
     final aya = item['aya'] as int;
 
-    setState(() {
-      _audioBusy = true;
-      _playingItemId = itemId;
-    });
+    if (mounted) {
+      setState(() {
+        _audioBusy = true;
+        _playingItemId = itemId;
+      });
+    }
     _scrollToPlayingItem(itemId);
 
     try {

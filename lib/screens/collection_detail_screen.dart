@@ -1358,16 +1358,22 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       });
       _scrollToPlayingItem(itemId);
       if (filePath == null || !await File(filePath).exists()) {
+        // ফিক্স: আগে এখানে "if (mounted)" গার্ড থাকায় ব্যবহারকারী স্ক্রিন
+        // থেকে বেরিয়ে গেলে (back চাপলে) চেইন এখানেই থেমে যেত — পরের
+        // আইটেমে আর যাওয়া হতো না, কারণ পুরো ব্লকটাই mounted না হলে স্কিপ
+        // হয়ে যেত। এখন UI আপডেট (setState) শুধু mounted থাকলে হয়, কিন্তু
+        // পরের আইটেমে যাওয়ার সিদ্ধান্তটা mounted অবস্থা নির্বিশেষে নেওয়া
+        // হচ্ছে, যাতে ব্যাকগ্রাউন্ডেও প্লেব্যাক চলতে থাকে।
         if (mounted) {
           setState(() {
             _audioBusy = false;
             _playingItemId = null;
           });
-          if (chainNext && _sequencePlaying) {
-            _playNextInSequence(item, groupPassStart: groupPassStart);
-          } else {
-            setState(() { _sequencePlaying = false; _sequencePaused = false; });
-          }
+        }
+        if (chainNext && _sequencePlaying) {
+          _playNextInSequence(item, groupPassStart: groupPassStart);
+        } else if (mounted) {
+          setState(() { _sequencePlaying = false; _sequencePaused = false; });
         }
         return;
       }
@@ -1375,10 +1381,11 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         await QuranAudioHelper.playCustomAudio(
           filePath: filePath,
           onComplete: () {
-            if (!mounted) return;
+            // ফিক্স: mounted না হলেও (স্ক্রিন থেকে বের হয়ে গেলেও) চেইন
+            // চালিয়ে যাওয়া হচ্ছে — নিচের মন্তব্য দ্রষ্টব্য।
             if (chainNext && _sequencePlaying) {
               _playNextInSequence(item, groupPassStart: groupPassStart);
-            } else {
+            } else if (mounted) {
               setState(() {
                 _playingItemId = null;
                 _sequencePlaying = false;
@@ -1390,17 +1397,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         );
       } catch (e) {
         debugPrint('COLLECTION CUSTOM AUDIO PLAY ERROR ($filePath): $e');
-        if (mounted) {
-          if (chainNext && _sequencePlaying) {
-            _playNextInSequence(item, groupPassStart: groupPassStart);
-          } else {
-            setState(() {
-              _playingItemId = null;
-              _sequencePlaying = false;
-              _sequencePaused = false;
-              _currentRepeatIndex = 0;
-            });
-          }
+        if (chainNext && _sequencePlaying) {
+          _playNextInSequence(item, groupPassStart: groupPassStart);
+        } else if (mounted) {
+          setState(() {
+            _playingItemId = null;
+            _sequencePlaying = false;
+            _sequencePaused = false;
+            _currentRepeatIndex = 0;
+          });
         }
       } finally {
         if (mounted) setState(() => _audioBusy = false);
@@ -1426,14 +1431,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             _audioBusy = false;
             _playingItemId = null;
           });
-          // ফিক্স: ডাটাবেসে অডিও তথ্য না পাওয়া গেলেও আগে চুপচাপ থেমে
-          // যেত। "সব শোনো" চলাকালীন এখন এই আয়াতটা স্কিপ করে পরেরটায়
-          // যাওয়া হয়, যাতে একটা আয়াতের সমস্যায় পুরো সিকোয়েন্স না আটকায়।
-          if (chainNext && _sequencePlaying) {
-            _playNextInSequence(item, groupPassStart: groupPassStart);
-          } else {
-            setState(() { _sequencePlaying = false; _sequencePaused = false; });
-          }
+        }
+        // ফিক্স: ডাটাবেসে অডিও তথ্য না পাওয়া গেলেও আগে চুপচাপ থেমে
+        // যেত। "সব শোনো" চলাকালীন এখন এই আয়াতটা স্কিপ করে পরেরটায়
+        // যাওয়া হয়, যাতে একটা আয়াতের সমস্যায় পুরো সিকোয়েন্স না আটকায়।
+        // mounted না হলেও (স্ক্রিন থেকে বের হয়ে গেলেও) এই সিদ্ধান্ত
+        // নেওয়া হচ্ছে, যাতে ব্যাকগ্রাউন্ডে চেইন থেমে না যায়।
+        if (chainNext && _sequencePlaying) {
+          _playNextInSequence(item, groupPassStart: groupPassStart);
+        } else if (mounted) {
+          setState(() { _sequencePlaying = false; _sequencePaused = false; });
         }
         return;
       }
@@ -1442,11 +1449,19 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         surahAudioUrl: surahAudio['audio_url'] as String,
         startMs: segment['timestamp_from_ms'] as int,
         endMs: segment['timestamp_to_ms'] as int,
+        suraName: (_ayaCache[itemId]?['suraName'] as String?) ?? _suraNameFor(sura),
+        ayaNumber: aya,
         onComplete: () {
-          if (!mounted) return;
+          // ফিক্স: এটাই মূল বাগ ছিল — আগে এখানে "if (!mounted) return;"
+          // থাকায় ব্যবহারকারী স্ক্রিন থেকে বেরিয়ে গেলে (back বাটনে চাপলে)
+          // চলমান আয়াত শেষ হওয়ার পর আর কোনো পরের আয়াত/সূরা চলত না —
+          // চেইন এখানেই নিঃশব্দে থেমে যেত, যদিও নোটিফিকেশন/মিনি-প্লেয়ার
+          // তখনও চলমান দেখাত (বা কিছুই দেখাত না)। এখন mounted অবস্থা
+          // নির্বিশেষে পরের আইটেমে যাওয়ার সিদ্ধান্ত নেওয়া হচ্ছে — শুধু
+          // UI আপডেট (setState) mounted থাকলেই হয়।
           if (chainNext && _sequencePlaying) {
             _playNextInSequence(item, groupPassStart: groupPassStart);
-          } else {
+          } else if (mounted) {
             setState(() {
               _playingItemId = null;
               _sequencePlaying = false;
@@ -1468,17 +1483,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       // exception ধরে "সব শোনো" মোডে থাকলে পরের আয়াতে move করা হয়,
       // যাতে একটা আয়াতের নেটওয়ার্ক সমস্যায় পুরো সিকোয়েন্স না থামে।
       debugPrint('COLLECTION PLAY ERROR (sura $sura, aya $aya): $e');
-      if (mounted) {
-        if (chainNext && _sequencePlaying) {
-          _playNextInSequence(item, groupPassStart: groupPassStart);
-        } else {
-          setState(() {
-            _playingItemId = null;
-            _sequencePlaying = false;
-            _sequencePaused = false;
-            _currentRepeatIndex = 0;
-          });
-        }
+      if (chainNext && _sequencePlaying) {
+        _playNextInSequence(item, groupPassStart: groupPassStart);
+      } else if (mounted) {
+        setState(() {
+          _playingItemId = null;
+          _sequencePlaying = false;
+          _sequencePaused = false;
+          _currentRepeatIndex = 0;
+        });
       }
     } finally {
       if (mounted) setState(() => _audioBusy = false);
@@ -1496,13 +1509,22 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   ///     "সূরা ফাতিহা ৭ বার" মানে পুরো সূরা ৭ বার, প্রতিটা আয়াত একবার
   ///     করেই প্রতি পাসে)। সব রিপিট শেষ হলে বা এটা কোনো গ্রুপের অংশ না
   ///     হলে, কালেকশনের পরবর্তী আইটেমে (_items-এর ক্রম অনুযায়ী) যায়।
+  /// mounted থাকলেই setState কল করে — ব্যাকগ্রাউন্ডে চেইন চলতে থাকা অবস্থায়
+  /// (ব্যবহারকারী স্ক্রিন থেকে বেরিয়ে গেলে) UI স্টেট আপডেট করার দরকার নেই,
+  /// কিন্তু unmounted অবস্থায় সরাসরি setState() কল করলে Flutter exception
+  /// ছোঁড়ে — এই wrapper সেটা নিরাপদে এড়ায় প্লেব্যাক চেইন থামিয়ে না দিয়েই।
+  void _safeSetState(VoidCallback fn) {
+    if (mounted) setState(fn);
+  }
+
   void _playNextInSequence(Map<String, dynamic> justFinishedItem, {int? groupPassStart}) {
     final justFinishedItemId = justFinishedItem['id'] as int;
     final repeatCount = (justFinishedItem['repeat_count'] as int?) ?? 1;
 
     if (groupPassStart == null && _currentRepeatIndex + 1 < repeatCount) {
       // একক আয়াতের নিজস্ব repeat বাকি আছে — একই আয়াত আবার।
-      setState(() => _currentRepeatIndex++);
+      _currentRepeatIndex++;
+      _safeSetState(() {});
       _playItem(justFinishedItem, chainNext: true);
       return;
     }
@@ -1522,7 +1544,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       // গ্রুপের শেষ আয়াত শেষ হলো — পুরো গ্রুপ আবার শুরু করতে হবে কিনা
       // দেখা হচ্ছে (group-level repeat)।
       if (_currentRepeatIndex + 1 < repeatCount) {
-        setState(() => _currentRepeatIndex++);
+        _currentRepeatIndex++;
+        _safeSetState(() {});
         final firstItem = _items.firstWhere((it) => it['id'] == groupPassStart, orElse: () => justFinishedItem);
         _playItem(firstItem, chainNext: true, groupPassStart: groupPassStart);
         return;
@@ -1530,15 +1553,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
 
     // এই আইটেম/গ্রুপের সব রিপিট শেষ — কালেকশনের সরাসরি পরের আইটেমে যাওয়া।
-    setState(() => _currentRepeatIndex = 0);
+    _currentRepeatIndex = 0;
+    _safeSetState(() {});
     final currentIndex = _items.indexWhere((it) => it['id'] == justFinishedItemId);
     if (currentIndex < 0 || currentIndex + 1 >= _items.length) {
       // কালেকশনের শেষ আইটেম শেষ হয়ে গেছে।
-      setState(() {
-        _playingItemId = null;
-        _sequencePlaying = false;
-        _sequencePaused = false;
-      });
+      _playingItemId = null;
+      _sequencePlaying = false;
+      _sequencePaused = false;
+      _safeSetState(() {});
       return;
     }
     final nextItem = _items[currentIndex + 1];

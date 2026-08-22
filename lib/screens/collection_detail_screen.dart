@@ -915,24 +915,65 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       _RepeatStepperButton(
                         icon: Icons.remove,
                         enabled: repeatCount > 1,
-                        onTap: () => setSheetState(() => repeatCount = (repeatCount - 1).clamp(1, 99)),
+                        onTap: () => setSheetState(() => repeatCount = (repeatCount - 1).clamp(1, 999)),
                       ),
-                      Container(
-                        width: 56,
-                        alignment: Alignment.center,
-                        child: Text(
-                          widget.lang.toLocalNum(repeatCount),
-                          style: const TextStyle(
-                            color: AppTheme.gold,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                      GestureDetector(
+                        onTap: () async {
+                          final ctrl = TextEditingController(text: repeatCount.toString());
+                          final entered = await showDialog<String>(
+                            context: sheetContext,
+                            builder: (dialogContext) => AlertDialog(
+                              backgroundColor: AppTheme.cardBg,
+                              title: Text(
+                                isBn ? 'কতবার পড়া হবে লিখুন' : 'Enter repeat count',
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+                              ),
+                              content: TextField(
+                                controller: ctrl,
+                                autofocus: true,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: AppTheme.gold, fontSize: 20),
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: Text(isBn ? 'বাতিল' : 'Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, ctrl.text),
+                                  child: Text(isBn ? 'ঠিক আছে' : 'OK'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (entered != null) {
+                            final parsed = int.tryParse(entered.trim());
+                            if (parsed != null) {
+                              setSheetState(() => repeatCount = parsed.clamp(1, 999));
+                            }
+                          }
+                        },
+                        child: Container(
+                          width: 56,
+                          alignment: Alignment.center,
+                          child: Text(
+                            widget.lang.toLocalNum(repeatCount),
+                            style: const TextStyle(
+                              color: AppTheme.gold,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ),
                       _RepeatStepperButton(
                         icon: Icons.add,
-                        enabled: repeatCount < 99,
-                        onTap: () => setSheetState(() => repeatCount = (repeatCount + 1).clamp(1, 99)),
+                        enabled: repeatCount < 999,
+                        onTap: () => setSheetState(() => repeatCount = (repeatCount + 1).clamp(1, 999)),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -971,6 +1012,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                   title,
                                   pickedCustomAudioPath!,
                                   afterItemId: insertAfterId,
+                                  repeatCount: repeatCount,
                                 );
                                 if (context.mounted) Navigator.pop(sheetContext);
                                 _load();

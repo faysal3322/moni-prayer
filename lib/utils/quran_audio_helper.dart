@@ -138,6 +138,18 @@ class QuranAudioHelper {
   static Stream<Duration>? get positionStream => _handler?.player.positionStream;
   static Duration? get currentDuration => _handler?.player.duration;
   static Duration get currentPosition => _handler?.player.position ?? Duration.zero;
+
+  /// নোটিফিকেশনের "পরের/আগের সূরা" বাটন চাপলে UI-স্তরে (PageView সোয়াইপ/
+  /// নতুন সূরা লোড) কী করতে হবে তা রেজিস্টার করে। সূরার স্ক্রিন
+  /// initState-এ এটা কল করে, dispose-এ null বসিয়ে আনরেজিস্টার করে।
+  static Future<void> setSurahNavCallbacks({
+    void Function()? onNext,
+    void Function()? onPrevious,
+  }) async {
+    final handler = await _ensureHandler();
+    handler.onRequestNextSurah = onNext;
+    handler.onRequestPreviousSurah = onPrevious;
+  }
   static Future<void> seekTo(Duration position) async {
     await _handler?.player.seek(position);
   }

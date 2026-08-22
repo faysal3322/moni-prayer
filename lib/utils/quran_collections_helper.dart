@@ -308,6 +308,7 @@ class QuranCollectionsHelper {
     String title,
     String filePath, {
     int? afterItemId,
+    int repeatCount = 1,
   }) async {
     final db = await database;
 
@@ -334,7 +335,7 @@ class QuranCollectionsHelper {
       'aya': null,
       'sort_order': -1,
       'group_key': null,
-      'repeat_count': 1,
+      'repeat_count': repeatCount,
       'item_type': 'custom',
       'custom_title': title,
       'custom_file_path': filePath,

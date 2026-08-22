@@ -60,11 +60,20 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   int? _currentSuraNumber;
   String _currentSuraName = '';
 
+  // নোটিফিকেশন থেকে "পরের/আগের সূরা" বাটন চাপলে UI-স্তরের নেভিগেশন
+  // (PageView পাল্টানো, নতুন সূরার ফাইল লোড করা) কল করতে হয় — সেটা এই
+  // handler-এর দায়িত্ব না, তাই স্ক্রিন এখানে callback রেজিস্টার করে।
+  void Function()? onRequestNextSurah;
+  void Function()? onRequestPreviousSurah;
+
   /// audio_service-কে জানায় এখন কোন সূরা/আয়াত চলছে, যা থেকে সিস্টেম
   /// নোটিফিকেশন (এবং lock screen media control) তার টাইটেল/সাবটাইটেল
   /// বানায় — অন্য অনেক কুরআন অ্যাপে যেমন দেখা যায় ("Al-Baqara — Verse 2"
   /// লেখা, পাশে play/pause/rewind/close বাটন)। আগে [mediaItem] কখনো
   /// আপডেট করা হতো না, তাই নোটিফিকেশনে কোনো সূরা/আয়াত তথ্যই দেখাত না।
+  /// ফিক্স: আগে duration সেট করা হতো না, তাই নোটিফিকেশনে সবসময় সময়
+  /// 00:00/00:00 দেখাত (সিস্টেম UI duration না জানলে progress bar/সময়
+  /// দেখাতে পারে না)। এখন player.duration থেকে প্রকৃত দৈর্ঘ্য পাঠানো হয়।
   void _publishMediaItem(int ayaIndex, int ayaNumber) {
     if (_currentSuraNumber == null) return;
     final subtitle = ayaIndex >= 0 ? 'Verse $ayaNumber' : 'Bismillah';
@@ -76,6 +85,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       title: _currentSuraName,
       artist: subtitle,
       album: 'Al-Quran',
+      duration: player.duration,
     ));
   }
 
@@ -84,15 +94,22 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     // notification's play/pause icon and lock-screen controls stay in sync.
     player.playbackEventStream.listen((event) {
       playbackState.add(playbackState.value.copyWith(
+        // নোটিফিকেশনের বাটন সাজানো: আগের সূরা, আগের আয়াত, প্লে/পজ,
+        // পরের আয়াত, পরের সূরা — মাঝখানে প্লে/পজ, দুই পাশে আয়াত
+        // skip, তার বাইরে সূরা skip।
         controls: [
+          MediaControl.skipToPrevious,
           MediaControl.rewind,
           if (player.playing) MediaControl.pause else MediaControl.play,
-          MediaControl.stop,
+          MediaControl.fastForward,
+          MediaControl.skipToNext,
         ],
         systemActions: const {
           MediaAction.seek,
           MediaAction.play,
           MediaAction.pause,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
         },
         playing: player.playing,
         processingState: const {
@@ -104,8 +121,47 @@ class QuranPlaybackHandler extends BaseAudioHandler {
         }[player.processingState]!,
         updatePosition: player.position,
       ));
+      // duration লোড হওয়ার সাথে সাথে (audio source ready হলে) mediaItem
+      // আপডেট করা হচ্ছে, নাহলে প্রথমবার _publishMediaItem কল হওয়ার সময়
+      // player.duration এখনো null থাকতে পারে (audio তখনো buffering)।
+      if (_currentSuraNumber != null && player.duration != null) {
+        final current = mediaItem.valueOrNull;
+        if (current != null && current.duration != player.duration) {
+          mediaItem.add(current.copyWith(duration: player.duration));
+        }
+      }
     });
   }
+
+  /// নোটিফিকেশনে "পরের আয়াত" বাটন — বর্তমান সূরার মধ্যেই পরের আয়াতে যায়।
+  @override
+  Future<void> skipToNext() async {
+    final segments = _currentSegments;
+    if (segments != null && _currentAyaIndex + 1 < segments.length) {
+      await seekToIndex(_currentAyaIndex + 1);
+    } else {
+      onRequestNextSurah?.call();
+    }
+  }
+
+  /// নোটিফিকেশনে "আগের আয়াত" বাটন — বর্তমান সূরার মধ্যেই আগের আয়াতে যায়।
+  @override
+  Future<void> skipToPrevious() async {
+    final segments = _currentSegments;
+    if (segments != null && _currentAyaIndex - 1 >= 0) {
+      await seekToIndex(_currentAyaIndex - 1);
+    } else {
+      onRequestPreviousSurah?.call();
+    }
+  }
+
+  /// নোটিফিকেশনে "পরের সূরা" বাটন (fastForward হিসেবে ম্যাপ করা)।
+  @override
+  Future<void> fastForward() async => onRequestNextSurah?.call();
+
+  /// নোটিফিকেশনে "আগের সূরা" বাটন (rewind হিসেবে ম্যাপ করা)।
+  @override
+  Future<void> rewind() async => onRequestPreviousSurah?.call();
 
   /// Loads [filePath] and starts playback at [startPosition]. Used for both
   /// single-ayah seeks and full-surah playback — the caller decides what to

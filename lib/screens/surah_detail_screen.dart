@@ -47,11 +47,18 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     WidgetsBinding.instance.addObserver(this);
     _currentSura = widget.sura;
     _pageController = PageController(initialPage: _currentSura - 1);
+    // নোটিফিকেশনের "পরের/আগের সূরা" বাটন চাপলে যাতে এই স্ক্রিনের
+    // PageView-ই নেভিগেট করে (এবং নতুন সূরা অটো-প্লে শুরু করে)।
+    QuranAudioHelper.setSurahNavCallbacks(
+      onNext: () => _goToNextSurahAndAutoPlay(_currentSura + 1),
+      onPrevious: () => _goToNextSurahAndAutoPlay(_currentSura - 1),
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    QuranAudioHelper.setSurahNavCallbacks(onNext: null, onPrevious: null);
     _pageController.dispose();
     super.dispose();
   }
@@ -85,7 +92,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   /// একটা সূরার সম্পূর্ণ-প্লেব্যাক শেষ হলে পরের সূরার পেজে সরানো হয় এবং
   /// সেই পেজ অটো-প্লে দিয়ে খোলার জন্য চিহ্নিত করা হয়।
   void _goToNextSurahAndAutoPlay(int nextSura) {
-    if (!mounted || nextSura > _totalSurahs) return;
+    if (!mounted || nextSura < 1 || nextSura > _totalSurahs) return;
     setState(() => _autoPlayTargetSura = nextSura);
     _pageController.animateToPage(
       nextSura - 1,

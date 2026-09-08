@@ -1919,7 +1919,16 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
   }
 
   String _fmtRange(DateTime start, DateTime end) {
-    return '${PrayerTimeHelper.formatTime(start)} - ${PrayerTimeHelper.formatTime(end)}';
+    return '${_fmtNoPeriod(start)} - ${_fmtNoPeriod(end)}';
+  }
+
+  // ফিক্স: ক্লক কার্ডের ওয়াক্ত-রেঞ্জ ও নিচের সূর্যোদয়/সূর্যাস্ত/সেহরি/ইফতার
+  // সময়ে am/pm না দেখানোর জন্য — শুধু ঘণ্টা:মিনিট দেখায়। 24-ঘণ্টা ফরম্যাট
+  // চালু থাকলে PrayerTimeHelper.formatTime এমনিতেই am/pm ছাড়া রিটার্ন করে,
+  // তাই এখানে শুধু 12-ঘণ্টা ফরম্যাটের " am"/" pm" অংশটুকু বাদ দেওয়া হচ্ছে।
+  String _fmtNoPeriod(DateTime t) {
+    final full = PrayerTimeHelper.formatTime(t);
+    return full.replaceAll(RegExp(r'\s*(am|pm|AM|PM)\s*$'), '');
   }
 
   // বর্তমানে সক্রিয় ওয়াক্ত (ফরজ বা নফল) নির্ণয় করে নাম, রেঞ্জ ও বাকি সময় ফেরত দেয়
@@ -2268,14 +2277,14 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _bottomTimeCol('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise',
-                    sunrise != null ? PrayerTimeHelper.formatTime(sunrise) : '--', sunColor),
-                _bottomTimeCol('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset',
-                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', sunColor),
-                _bottomTimeCol('🍽️', isBn ? 'সেহরি শেষ' : 'Sehri',
-                    fajr != null ? PrayerTimeHelper.formatTime(fajr) : '--', fastColor),
-                _bottomTimeCol('🌙', isBn ? 'ইফতার শুরু' : 'Iftar',
-                    maghrib != null ? PrayerTimeHelper.formatTime(maghrib) : '--', fastColor),
+                _bottomTimeCol(isBn ? 'সূর্যোদয়' : 'Sunrise',
+                    sunrise != null ? _fmtNoPeriod(sunrise) : '--', sunColor),
+                _bottomTimeCol(isBn ? 'সূর্যাস্ত' : 'Sunset',
+                    maghrib != null ? _fmtNoPeriod(maghrib) : '--', sunColor),
+                _bottomTimeCol(isBn ? 'সেহরি শেষ' : 'Sehri',
+                    fajr != null ? _fmtNoPeriod(fajr) : '--', fastColor),
+                _bottomTimeCol(isBn ? 'ইফতার শুরু' : 'Iftar',
+                    maghrib != null ? _fmtNoPeriod(maghrib) : '--', fastColor),
               ],
             ),
           ),
@@ -2354,20 +2363,13 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _bottomTimeCol(String icon, String label, String time, Color color) {
+  Widget _bottomTimeCol(String label, String time, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 15)),
-            const SizedBox(width: 3),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700),
-            ),
-          ],
+        Text(
+          label,
+          style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 2),
         Text(

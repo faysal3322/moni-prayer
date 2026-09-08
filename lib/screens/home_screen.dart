@@ -1931,19 +1931,12 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     return full.replaceAll(RegExp(r'\s*(am|pm|AM|PM)\s*$'), '');
   }
 
-  // দিন/রাতের দৈর্ঘ্য "ঘণ্টা ঘ মিনিট মি" আকারে দেখানোর জন্য — যেমন "১২ ঘ ৪০ মি"।
+  // দিন/রাতের দৈর্ঘ্য "ঘণ্টা:মিনিট" আকারে (যেমন "13:40") — সবসময় ইংরেজি
+  // সংখ্যায়, ভাষা নির্বিশেষে (ব্যবহারকারীর অনুরোধ অনুযায়ী)।
   String _fmtDuration(Duration d) {
-    final isBn = widget.lang.isBn;
-    final h = d.inHours;
-    final m = d.inMinutes % 60;
-    if (isBn) {
-      String toBn(int n) => n.toString().split('').map((c) {
-            const map = {'0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'};
-            return map[c] ?? c;
-          }).join();
-      return '${toBn(h)}ঘ ${toBn(m)}মি';
-    }
-    return '${h}h ${m}m';
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    return '$h:$m';
   }
 
   // বর্তমানে সক্রিয় ওয়াক্ত (ফরজ বা নফল) নির্ণয় করে নাম, রেঞ্জ ও বাকি সময় ফেরত দেয়
@@ -2312,7 +2305,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
 
           // ══ একদম নিচে: সেহরি, সূর্যোদয়, সূর্যাস্ত, ইফতার, দিন, রাত ══
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -2420,14 +2413,14 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         children: [
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+            style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
           const SizedBox(height: 2),
           Text(
             time,
-            style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),

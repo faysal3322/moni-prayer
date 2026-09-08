@@ -115,6 +115,18 @@ class QuranAudioHelper {
   static QuranPlaybackHandler? _handler;
   static Future<QuranPlaybackHandler>? _initFuture;
 
+  // ফিক্স: "আমার কোরআন" কালেকশনে প্রতিটা আয়াতের আগে playAya() কল হতো,
+  // এবং প্রতিবারই await file.exists() (ডিস্ক I/O) ও
+  // await QuranPrefs.getPlaybackSpeed() (SharedPreferences ডিস্ক I/O) —
+  // এই দুটো async কল করত, প্লেয়ারে seek করার ঠিক আগে। playFullSurah-এ
+  // (সূরা স্ক্রিনে ব্যবহৃত) এই দুটো একবারই করা হয় পুরো সূরার জন্য, তাই
+  // সেখানে মসৃণ লাগে। কালেকশনে একই সূরার একাধিক আয়াত পরপর চাললে এই
+  // ছোট ছোট I/O ল্যাগই প্রতিটা আয়াতের মাঝে "থমকে যাওয়া" অনুভূতি তৈরি
+  // করছিল। এখন একই সূরার জন্য এই দুটো কাজ একবার হলেই cache হয়ে যায়,
+  // পরের আয়াতগুলোতে সরাসরি seek/play হয় — কোনো I/O gap ছাড়াই।
+  static int? _lastPlayAyaSura;
+  static double? _lastAppliedSpeed;
+
   /// অ্যাপের যেকোনো স্ক্রিন থেকে শোনা যায় এমন গ্লোবাল "এখন কী তেলাওয়াত
   /// হচ্ছে" স্টেট। কুরআন স্ক্রিনের বাইরে থাকা অবস্থাতেও একটা ছোট
   /// ব্যানার/মিনি-প্লেয়ার দেখানোর জন্য এটা ব্যবহার হয়, যেটাতে চাপলে সরাসরি
@@ -165,6 +177,7 @@ class QuranAudioHelper {
   static Future<void> setSpeed(double speed) async {
     await _handler?.player.setSpeed(speed);
     await QuranPrefs.setPlaybackSpeed(speed);
+    _lastAppliedSpeed = speed;
   }
 
   /// Initializes the audio_service session (once, lazily) and returns the
@@ -584,12 +597,21 @@ class QuranAudioHelper {
     void Function()? onComplete,
   }) async {
     final handler = await _ensureHandler();
-    // আগে সেভ করা স্পিড (যদি 1.0 না হয়) প্রয়োগ করা হচ্ছে, যাতে ব্যবহারকারী
-    // একবার স্পিড বদলালে তা পরবর্তী প্রতিটা প্লে-তেও বজায় থাকে।
-    await handler.player.setSpeed(await QuranPrefs.getPlaybackSpeed());
+    // আগে প্রতিটা আয়াতে setSpeed() ও file.exists() কল হতো (ডিস্ক I/O),
+    // এখন শুধু প্রথমবার (বা সূরা/স্পিড বদলালে) — একই সূরার পরপর আয়াতে এই
+    // চেকগুলো এড়িয়ে যাওয়া হয়, যাতে কোনো I/O gap ছাড়াই পরের আয়াতে যাওয়া
+    // যায় (নিচের মন্তব্য দ্রষ্টব্য)।
+    if (_lastAppliedSpeed == null) {
+      final savedSpeed = await QuranPrefs.getPlaybackSpeed();
+      await handler.player.setSpeed(savedSpeed);
+      _lastAppliedSpeed = savedSpeed;
+    }
     final file = await _localSurahFile(sura);
-    if (!await file.exists()) {
-      await downloadSurah(sura, surahAudioUrl);
+    if (_lastPlayAyaSura != sura) {
+      if (!await file.exists()) {
+        await downloadSurah(sura, surahAudioUrl);
+      }
+      _lastPlayAyaSura = sura;
     }
     if (suraName != null) {
       nowPlaying.value = QuranNowPlaying(

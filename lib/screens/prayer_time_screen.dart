@@ -53,6 +53,25 @@ class _PrayerTimeScreenState extends State<PrayerTimeScreen> {
 
   String _fmt(DateTime t) => PrayerTimeHelper.formatTime(t);
 
+  // ফিক্স: আগে টেবিলে "পরবর্তী নামাজ" (_nextPrayer) হাইলাইট হতো, যেমন
+  // এখন যোহরের ওয়াক্ত চললেও আসর (পরের ওয়াক্ত) হাইলাইট দেখাত — বিভ্রান্তিকর।
+  // এখন বর্তমান সময় অনুযায়ী কোন ওয়াক্ত এখন চলছে তা বের করে সেটাই
+  // হাইলাইট করা হয়।
+  String? _currentPrayerKey() {
+    final t = _times;
+    if (t == null) return null;
+    final now = DateTime.now();
+    if (now.isAfter(t.fajr) && now.isBefore(t.sunrise)) return 'fajr';
+    if (now.isAfter(t.dhuhr) && now.isBefore(t.asr)) return 'dhuhr';
+    if (now.isAfter(t.asr) && now.isBefore(t.maghrib)) return 'asr';
+    if (now.isAfter(t.maghrib) && now.isBefore(t.isha)) return 'maghrib';
+    if (_sunnahTimes != null &&
+        (now.isAfter(t.isha) || now.isBefore(t.fajr))) {
+      return 'isha';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = widget.lang;
@@ -186,28 +205,36 @@ class _PrayerTimeScreenState extends State<PrayerTimeScreen> {
           // Rows
           ...prayers.asMap().entries.map((entry) {
             final p = entry.value;
-            final isNext = _nextPrayer == p['key'];
+            final isCurrent = _currentPrayerKey() == p['key'];
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isNext ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
+                color: isCurrent ? AppTheme.primary.withOpacity(0.3) : Colors.transparent,
                 border: const Border(bottom: BorderSide(color: Colors.white10)),
               ),
               child: Row(
                 children: [
                   Expanded(child: Row(children: [
-                    if (isNext) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 18),
+                    if (isCurrent) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 22),
                     Text(_name(p['key'] as String), style: TextStyle(
-                      color: isNext ? AppTheme.gold : AppTheme.textPrimary,
-                      fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 15,
+                      color: isCurrent ? AppTheme.gold : AppTheme.textPrimary,
+                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                      fontSize: isCurrent ? 18 : 15,
                     )),
                   ])),
                   SizedBox(width: 90, child: Text(_fmt(p['start'] as DateTime),
-                    style: TextStyle(color: isNext ? AppTheme.accent : AppTheme.textPrimary, fontSize: 14),
+                    style: TextStyle(
+                      color: isCurrent ? AppTheme.accent : AppTheme.textPrimary,
+                      fontSize: isCurrent ? 16 : 14,
+                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                    ),
                     textAlign: TextAlign.center)),
                   SizedBox(width: 90, child: Text(_fmt(p['end'] as DateTime),
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    style: TextStyle(
+                      color: isCurrent ? AppTheme.accent : AppTheme.textSecondary,
+                      fontSize: isCurrent ? 16 : 14,
+                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                    ),
                     textAlign: TextAlign.center)),
                 ],
               ),

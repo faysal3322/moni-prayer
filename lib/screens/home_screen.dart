@@ -1931,6 +1931,21 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     return full.replaceAll(RegExp(r'\s*(am|pm|AM|PM)\s*$'), '');
   }
 
+  // দিন/রাতের দৈর্ঘ্য "ঘণ্টা ঘ মিনিট মি" আকারে দেখানোর জন্য — যেমন "১২ ঘ ৪০ মি"।
+  String _fmtDuration(Duration d) {
+    final isBn = widget.lang.isBn;
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    if (isBn) {
+      String toBn(int n) => n.toString().split('').map((c) {
+            const map = {'0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'};
+            return map[c] ?? c;
+          }).join();
+      return '${toBn(h)}ঘ ${toBn(m)}মি';
+    }
+    return '${h}h ${m}m';
+  }
+
   // বর্তমানে সক্রিয় ওয়াক্ত (ফরজ বা নফল) নির্ণয় করে নাম, রেঞ্জ ও বাকি সময় ফেরত দেয়
   Map<String, dynamic>? _currentWaqt(bool isBn) {
     final pt = widget.prayerTimes;
@@ -2038,16 +2053,38 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // সময় (সবসময় ইংরেজি/আরবি সংখ্যায় দেখানো হয়)
-                Text(
-                  DateHelper.formatTime12(now, bangla: false),
-                  style: const TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                    letterSpacing: 1,
-                  ),
-                ),
+                // সময় (সবসময় ইংরেজি/আরবি সংখ্যায় দেখানো হয়) — am/pm অংশ
+                // ছোট আকারে দেখানো হচ্ছে, মূল সময়ের তুলনায়।
+                Builder(builder: (context) {
+                  final timeStr = DateHelper.formatTime12(now, bangla: false);
+                  final match = RegExp(r'^(.*?)(\s*(am|pm|AM|PM))?$').firstMatch(timeStr);
+                  final mainPart = match?.group(1) ?? timeStr;
+                  final periodPart = match?.group(3) ?? '';
+                  return RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: mainPart,
+                          style: const TextStyle(
+                            fontSize: 44,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        if (periodPart.isNotEmpty)
+                          TextSpan(
+                            text: ' $periodPart',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
                 // লোকেশন — ছোট জায়গা উপরে, বড় জায়গা নিচে
                 Flexible(
                   child: Column(
@@ -2153,6 +2190,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               children: [
                 // বাম: বর্তমান নামাজের ওয়াক্ত
                 Expanded(
+                  flex: 4,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2211,6 +2249,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
 
                 // ডান: দিনের নাম + তারিখসমূহ
                 Expanded(
+                  flex: 5,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -2271,20 +2310,30 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
           Divider(color: Colors.white.withOpacity(0.1), thickness: 1, indent: 16, endIndent: 16),
           const SizedBox(height: 6),
 
-          // ══ একদম নিচে: সূর্যোদয়, সূর্যাস্ত, সেহরি, ইফতার ══
+          // ══ একদম নিচে: সেহরি, সূর্যোদয়, সূর্যাস্ত, ইফতার, দিন, রাত ══
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _bottomTimeCol(isBn ? 'সাহরি শেষ' : 'Sehri',
+                    fajr != null ? _fmtNoPeriod(fajr) : '--', fastColor),
                 _bottomTimeCol(isBn ? 'সূর্যোদয়' : 'Sunrise',
                     sunrise != null ? _fmtNoPeriod(sunrise) : '--', sunColor),
                 _bottomTimeCol(isBn ? 'সূর্যাস্ত' : 'Sunset',
                     maghrib != null ? _fmtNoPeriod(maghrib) : '--', sunColor),
-                _bottomTimeCol(isBn ? 'সেহরি শেষ' : 'Sehri',
-                    fajr != null ? _fmtNoPeriod(fajr) : '--', fastColor),
-                _bottomTimeCol(isBn ? 'ইফতার শুরু' : 'Iftar',
+                _bottomTimeCol(isBn ? 'ইফতার' : 'Iftar',
                     maghrib != null ? _fmtNoPeriod(maghrib) : '--', fastColor),
+                // দিন = সাহরি শেষ (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত সময়ের
+                // ব্যবধান। রাত = বাকি ২৪ ঘণ্টা (দিন বাদ দিয়ে)।
+                _bottomTimeCol(isBn ? 'দিন' : 'Day',
+                    (fajr != null && maghrib != null)
+                        ? _fmtDuration(maghrib.difference(fajr))
+                        : '--', Colors.white),
+                _bottomTimeCol(isBn ? 'রাত' : 'Night',
+                    (fajr != null && maghrib != null)
+                        ? _fmtDuration(const Duration(hours: 24) - maghrib.difference(fajr))
+                        : '--', Colors.white70),
               ],
             ),
           ),
@@ -2364,19 +2413,26 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
   }
 
   Widget _bottomTimeCol(String label, String time, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          time,
-          style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold),
-        ),
-      ],
+    return Flexible(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            time,
+            style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2436,6 +2492,18 @@ class _PrayerTimesCard extends StatelessWidget {
 
   String _fmt(DateTime t) => PrayerTimeHelper.formatTime(t);
 
+  // ফিক্স: আগে nextPrayer (পরবর্তী ওয়াক্ত) হাইলাইট হতো — এখন যোহর চললেও
+  // আসর হাইলাইট দেখাত। এখন বর্তমানে চলমান ওয়াক্তই হাইলাইট হবে।
+  String? _currentPrayerKey(PrayerTimes t) {
+    final now = DateTime.now();
+    if (now.isAfter(t.fajr) && now.isBefore(t.sunrise)) return 'fajr';
+    if (now.isAfter(t.dhuhr) && now.isBefore(t.asr)) return 'dhuhr';
+    if (now.isAfter(t.asr) && now.isBefore(t.maghrib)) return 'asr';
+    if (now.isAfter(t.maghrib) && now.isBefore(t.isha)) return 'maghrib';
+    if (now.isAfter(t.isha) || now.isBefore(t.fajr)) return 'isha';
+    return null;
+  }
+
   String _prayerName(String key) {
     switch (key) {
       case 'fajr': return lang.fajr;
@@ -2463,7 +2531,6 @@ class _PrayerTimesCard extends StatelessWidget {
         'end': sunnahTimes?.lastThirdOfTheNight ?? prayerTimes!.fajr},
     ];
 
-    final nextPrayer = PrayerTimeHelper.getNextPrayer(prayerTimes!);
 
     return Container(
       decoration: BoxDecoration(
@@ -2491,27 +2558,35 @@ class _PrayerTimesCard extends StatelessWidget {
           ]),
         ),
         ...prayers.map((p) {
-          final isNext = nextPrayer == p['key'];
+          final isCurrent = _currentPrayerKey(prayerTimes!) == p['key'];
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isNext ? AppTheme.primary.withOpacity(0.2) : Colors.transparent,
+              color: isCurrent ? AppTheme.primary.withOpacity(0.3) : Colors.transparent,
               border: const Border(bottom: BorderSide(color: Colors.white10)),
             ),
             child: Row(children: [
               Expanded(child: Row(children: [
-                if (isNext) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 20),
+                if (isCurrent) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 24),
                 Text(_prayerName(p['key'] as String), style: TextStyle(
-                  color: isNext ? AppTheme.gold : AppTheme.textPrimary,
-                  fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 16,
+                  color: isCurrent ? AppTheme.gold : AppTheme.textPrimary,
+                  fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                  fontSize: isCurrent ? 19 : 16,
                 )),
               ])),
               SizedBox(width: 85, child: Text(_fmt(p['start'] as DateTime),
-                  style: TextStyle(color: isNext ? AppTheme.accent : AppTheme.textPrimary, fontSize: 14),
+                  style: TextStyle(
+                    color: isCurrent ? AppTheme.accent : AppTheme.textPrimary,
+                    fontSize: isCurrent ? 16 : 14,
+                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                  ),
                   textAlign: TextAlign.center)),
               SizedBox(width: 85, child: Text(_fmt(p['end'] as DateTime),
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  style: TextStyle(
+                    color: isCurrent ? AppTheme.accent : AppTheme.textSecondary,
+                    fontSize: isCurrent ? 16 : 14,
+                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
+                  ),
                   textAlign: TextAlign.center)),
             ]),
           );

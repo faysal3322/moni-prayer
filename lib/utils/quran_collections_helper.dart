@@ -519,6 +519,19 @@ class QuranCollectionsHelper {
     );
   }
 
+  /// একক আইটেমের (কোনো group_key নেই — যেমন একক আয়াত বা কাস্টম দোয়া)
+  /// repeat_count আপডেট করে, যাতে ব্যবহারকারী একটা সংরক্ষিত আয়াত/দোয়া
+  /// কতবার শুনবেন তা পরবর্তীতে বদলাতে পারেন।
+  static Future<void> updateItemRepeatCount(int itemId, int repeatCount) async {
+    final db = await database;
+    await db.update(
+      'collection_items',
+      {'repeat_count': repeatCount},
+      where: 'id = ?',
+      whereArgs: [itemId],
+    );
+  }
+
   /// Persist a new item order after drag-and-drop reordering.
   /// `orderedItemIds` must contain every item id of the collection, in the new order.
   static Future<void> reorderItems(List<int> orderedItemIds) async {

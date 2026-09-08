@@ -1241,20 +1241,65 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               _RepeatStepperButton(
                 icon: Icons.remove,
                 enabled: value > 1,
-                onTap: () => setDialogState(() => value = (value - 1).clamp(1, 99)),
+                onTap: () => setDialogState(() => value = (value - 1).clamp(1, 999)),
               ),
-              Container(
-                width: 60,
-                alignment: Alignment.center,
-                child: Text(
-                  widget.lang.toLocalNum(value),
-                  style: const TextStyle(color: AppTheme.gold, fontSize: 22, fontWeight: FontWeight.bold),
+              // ফিক্স: সংখ্যায় ট্যাপ করলে হাতে টাইপ করা যায় — ১০০ বার
+              // পড়তে হলে যোগ বাটনে ৯৯ বার চাপার বদলে সরাসরি লেখা যাবে।
+              InkWell(
+                onTap: () async {
+                  final ctrl = TextEditingController(text: value.toString());
+                  final entered = await showDialog<String>(
+                    context: dialogContext,
+                    builder: (innerContext) => AlertDialog(
+                      backgroundColor: AppTheme.cardBg,
+                      title: Text(
+                        isBn ? 'কতবার পড়া হবে লিখুন' : 'Enter repeat count',
+                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+                      ),
+                      content: TextField(
+                        controller: ctrl,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppTheme.gold, fontSize: 20),
+                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(innerContext),
+                          child: Text(isBn ? 'বাতিল' : 'Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(innerContext, ctrl.text),
+                          child: Text(isBn ? 'ঠিক আছে' : 'OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (entered != null) {
+                    final parsed = int.tryParse(entered.trim());
+                    if (parsed != null) {
+                      setDialogState(() => value = parsed.clamp(1, 999));
+                    }
+                  }
+                },
+                child: Container(
+                  width: 60,
+                  alignment: Alignment.center,
+                  child: Text(
+                    widget.lang.toLocalNum(value),
+                    style: const TextStyle(
+                      color: AppTheme.gold,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
               ),
               _RepeatStepperButton(
                 icon: Icons.add,
-                enabled: value < 99,
-                onTap: () => setDialogState(() => value = (value + 1).clamp(1, 99)),
+                enabled: value < 999,
+                onTap: () => setDialogState(() => value = (value + 1).clamp(1, 999)),
               ),
             ],
           ),
@@ -1274,12 +1319,17 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     if (result != null && result != group['repeatCount']) {
       final groupKey = group['groupKey'] as String?;
       if (groupKey != null) {
-        // group_key null মানে এই একক আইটেম (যেমন কাস্টম অডিও) কখনো কোনো
-        // গ্রুপের অংশ ছিল না — এখানে পৌঁছানোর কথাই না (UI বাটনটাই
-        // repeatCount > 1 না হলে দেখায় না), তবু নিরাপত্তার জন্য গার্ড।
         await QuranCollectionsHelper.updateGroupRepeatCount(groupKey, result);
-        _load();
+      } else {
+        // group_key নেই — একক আয়াত বা কাস্টম দোয়া আইটেম, item id দিয়ে
+        // সরাসরি আপডেট করা হচ্ছে।
+        final items = group['items'] as List<dynamic>?;
+        if (items != null && items.isNotEmpty) {
+          final itemId = (items.first as Map<String, dynamic>)['id'] as int;
+          await QuranCollectionsHelper.updateItemRepeatCount(itemId, result);
+        }
       }
+      _load();
     }
   }
 
@@ -2153,27 +2203,25 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (repeatCount > 1) ...[
-                      const SizedBox(width: 6),
-                      InkWell(
-                        onTap: () => _showEditRepeatDialog({
-                          'groupKey': item['group_key'],
-                          'repeatCount': repeatCount,
-                          'items': [item],
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppTheme.gold.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
-                            style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => _showEditRepeatDialog({
+                        'groupKey': item['group_key'],
+                        'repeatCount': repeatCount,
+                        'items': [item],
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.gold.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
+                          style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -2329,27 +2377,25 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (repeatCount > 1) ...[
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () => _showEditRepeatDialog({
-                      'groupKey': item['group_key'],
-                      'repeatCount': repeatCount,
-                      'items': [item],
-                    }),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.gold.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
-                        style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: () => _showEditRepeatDialog({
+                    'groupKey': item['group_key'],
+                    'repeatCount': repeatCount,
+                    'items': [item],
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gold.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isBn ? '${widget.lang.toLocalNum(repeatCount)}× ' : '${repeatCount}x',
+                      style: const TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),

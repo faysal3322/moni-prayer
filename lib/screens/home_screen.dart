@@ -2020,7 +2020,6 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     final sunrise = pt?.sunrise;
     final maghrib = pt?.maghrib;
     final fajr = pt?.fajr;
-    const sunColor = AppTheme.gold;
     const fastColor = Color(0xFF00E676);
     final isFriday = now.weekday == DateTime.friday;
     final locParts = _splitLocation(widget.locationName);
@@ -2277,7 +2276,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: AppTheme.gold,
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2309,12 +2308,12 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _bottomTimeCol(isBn ? 'সাহরি শেষ' : 'Sehri',
+                _bottomTimeCol(isBn ? 'সাহরি' : 'Sehri',
                     fajr != null ? _fmtNoPeriod(fajr) : '--', fastColor),
                 _bottomTimeCol(isBn ? 'সূর্যোদয়' : 'Sunrise',
-                    sunrise != null ? _fmtNoPeriod(sunrise) : '--', sunColor),
+                    sunrise != null ? _fmtNoPeriod(sunrise) : '--', fastColor),
                 _bottomTimeCol(isBn ? 'সূর্যাস্ত' : 'Sunset',
-                    maghrib != null ? _fmtNoPeriod(maghrib) : '--', sunColor),
+                    maghrib != null ? _fmtNoPeriod(maghrib) : '--', fastColor),
                 _bottomTimeCol(isBn ? 'ইফতার' : 'Iftar',
                     maghrib != null ? _fmtNoPeriod(maghrib) : '--', fastColor),
                 // দিন = সাহরি শেষ (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত সময়ের
@@ -2322,11 +2321,11 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                 _bottomTimeCol(isBn ? 'দিন' : 'Day',
                     (fajr != null && maghrib != null)
                         ? _fmtDuration(maghrib.difference(fajr))
-                        : '--', Colors.white),
+                        : '--', fastColor),
                 _bottomTimeCol(isBn ? 'রাত' : 'Night',
                     (fajr != null && maghrib != null)
                         ? _fmtDuration(const Duration(hours: 24) - maghrib.difference(fajr))
-                        : '--', Colors.white70),
+                        : '--', fastColor),
               ],
             ),
           ),

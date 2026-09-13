@@ -17,6 +17,118 @@ import java.util.Locale
 
 class PrayerWidgetProvider : AppWidgetProvider() {
 
+    // Dart-এর _currentWidgetWaqt()-এর হুবহু (এক-এক লজিক মেলানো) Kotlin
+    // সংস্করণ। এখানে কোনো astronomical calculation করা হচ্ছে না (সেটা
+    // এখনো Dart-এর adhan প্যাকেজেই থাকছে, সবচেয়ে নির্ভরযোগ্য অংশ যেন
+    // অপরিবর্তিত থাকে) — শুধু Dart থেকে আগেই পাঠানো আজ/গতকাল/আগামীকালের
+    // ওয়াক্তের epoch millisecond গুলো নিয়ে "এখন কোন ওয়াক্ত, কত বাকি"
+    // হিসাব করা হচ্ছে। এটাই মূল ফিক্স: এই হিসাবটা Dart isolate সচল
+    // থাকা-না-থাকার উপর নির্ভর করে না, তাই Flutter অ্যাপ বন্ধ থাকলেও
+    // AlarmManager প্রতি মিনিটে জেগে এই ফাংশন কল করে widget আপডেট করতে
+    // পারে।
+    data class WaqtInfo(
+        val name: String,
+        val range: String,
+        val endMs: Long
+    )
+
+    private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = ms
+        val h = cal.get(Calendar.HOUR_OF_DAY)
+        val m = cal.get(Calendar.MINUTE)
+        return if (is24Hour) {
+            String.format(Locale.US, "%02d:%02d", h, m)
+        } else {
+            val h12 = if (h % 12 == 0) 12 else h % 12
+            String.format(Locale.US, "%d:%02d", h12, m)
+        }
+    }
+
+    private fun computeWaqtInfo(
+        prefs: android.content.SharedPreferences,
+        nowMs: Long,
+        isBn: Boolean,
+        is24Hour: Boolean
+    ): WaqtInfo? {
+        // কোনো ওয়াক্তের timestamp prefs-এ না থাকলে (Dart এখনো একবারও
+        // চালু হয়নি) হিসাব করা সম্ভব না — null রিটার্ন, caller খালি
+        // দেখাবে (crash না করে)।
+        if (!prefs.contains("widget_fajr_ms")) return null
+
+        val fajr = prefs.getLong("widget_fajr_ms", 0L)
+        val sunrise = prefs.getLong("widget_sunrise_ms", 0L)
+        val dhuhr = prefs.getLong("widget_dhuhr_ms", 0L)
+        val asr = prefs.getLong("widget_asr_ms", 0L)
+        val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
+        val isha = prefs.getLong("widget_isha_ms", 0L)
+        val tomorrowFajr = prefs.getLong("widget_tomorrow_fajr_ms", 0L)
+        val yMaghribStored = prefs.getLong("widget_y_maghrib_ms", 0L)
+        val yIshaStored = prefs.getLong("widget_y_isha_ms", 0L)
+
+        val isPastMidnightBeforeFajr = nowMs < fajr
+        val hasYesterday = yMaghribStored > 0L && yIshaStored > 0L
+        val nightMaghrib = if (isPastMidnightBeforeFajr && hasYesterday) yMaghribStored else maghrib
+        val nightIsha = if (isPastMidnightBeforeFajr && hasYesterday) yIshaStored else isha
+
+        val nextFajr = if (fajr > nightMaghrib) fajr else (if (tomorrowFajr > 0L) tomorrowFajr else fajr + 24L * 3600L * 1000L)
+        val nightDuration = nextFajr - nightMaghrib
+        val lastThird = nightMaghrib + (nightDuration * 2L / 3L)
+        val ishaaEnd = lastThird
+
+        val ishraqStart = sunrise + 15L * 60L * 1000L
+        val ishraqEnd = sunrise + 45L * 60L * 1000L
+        val chashtStart = sunrise + 45L * 60L * 1000L
+        val zawalStart = dhuhr - 5L * 60L * 1000L
+        val zawalEnd = dhuhr
+
+        fun range(s: Long, e: Long) = "${fmtNoAmPm(s, is24Hour)} - ${fmtNoAmPm(e, is24Hour)}"
+
+        return when {
+            nowMs > fajr && nowMs < sunrise ->
+                WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise)
+            nowMs >= sunrise && nowMs < ishraqStart ->
+                WaqtInfo(if (isBn) "সূর্যোদয়" else "Sunrise", range(sunrise, ishraqStart), ishraqStart)
+            nowMs > ishraqStart && nowMs < ishraqEnd ->
+                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(ishraqStart, ishraqEnd), ishraqEnd)
+            nowMs > chashtStart && nowMs < zawalStart ->
+                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, zawalStart), zawalStart)
+            nowMs > zawalStart && nowMs < zawalEnd ->
+                WaqtInfo(if (isBn) "যাওয়াল" else "Zawal", range(zawalStart, zawalEnd), zawalEnd)
+            nowMs > dhuhr && nowMs < asr ->
+                WaqtInfo(if (isBn) "যোহর" else "Dhuhr", range(dhuhr, asr), asr)
+            nowMs > asr && nowMs < maghrib ->
+                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, maghrib), maghrib)
+            nowMs > maghrib && nowMs < isha ->
+                WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha)
+            nowMs > isha && nowMs < ishaaEnd ->
+                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd)
+            nowMs > nightIsha && nowMs >= lastThird && nowMs < fajr ->
+                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), fajr)
+            nowMs > nightIsha ->
+                WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird)
+            else -> null
+        }
+    }
+
+    // prayer_time_screen.dart-এর "সালাতের নিষিদ্ধ সময়" এর সাথে হুবহু মেলানো
+    // হিসাব — Dart-এর _updateHomeWidget()-এ থাকা isForbidden লজিকের মতোই।
+    private fun computeIsForbidden(prefs: android.content.SharedPreferences, nowMs: Long): Boolean {
+        if (!prefs.contains("widget_sunrise_ms")) return false
+        val sunrise = prefs.getLong("widget_sunrise_ms", 0L)
+        val dhuhr = prefs.getLong("widget_dhuhr_ms", 0L)
+        val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
+
+        val fajrForbiddenEnd = sunrise + 15L * 60L * 1000L
+        val zawalStart = dhuhr - 5L * 60L * 1000L
+        val zawalEnd = dhuhr + 5L * 60L * 1000L
+        val asrForbiddenStart = maghrib - 15L * 60L * 1000L
+
+        return (nowMs > sunrise && nowMs < fajrForbiddenEnd) ||
+               (nowMs > zawalStart && nowMs < zawalEnd) ||
+               (nowMs > asrForbiddenStart && nowMs < maghrib)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -128,20 +240,53 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
         views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
         views.setTextViewText(R.id.widget_bangla_date, prefs.getString("widget_bangla_date", "") ?: "")
-        views.setTextViewText(R.id.widget_waqt_name, prefs.getString("widget_waqt_name", "") ?: "")
-        views.setTextViewText(R.id.widget_waqt_range, prefs.getString("widget_waqt_range", "") ?: "")
-        views.setTextViewText(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
-        views.setTextViewText(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
+
+        // ══ মূল ফিক্স ══
+        // আগে widget_waqt_name/range/remaining সরাসরি prefs থেকে
+        // (Dart-এর হিসাব করা বাসি স্ট্রিং) পড়া হতো — Flutter অ্যাপ বন্ধ
+        // থাকলে এগুলো কখনো আপডেট হতো না। এখন এই মিনিট-ভিত্তিক অংশটুকু
+        // এখানেই, Kotlin-এ, বর্তমান সময় (now) আর Dart-এর পাঠানো স্থির
+        // ওয়াক্ত-timestamp দিয়ে হিসাব হচ্ছে — তাই AlarmManager প্রতি
+        // মিনিটে জাগলেই (Flutter চালু থাকুক বা না থাকুক) এই তথ্য
+        // সবসময় বর্তমান মুহূর্তের সাথে মিলে যাবে, কখনো পিছিয়ে থাকবে না।
+        // মিনিট-ভিত্তিক অংশটুকু (কোন ওয়াক্ত, কত বাকি) এখানেই হিসাব হচ্ছে
+        // — উপরে ঘোষিত isBn/is24Hour ব্যবহার করে।
+        val waqtInfo = computeWaqtInfo(prefs, now.timeInMillis, isBn, is24Hour)
+        if (waqtInfo != null) {
+            views.setTextViewText(R.id.widget_waqt_name, waqtInfo.name)
+            views.setTextViewText(R.id.widget_waqt_range, waqtInfo.range)
+            views.setTextViewText(R.id.widget_waqt_remaining_label, if (isBn) "ওয়াক্ত বাকি" else "Time left")
+            val diffMs = waqtInfo.endMs - now.timeInMillis
+            val remaining = if (diffMs < 0) "" else {
+                val totalMinutes = diffMs / 60000L
+                val hh = (totalMinutes / 60).toString().padStart(2, '0')
+                val mm = (totalMinutes % 60).toString().padStart(2, '0')
+                "$hh:$mm"
+            }
+            views.setTextViewText(R.id.widget_waqt_remaining_value, remaining)
+        } else {
+            // Dart এখনো একবারও চালু হয়ে prefs না লিখলে (একদম প্রথমবার
+            // ইনস্টলের পর), fallback হিসেবে Dart-এর পাঠানো পুরনো স্ট্রিং
+            // (যদি থাকে) দেখানো হচ্ছে — যাতে widget একদম খালি না থাকে।
+            views.setTextViewText(R.id.widget_waqt_name, prefs.getString("widget_waqt_name", "") ?: "")
+            views.setTextViewText(R.id.widget_waqt_range, prefs.getString("widget_waqt_range", "") ?: "")
+            views.setTextViewText(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
+            views.setTextViewText(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
+        }
         views.setTextViewText(R.id.widget_sunrise, prefs.getString("widget_sunrise", "") ?: "")
         views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
 
-        // নামাজের নিষিদ্ধ সময়ে (Dart পাশ থেকে গণনা করা widget_is_forbidden
-        // flag অনুযায়ী) পুরো widget-এর ব্যাকগ্রাউন্ড লাল করে দেওয়া হয়,
-        // অন্যথায় স্বাভাবিক (ডিফল্ট) ব্যাকগ্রাউন্ড থাকে।
+        // নামাজের নিষিদ্ধ সময়ে (এখন এখানেই, Kotlin-এ, computeIsForbidden
+        // দিয়ে সরাসরি হিসাব করা হয় — prefs-এর বাসি widget_is_forbidden
+        // ফ্ল্যাগের উপর আর নির্ভর করে না) পুরো widget-এর ব্যাকগ্রাউন্ড
+        // লাল করে দেওয়া হয়, অন্যথায় স্বাভাবিক (ডিফল্ট) ব্যাকগ্রাউন্ড থাকে।
         try {
-            val isForbidden = prefs.getBoolean("widget_is_forbidden", false)
+            val isForbidden = if (prefs.contains("widget_sunrise_ms"))
+                computeIsForbidden(prefs, now.timeInMillis)
+            else
+                prefs.getBoolean("widget_is_forbidden", false)
             val bgRes = if (isForbidden) R.drawable.widget_background_forbidden else R.drawable.widget_background
             views.setInt(R.id.widget_root, "setBackgroundResource", bgRes)
         } catch (e: Exception) { }

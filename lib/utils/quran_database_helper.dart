@@ -12,7 +12,13 @@ class QuranDatabaseHelper {
   // Bump this whenever assets/database/quran.sqlite is replaced with new content
   // (e.g. new translation tables) so existing installs re-copy the updated file
   // instead of keeping a stale cached copy in writable storage.
-  static const int _assetDbVersion = 3;
+  //
+  // v4: quran_audio_surah.audio_url এর সব ১১৪টা এন্ট্রি পরিবর্তন করা হয়েছে —
+  // আগে audio-cdn.tarteel.ai থেকে সার্ভ হতো, এখন quran.com-এর সাথে যুক্ত
+  // download.quranicaudio.com CDN (Saad al-Ghamdi, ফোল্ডার sa3d_al-ghaamidi)
+  // থেকে সার্ভ হয়। এই বাম্প ছাড়া আগে থেকে ইনস্টল থাকা অ্যাপগুলো পুরনো,
+  // ক্যাশড quran.sqlite কপিই ব্যবহার করতে থাকত, নতুন URL কখনো দেখতই না।
+  static const int _assetDbVersion = 4;
 
   static Future<Database> get database async {
     _db ??= await _initDatabase();
@@ -179,6 +185,14 @@ class QuranDatabaseHelper {
     final db = await database;
     final rows = await db.query('quran_audio_surah', where: 'sura = ?', whereArgs: [sura]);
     return rows.isNotEmpty ? rows.first : null;
+  }
+
+  /// Fetch every surah's audio URL row (all 114) — used by the "download
+  /// full Quran for offline" settings option to know every file it needs
+  /// to fetch, without calling getSurahAudio() 114 times separately.
+  static Future<List<Map<String, dynamic>>> getAllSurahAudio() async {
+    final db = await database;
+    return db.query('quran_audio_surah', orderBy: 'sura ASC');
   }
 
   /// Fetch the start/end timestamp (in ms, within the surah's mp3 file) for

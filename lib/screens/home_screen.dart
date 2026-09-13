@@ -421,6 +421,51 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (forbidden): $e'); }
 
     try {
+      // ══ মূল ফিক্স: Flutter অ্যাপ বন্ধ/kill থাকলেও widget প্রতি মিনিটে
+      // সঠিক ওয়াক্ত/বাকি-সময়/নিষিদ্ধ-সময় দেখাতে পারার জন্য ══
+      //
+      // আগে widget_waqt_name ইত্যাদি "মুহূর্তের হিসাব করা ফলাফল" (যেমন
+      // "এশা", "০১:২০") হিসেবে সেভ হতো — Dart-এই (_currentWidgetWaqt)
+      // হিসাব করে স্ট্রিং বানিয়ে পাঠানো হতো। সমস্যা হলো, এই হিসাব শুধু
+      // তখনই আপডেট হতো যখন Flutter অ্যাপের UI/isolate সচল থাকত (প্রতি
+      // ৩০ সেকেন্ডে _autoQazaTimer দিয়ে)। অ্যাপ বন্ধ করে দিলে Android
+      // এই Dart isolate-কে kill করে দেয়, এই টাইমার আর চলে না, ফলে
+      // prefs-এ পুরনো ("এশা") স্ট্রিংই আটকে থাকত — অথচ নেটিভ
+      // PrayerWidgetProvider.kt প্রতি মিনিটে (AlarmManager দিয়ে, Android
+      // নিজেই জাগায়, Dart প্রয়োজন হয় না) ঠিকই জেগে উঠত এবং widget
+      // রিফ্রেশ করত, কিন্তু prefs থেকে সেই বাসি স্ট্রিংটাই আবার দেখাত।
+      //
+      // এখন থেকে (এখানে) শুধু আজ ও গতকালের ওয়াক্তগুলোর প্রকৃত
+      // millisecondsSinceEpoch (fajr/sunrise/dhuhr/asr/maghrib/isha,
+      // দুই দিনের) prefs-এ পাঠানো হচ্ছে — এই সংখ্যাগুলো সারাদিনে একবারই
+      // বদলায়, তাই Flutter দিনে অন্তত একবার চালু হলেই এগুলো টাটকা থাকে।
+      // "কোন ওয়াক্ত এখন চলছে", "কত বাকি", "নিষিদ্ধ সময় কিনা" — এই
+      // মিনিট-ভিত্তিক হিসাবগুলো এখন PrayerWidgetProvider.kt নিজেই করে
+      // (computeWaqtInfo দেখুন), যা প্রতি মিনিটে Android-এর AlarmManager
+      // দিয়ে জাগে — Flutter চালু থাকুক বা বন্ধ থাকুক, এই হিসাব সবসময়
+      // বর্তমান ঘড়ির সময় অনুযায়ীই তাজা থাকবে, কখনো পিছিয়ে/আটকে থাকবে না।
+      final yesterday = _yesterdayPrayerTimes;
+      await HomeWidget.saveWidgetData('widget_fajr_ms', pt.fajr.millisecondsSinceEpoch);
+      await HomeWidget.saveWidgetData('widget_sunrise_ms', pt.sunrise.millisecondsSinceEpoch);
+      await HomeWidget.saveWidgetData('widget_dhuhr_ms', pt.dhuhr.millisecondsSinceEpoch);
+      await HomeWidget.saveWidgetData('widget_asr_ms', pt.asr.millisecondsSinceEpoch);
+      await HomeWidget.saveWidgetData('widget_maghrib_ms', pt.maghrib.millisecondsSinceEpoch);
+      await HomeWidget.saveWidgetData('widget_isha_ms', pt.isha.millisecondsSinceEpoch);
+      if (yesterday != null) {
+        await HomeWidget.saveWidgetData('widget_y_maghrib_ms', yesterday.maghrib.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_y_isha_ms', yesterday.isha.millisecondsSinceEpoch);
+      }
+      // পরের দিনের ফজরও লাগবে (তাহাজ্জুদ/রাতের হিসাবের upper bound হিসেবে)।
+      try {
+        final tomorrow = await PrayerTimeHelper.getPrayerTimes(
+          date: DateTime.now().add(const Duration(days: 1)),
+        );
+        await HomeWidget.saveWidgetData('widget_tomorrow_fajr_ms', tomorrow.fajr.millisecondsSinceEpoch);
+      } catch (_) {}
+      await HomeWidget.saveWidgetData('widget_is_bn', isBn);
+    } catch (e) { debugPrint('WIDGET ERROR (waqt timestamps): $e'); }
+
+    try {
       // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়
       // (widget প্রতি মিনিটে আপডেট হয় বলে সেকেন্ড না দেখিয়ে HH:MM আকারে দেখানো হচ্ছে)
       // লেবেল ("ওয়াক্ত বাকি") ও সময় (HH:MM) আলাদা key-তে পাঠানো হয়, যাতে

@@ -835,4 +835,42 @@ class QuranAudioHelper {
     await downloadSurah(sura, audioUrl);
     onDone?.call();
   }
+
+  /// সেটিংস স্ক্রিনের "সম্পূর্ণ কোরআন অফলাইন ডাউনলোড করুন" বাটনের জন্য —
+  /// ১ থেকে ১১৪ পর্যন্ত প্রতিটা সূরার mp3 একে একে ডাউনলোড করে (যেগুলো
+  /// আগে থেকেই ডাউনলোড করা আছে সেগুলো downloadSurah নিজেই স্কিপ করে দেয়)।
+  ///
+  /// [onProgress] প্রতিটা সূরা শেষ হওয়ার পর কল হয় (completed count, total
+  /// count, current sura number) — UI এতে একটা প্রোগ্রেস বার/টেক্সট দেখাতে
+  /// পারে। একটা সূরা ডাউনলোডে ব্যর্থ হলে (নেটওয়ার্ক সমস্যা ইত্যাদি) পুরো
+  /// প্রসেস থেমে না গিয়ে সেই সূরাটা বাদ দিয়ে পরেরটায় এগিয়ে যায়, এবং
+  /// ব্যর্থ হওয়া সূরাগুলোর নম্বর রিটার্ন করে যাতে ব্যবহারকারীকে জানানো
+  /// যায় কোনগুলো আবার চেষ্টা করা দরকার।
+  ///
+  /// একটা [cancelToken]-এর মতো কাজ করার জন্য [shouldContinue] চেক করা
+  /// হয় প্রতিটা সূরা ডাউনলোডের আগে — false রিটার্ন করলে বাকি সূরাগুলো
+  /// আর ডাউনলোড হয় না (ব্যবহারকারী "বাতিল" চাপলে ব্যবহারের জন্য)।
+  static Future<List<int>> downloadAllSurahs({
+    required Future<List<Map<String, dynamic>>> Function() getAllSurahAudio,
+    void Function(int completed, int total, int currentSura)? onProgress,
+    bool Function()? shouldContinue,
+  }) async {
+    final allAudio = await getAllSurahAudio();
+    allAudio.sort((a, b) => (a['sura'] as int).compareTo(b['sura'] as int));
+    final total = allAudio.length;
+    final failed = <int>[];
+
+    for (var i = 0; i < allAudio.length; i++) {
+      if (shouldContinue != null && !shouldContinue()) break;
+      final sura = allAudio[i]['sura'] as int;
+      final url = allAudio[i]['audio_url'] as String;
+      try {
+        await downloadSurah(sura, url);
+      } catch (_) {
+        failed.add(sura);
+      }
+      onProgress?.call(i + 1, total, sura);
+    }
+    return failed;
+  }
 }

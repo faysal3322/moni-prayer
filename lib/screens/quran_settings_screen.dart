@@ -3,6 +3,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_prefs.dart';
 import '../utils/quran_audio_helper.dart';
+import '../utils/quran_database_helper.dart';
 
 class QuranSettingsScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -18,6 +19,11 @@ class _QuranSettingsScreenState extends State<QuranSettingsScreen> {
   bool _showTransliteration = false;
   double _fontSize = 28.0;
   bool _loading = true;
+
+  // "সম্পূর্ণ কোরআন অফলাইন ডাউনলোড করুন" চলাকালীন ব্যবহারকারীকে ডায়ালগ
+  // থেকে "বাতিল" চাপার সুযোগ দেওয়ার জন্য — true থাকলে downloadAllSurahs
+  // পরের সূরায় যাওয়ার আগে থেমে যায়।
+  bool _downloadCancelled = false;
 
   @override
   void initState() {
@@ -82,6 +88,123 @@ class _QuranSettingsScreenState extends State<QuranSettingsScreen> {
   Future<void> _onFontSizeChanged(double value) async {
     setState(() => _fontSize = value);
     await QuranPrefs.setFontSize(value);
+  }
+
+  /// "সম্পূর্ণ কোরআন অফলাইন ডাউনলোড করুন" চাপলে কল হয় — একটা প্রোগ্রেস
+  /// ডায়ালগ দেখিয়ে ব্যাকগ্রাউন্ডে ১ থেকে ১১৪ পর্যন্ত সব সূরা একে একে
+  /// ডাউনলোড করে। আগে থেকেই ডাউনলোড করা সূরাগুলো QuranAudioHelper নিজে
+  /// থেকেই স্কিপ করে দেয়, তাই দ্বিতীয়বার চাপলে শুধু বাকি থাকা সূরাগুলোই
+  /// ডাউনলোড হবে।
+  Future<void> _startDownloadAll() async {
+    final isBn = widget.lang.isBn;
+    _downloadCancelled = false;
+
+    final progress = ValueNotifier<({int completed, int total, int currentSura})>(
+      (completed: 0, total: 114, currentSura: 1),
+    );
+
+    // ডায়ালগটা একটা StatefulBuilder-বিহীন ValueListenableBuilder দিয়ে
+    // বানানো হয়েছে, যাতে প্রতিটা সূরা শেষ হওয়ার সাথে সাথে UI রিবিল্ড
+    // হয়ে যায় — কিন্তু পুরো স্ক্রিন না, শুধু ডায়ালগের ভেতরের টেক্সট/বার।
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ValueListenableBuilder(
+        valueListenable: progress,
+        builder: (context, value, _) {
+          final ratio = value.total == 0 ? 0.0 : value.completed / value.total;
+          return AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: Text(
+              isBn ? 'ডাউনলোড হচ্ছে...' : 'Downloading...',
+              style: const TextStyle(color: AppTheme.textPrimary),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isBn
+                      ? 'সূরা ${value.currentSura} (${value.completed}/${value.total})'
+                      : 'Surah ${value.currentSura} (${value.completed}/${value.total})',
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: ratio,
+                    minHeight: 8,
+                    backgroundColor: AppTheme.primary.withOpacity(0.15),
+                    color: AppTheme.gold,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _downloadCancelled = true;
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(isBn ? 'বাতিল' : 'Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    List<int> failed = [];
+    try {
+      failed = await QuranAudioHelper.downloadAllSurahs(
+        getAllSurahAudio: QuranDatabaseHelper.getAllSurahAudio,
+        shouldContinue: () => !_downloadCancelled,
+        onProgress: (completed, total, currentSura) {
+          progress.value = (completed: completed, total: total, currentSura: currentSura);
+        },
+      );
+    } finally {
+      // ডাউনলোড শেষ হোক বা ব্যর্থ হোক, ডায়ালগ খোলা থাকলে বন্ধ করে দেওয়া
+      // হচ্ছে (ব্যবহারকারী নিজে "বাতিল" চেপে আগেই বন্ধ করে দিলে
+      // Navigator.pop আবার কল করা এড়াতে mounted/canPop চেক করা হচ্ছে)।
+      if (mounted && Navigator.of(context, rootNavigator: false).canPop() && !_downloadCancelled) {
+        Navigator.of(context).pop();
+      }
+    }
+
+    if (!mounted) return;
+
+    if (_downloadCancelled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isBn ? 'ডাউনলোড বাতিল করা হয়েছে' : 'Download cancelled'),
+          backgroundColor: AppTheme.cardBg,
+        ),
+      );
+      return;
+    }
+
+    if (failed.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isBn
+              ? 'সম্পূর্ণ কোরআন অফলাইনের জন্য ডাউনলোড হয়ে গেছে'
+              : 'Full Quran downloaded for offline use'),
+          backgroundColor: AppTheme.cardBg,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isBn
+              ? '${failed.length}টি সূরা ডাউনলোড ব্যর্থ হয়েছে (ইন্টারনেট চেক করে আবার চেষ্টা করুন)'
+              : '${failed.length} surah(s) failed to download (check your internet and try again)'),
+          backgroundColor: AppTheme.cardBg,
+        ),
+      );
+    }
   }
 
   @override
@@ -182,20 +305,11 @@ class _QuranSettingsScreenState extends State<QuranSettingsScreen> {
                       style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
-                      isBn ? 'শীঘ্রই আসছে' : 'Coming soon',
+                      isBn ? 'সব ১১৪টি সূরার তেলাওয়াত একসাথে ডাউনলোড করুন' : 'Download all 114 surahs at once',
                       style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(isBn
-                              ? 'অডিও ডাউনলোড ফিচার শীঘ্রই যুক্ত হবে'
-                              : 'Audio download feature coming soon'),
-                          backgroundColor: AppTheme.cardBg,
-                        ),
-                      );
-                    },
+                    onTap: _startDownloadAll,
                   ),
                 ),
 

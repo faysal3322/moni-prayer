@@ -62,16 +62,32 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val asr = prefs.getLong("widget_asr_ms", 0L)
         val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
         val isha = prefs.getLong("widget_isha_ms", 0L)
-        val tomorrowFajr = prefs.getLong("widget_tomorrow_fajr_ms", 0L)
         val yMaghribStored = prefs.getLong("widget_y_maghrib_ms", 0L)
         val yIshaStored = prefs.getLong("widget_y_isha_ms", 0L)
 
         val isPastMidnightBeforeFajr = nowMs < fajr
         val hasYesterday = yMaghribStored > 0L && yIshaStored > 0L
-        val nightMaghrib = if (isPastMidnightBeforeFajr && hasYesterday) yMaghribStored else maghrib
-        val nightIsha = if (isPastMidnightBeforeFajr && hasYesterday) yIshaStored else isha
 
-        val nextFajr = if (fajr > nightMaghrib) fajr else (if (tomorrowFajr > 0L) tomorrowFajr else fajr + 24L * 3600L * 1000L)
+        // ফিক্স: মধ্যরাতের পর কিন্তু ফজরের আগের সময়ে (isPastMidnightBeforeFajr
+        // == true) "রাত"/"তাহাজ্জুদ" ওয়াক্ত হিসাব করতে অবশ্যই *গতকালের*
+        // মাগরিব/এশা লাগবে। সেই ডেটা prefs-এ এখনো না থাকলে (Dart এখনো
+        // একবারও নতুন কোড দিয়ে সেভ করেনি, বা কোনো কারণে লেখা ব্যর্থ
+        // হয়েছে) আজকের মাগরিব/এশা দিয়ে ভুল হিসাব করার বদলে null
+        // রিটার্ন করা হচ্ছে — caller তখন Dart-এর পাঠানো (হয়তো কিছুটা
+        // বাসি কিন্তু অন্তত সঠিক দিনের) fallback স্ট্রিং দেখাবে, সম্পূর্ণ
+        // ভুল দিনের হিসাব থেকে অনেক ভালো।
+        if (isPastMidnightBeforeFajr && !hasYesterday) return null
+
+        val nightMaghrib = if (isPastMidnightBeforeFajr) yMaghribStored else maghrib
+        val nightIsha = if (isPastMidnightBeforeFajr) yIshaStored else isha
+
+        // Dart-এর _currentWidgetWaqt()-এর nextFajr লজিকের সাথে হুবহু
+        // মেলানো (pt.fajr.isAfter(nightMaghrib) ? pt.fajr : pt.fajr + 1day)
+        // — dedicated tomorrowFajr prefs ব্যবহার করা হচ্ছে না, কারণ Dart
+        // সাইডও তা করে না; দুই পাশের হিসাব ভিন্ন হয়ে গেলে সেটাই আসল বাগের
+        // উৎস হতে পারে (যেমন এই স্ক্রিনশটে দেখা "রাত ১২:৫৫ পার হয়ে গেছে"
+        // সমস্যা)।
+        val nextFajr = if (fajr > nightMaghrib) fajr else fajr + 24L * 3600L * 1000L
         val nightDuration = nextFajr - nightMaghrib
         val lastThird = nightMaghrib + (nightDuration * 2L / 3L)
         val ishaaEnd = lastThird

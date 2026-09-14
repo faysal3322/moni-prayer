@@ -294,6 +294,32 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
         views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
 
+        // ══ দিন / রাত — মূল অ্যাপের ClockCard-এর _bottomTimeCol-এর সাথে
+        // অভিন্ন সূত্র: দিন = সাহরি (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত
+        // ব্যবধান; রাত = বাকি ২৪ ঘণ্টা। widget_fajr_ms/widget_maghrib_ms
+        // আগে থেকেই (মিনিট-ভিত্তিক ওয়াক্ত হিসাবের জন্য) prefs-এ সেভ করা
+        // থাকে, তাই এখানে নতুন কোনো prefs key লাগেনি — একই সংখ্যা থেকে
+        // দিন/রাতের ব্যবধান বের করা হচ্ছে।
+        try {
+            if (prefs.contains("widget_fajr_ms") && prefs.contains("widget_maghrib_ms")) {
+                val fajrMs = prefs.getLong("widget_fajr_ms", 0L)
+                val maghribMs = prefs.getLong("widget_maghrib_ms", 0L)
+                val dayMs = maghribMs - fajrMs
+                val nightMs = 24L * 3600L * 1000L - dayMs
+                fun fmtDuration(ms: Long): String {
+                    val totalMinutes = ms / 60000L
+                    val hh = (totalMinutes / 60).toString().padStart(2, '0')
+                    val mm = (totalMinutes % 60).toString().padStart(2, '0')
+                    return "$hh:$mm"
+                }
+                views.setTextViewText(R.id.widget_day_duration, fmtDuration(dayMs))
+                views.setTextViewText(R.id.widget_night_duration, fmtDuration(nightMs))
+            } else {
+                views.setTextViewText(R.id.widget_day_duration, "")
+                views.setTextViewText(R.id.widget_night_duration, "")
+            }
+        } catch (e: Exception) { }
+
         // নামাজের নিষিদ্ধ সময়ে (এখন এখানেই, Kotlin-এ, computeIsForbidden
         // দিয়ে সরাসরি হিসাব করা হয় — prefs-এর বাসি widget_is_forbidden
         // ফ্ল্যাগের উপর আর নির্ভর করে না) পুরো widget-এর ব্যাকগ্রাউন্ড

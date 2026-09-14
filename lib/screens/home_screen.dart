@@ -2457,14 +2457,14 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         children: [
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700),
+            style: TextStyle(color: color, fontSize: 14.5, fontWeight: FontWeight.w700),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
           const SizedBox(height: 2),
           Text(
             time,
-            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),

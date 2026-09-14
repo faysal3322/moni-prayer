@@ -204,7 +204,7 @@
                 android:id="@+id/widget_sehri_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="সাহরি শেষ"
+                android:text="সাহরি"
                 android:textColor="#00E676"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -285,13 +285,73 @@
                 android:id="@+id/widget_iftar_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ইফতার শুরু"
+                android:text="ইফতার"
                 android:textColor="#00E676"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_iftar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#00E676"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- ══ দিন = সাহরি (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত সময়ের ব্যবধান।
+             রাত = বাকি ২৪ ঘণ্টা (দিন বাদ দিয়ে)। মূল অ্যাপের ClockCard-এর
+             _bottomTimeCol-এ যেভাবে "দিন"/"রাত" দেখানো হয় তার সাথে মিলিয়ে
+             widget-এও যোগ করা হলো — একই স্টাইল/ফন্ট সাইজ (14sp লেবেল,
+             16sp মান, #00E676, bold) অবিকল কপি করা হয়েছে যাতে ৬টা কলামই
+             একই রকম দেখায়। ══ -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_day_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="দিন"
+                android:textColor="#00E676"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_day_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#00E676"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_night_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="রাত"
+                android:textColor="#00E676"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_night_duration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""

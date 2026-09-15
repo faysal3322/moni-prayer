@@ -45,6 +45,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         }
     }
 
+    // computeIsForbidden()-এর fajrForbiddenEnd-এর সাথে অভিন্ন সূত্র —
+    // এক জায়গায় রাখা হলো যাতে দুই ফাংশনে ভিন্ন মান হয়ে না যায়।
+    private fun fajrForbiddenEnd(sunrise: Long) = sunrise + 15L * 60L * 1000L
+
     private fun computeWaqtInfo(
         prefs: android.content.SharedPreferences,
         nowMs: Long,
@@ -126,25 +130,49 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val ishraqEnd = sunrise + 45L * 60L * 1000L
         val chashtStart = sunrise + 45L * 60L * 1000L
         val zawalStart = dhuhr - 5L * 60L * 1000L
-        val zawalEnd = dhuhr
+
+        // ══ নিষিদ্ধ সময়ের তিনটা windows — computeIsForbidden()-এর সাথে
+        // হুবহু মেলানো (সূর্যোদয়-পরবর্তী ১৫ মিনিট, যাওয়াল দুহুরের ৫ মিনিট
+        // আগে থেকে ৫ মিনিট পর পর্যন্ত, এবং মাগরিবের ঠিক ১৫ মিনিট আগে
+        // থেকে মাগরিব পর্যন্ত)। এই তিন সময়ে waqt name এ "আসর"/"সূর্যোদয়"
+        // ইত্যাদির বদলে "নিষিদ্ধ সময় (...)" দেখানো হবে — উপরের রেফারেন্স
+        // widget-এর ধাঁচে।
+        val forbidden1End = fajrForbiddenEnd(sunrise)
+        val forbidden2Start = zawalStart
+        val forbidden2End = dhuhr + 5L * 60L * 1000L
+        val forbidden3Start = maghrib - 15L * 60L * 1000L
 
         fun range(s: Long, e: Long) = "${fmtNoAmPm(s, is24Hour)} - ${fmtNoAmPm(e, is24Hour)}"
 
         return when {
             nowMs > fajr && nowMs < sunrise ->
                 WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise)
-            nowMs >= sunrise && nowMs < ishraqStart ->
-                WaqtInfo(if (isBn) "সূর্যোদয়" else "Sunrise", range(sunrise, ishraqStart), ishraqStart)
-            nowMs > ishraqStart && nowMs < ishraqEnd ->
-                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(ishraqStart, ishraqEnd), ishraqEnd)
-            nowMs > chashtStart && nowMs < zawalStart ->
-                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, zawalStart), zawalStart)
-            nowMs > zawalStart && nowMs < zawalEnd ->
-                WaqtInfo(if (isBn) "যাওয়াল" else "Zawal", range(zawalStart, zawalEnd), zawalEnd)
-            nowMs > dhuhr && nowMs < asr ->
-                WaqtInfo(if (isBn) "যোহর" else "Dhuhr", range(dhuhr, asr), asr)
-            nowMs > asr && nowMs < maghrib ->
-                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, maghrib), maghrib)
+            // নিষিদ্ধ সময় ১: সূর্যোদয় থেকে পরবর্তী ১৫ মিনিট পর্যন্ত
+            nowMs >= sunrise && nowMs < forbidden1End ->
+                WaqtInfo(
+                    if (isBn) "নিষিদ্ধ সময় (সূর্যোদয়)" else "Forbidden time (Sunrise)",
+                    range(sunrise, forbidden1End), forbidden1End
+                )
+            nowMs >= forbidden1End && nowMs < ishraqEnd ->
+                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd)
+            nowMs > chashtStart && nowMs < forbidden2Start ->
+                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start)
+            // নিষিদ্ধ সময় ২: যাওয়াল — দুহুরের ৫ মিনিট আগে থেকে ৫ মিনিট পর পর্যন্ত
+            nowMs >= forbidden2Start && nowMs < forbidden2End ->
+                WaqtInfo(
+                    if (isBn) "নিষিদ্ধ সময় (যাওয়াল)" else "Forbidden time (Zawal)",
+                    range(forbidden2Start, forbidden2End), forbidden2End
+                )
+            nowMs >= forbidden2End && nowMs < asr ->
+                WaqtInfo(if (isBn) "যোহর" else "Dhuhr", range(forbidden2End, asr), asr)
+            // নিষিদ্ধ সময় ৩: মাগরিবের ঠিক ১৫ মিনিট আগে থেকে মাগরিব পর্যন্ত
+            nowMs >= forbidden3Start && nowMs < maghrib ->
+                WaqtInfo(
+                    if (isBn) "নিষিদ্ধ সময় (সূর্যাস্ত)" else "Forbidden time (Sunset)",
+                    range(forbidden3Start, maghrib), maghrib
+                )
+            nowMs > asr && nowMs < forbidden3Start ->
+                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, forbidden3Start), forbidden3Start)
             nowMs > maghrib && nowMs < isha ->
                 WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha)
             nowMs > isha && nowMs < ishaaEnd ->
@@ -165,7 +193,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val dhuhr = prefs.getLong("widget_dhuhr_ms", 0L)
         val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
 
-        val fajrForbiddenEnd = sunrise + 15L * 60L * 1000L
+        val fajrForbiddenEnd = fajrForbiddenEnd(sunrise)
         val zawalStart = dhuhr - 5L * 60L * 1000L
         val zawalEnd = dhuhr + 5L * 60L * 1000L
         val asrForbiddenStart = maghrib - 15L * 60L * 1000L

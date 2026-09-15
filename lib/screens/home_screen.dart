@@ -2234,9 +2234,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       Text(
                         waqt != null ? (waqt['name'] as String) : (isBn ? '—' : '—'),
                         style: const TextStyle(
-                          color: AppTheme.textPrimary,
+                          color: fastColor,
                           fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -2254,9 +2254,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         Text(
                           isBn ? 'ওয়াক্ত শেষ হতে বাকি' : 'Time remaining',
                           style: const TextStyle(
-                            color: Colors.white54,
+                            color: AppTheme.gold,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -2296,8 +2296,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 20,
-                          color: isFriday ? AppTheme.accent : Colors.white70,
-                          fontWeight: FontWeight.w700,
+                          color: isFriday ? AppTheme.accent : fastColor,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                         ),
                       ),

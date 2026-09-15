@@ -334,12 +334,12 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
       return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd), 'end': ishaaEnd};
     }
-    if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(pt.fajr)) {
+    if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(nextFajr)) {
       // ফিক্স: ClockCard-এর _currentWaqt-এর মতোই এখানেও pt.fajr upper
       // bound ছাড়া তাহাজ্জুদ ফজরের পরেও widget-এ দেখাতে থাকত।
-      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr), 'end': pt.fajr};
+      return {'name': isBn ? 'তাহাজ্জুদ' : 'Tahajjud', 'range': range(lastThird, pt.fajr), 'end': nextFajr};
     }
-    if (now.isAfter(nightIsha)) {
+    if (now.isAfter(nightIsha) && now.isBefore(nextFajr)) {
       return {'name': isBn ? 'রাত' : 'Night', 'range': range(nightIsha, lastThird), 'end': lastThird};
     }
     return null;

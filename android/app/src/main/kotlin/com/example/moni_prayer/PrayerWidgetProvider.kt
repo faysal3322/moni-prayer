@@ -65,6 +65,36 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val yMaghribStored = prefs.getLong("widget_y_maghrib_ms", 0L)
         val yIshaStored = prefs.getLong("widget_y_isha_ms", 0L)
 
+        // ══ মূল ফিক্স: বাসি (stale) prefs ডেটা শনাক্ত করা ══
+        // আগে ধরে নেওয়া হতো prefs-এ থাকা fajr/isha/maghrib সবসময়
+        // "আজকের" মান। কিন্তু Flutter অ্যাপ যদি টানা একদিনের বেশি বন্ধ
+        // থাকে (prefs-এ শেষবার লেখা পুরনো কোনো দিনের), তাহলে এই সংখ্যাগুলো
+        // আসলে গতকাল/তার আগের দিনের এশা/মাগরিবের timestamp বহন করে —
+        // যা বর্তমান সময়ের চেয়ে ছোট, তাই "nowMs > nightIsha" শর্তটা
+        // ভুলভাবে সবসময় true হয়ে যেত এবং সারাদিন (এমনকি সকাল/দুপুরেও)
+        // widget "রাত" আটকে দেখাত।
+        //
+        // সমাধান: prefs-এর fajr timestamp থেকে ক্যালেন্ডার-দিন বের করে
+        // ফোনের আজকের দিনের সাথে তুলনা করা হচ্ছে। যদি prefs-এর fajr আজকের
+        // দিনের না হয় (অতীতের কোনো পুরনো দিনের), তাহলে ডেটা বাসি ধরে
+        // নিয়ে null রিটার্ন — caller তখন Dart-এর পাঠানো শেষ স্ট্রিং
+        // ফলব্যাক হিসেবে দেখাবে, একটা ভুল দিনের হিসাব থেকে ভালো, এবং এটা
+        // ব্যবহারকারীকে ইঙ্গিত দেবে যে অ্যাপটা একবার খোলা দরকার।
+        val fajrCal = Calendar.getInstance().apply { timeInMillis = fajr }
+        val nowCal = Calendar.getInstance().apply { timeInMillis = nowMs }
+        val fajrIsToday = fajrCal.get(Calendar.YEAR) == nowCal.get(Calendar.YEAR) &&
+                fajrCal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)
+        // ফজরের পরের কিছু সময় (মধ্যরাত পার হয়ে) prefs-এর fajr এখনো
+        // "গতকাল" হিসেবে গণনা হতে পারে যদিও এটা বৈধ আজকের-রাতের ডেটা —
+        // তাই ফজরের আগের সময়ে (isPastMidnightBeforeFajr সম্ভাবনা) ১ দিন
+        // যোগ করেও পরীক্ষা করা হচ্ছে।
+        val fajrIsTomorrowFromNow = run {
+            val tmr = Calendar.getInstance().apply { timeInMillis = nowMs; add(Calendar.DAY_OF_YEAR, 1) }
+            fajrCal.get(Calendar.YEAR) == tmr.get(Calendar.YEAR) &&
+                    fajrCal.get(Calendar.DAY_OF_YEAR) == tmr.get(Calendar.DAY_OF_YEAR)
+        }
+        if (!fajrIsToday && !fajrIsTomorrowFromNow) return null
+
         val isPastMidnightBeforeFajr = nowMs < fajr
         val hasYesterday = yMaghribStored > 0L && yIshaStored > 0L
 
@@ -119,9 +149,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha)
             nowMs > isha && nowMs < ishaaEnd ->
                 WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd)
-            nowMs > nightIsha && nowMs >= lastThird && nowMs < fajr ->
-                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), fajr)
-            nowMs > nightIsha ->
+            nowMs > nightIsha && nowMs >= lastThird && nowMs < nextFajr ->
+                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr)
+            nowMs > nightIsha && nowMs < nextFajr ->
                 WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird)
             else -> null
         }

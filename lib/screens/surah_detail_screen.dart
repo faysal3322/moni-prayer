@@ -217,6 +217,25 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   // GlobalKey আবার না পড়ে সরাসরি এই ক্যাশ করা মান ব্যবহার করা হয়।
   int? _lastKnownVisibleIndex;
   Timer? _saveDebounceTimer;
+  // ফিক্স: audio playback চলাকালীন প্রতিটা নতুন আয়াত শুরু হলেই
+  // _syncWithActiveSession → _scrollToVerse কল হয়, আর _scrollToVerse
+  // নিজে থেকেই (layout স্থির হওয়া পর্যন্ত নিশ্চিত করতে) ৪ সেকেন্ড ধরে
+  // ১০টা পর্যন্ত delayed "সংশোধনী" ensureVisible কল শিডিউল করে। যদি এই
+  // ৪ সেকেন্ডের মধ্যেই পরের আয়াত শুরু হয়ে যায় (দ্রুত তেলাওয়াত, বা
+  // স্ক্রিন lock/unlock করার পর একসাথে অনেকগুলো session-change ইভেন্ট
+  // ফায়ার হলে), তাহলে আগের আয়াতের পুরনো delayed কলগুলো এখনো বাকি
+  // থেকে যায় এবং নতুন আয়াতের কলগুলোর সাথে মিশে স্ক্রল বারবার পুরনো ও
+  // নতুন — দুই জায়গার মধ্যে দ্রুত লাফাতে থাকে (up-down জাম্পিং বাগ)।
+  // এই কাউন্টার প্রতিটা নতুন _scrollToVerse কলে বাড়ানো হয়, আর প্রতিটা
+  // delayed callback নিজের সময়ের কাউন্টার-ভ্যালু সাথে বহন করে নিয়ে যায়
+  // — কল করার সময় যদি দেখা যায় এই ফিরে আসা মান আর সর্বশেষ কাউন্টারের
+  // সাথে না মেলে, তার মানে এটা পুরনো/বাতিল (stale) কল, তখন তা চুপচাপ
+  // কিছু না করেই ফিরে যায়।
+  int _scrollGeneration = 0;
+  // সর্বশেষ কোন ayaIndex-এ _scrollToVerse কল করা হয়েছে — একই ইনডেক্সে
+  // আবার activeSession notify হলে (pause/resume টগল ইত্যাদি) পুনরায়
+  // স্ক্রল না করার জন্য এই ক্যাশ রাখা হচ্ছে।
+  int? _lastScrolledAyaIndex;
 
   // নিচের বার (সূরার নাম/জাম্প + প্লে বাটন + Page/List টগল) স্ক্রল করলে
   // লুকিয়ে/দেখা যাওয়ার জন্য — উপরের দিকে স্ক্রল করলে (নিচে পড়তে থাকলে)
@@ -265,8 +284,18 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       // কোনো ম্যানুয়াল স্ক্রল করবেনই না (idle notification আসবে না) —
       // তাই এখানেও সরাসরি ক্যাশ আপডেট করা হচ্ছে, যাতে শোনা অবস্থায়
       // হঠাৎ বের হয়ে গেলেও সঠিক আয়াত last-read হিসেবে সেভ হয়।
+      final ayaIndexChanged = _lastScrolledAyaIndex != session.ayaIndex;
       _lastKnownVisibleIndex = session.ayaIndex;
-      _scrollToVerse(session.ayaIndex);
+      // ফিক্স: pause/resume টগল করলেও (copyWith দিয়ে নতুন object হওয়ায়)
+      // activeSession আবার notify হয়, যদিও ayaIndex বদলায়নি — একই
+      // আয়াতে বারবার _scrollToVerse কল করলে সেটা প্রতিবার নতুন ৪
+      // সেকেন্ডের delayed-retry ব্যাচ শুরু করে দিত, যা স্ক্রিন
+      // lock/unlock-এর পর একগাদা জমে গিয়ে up-down জাম্পিং তৈরি করছিল।
+      // তাই ইনডেক্স আসলে বদলালে তবেই নতুন করে স্ক্রল করা হচ্ছে।
+      if (ayaIndexChanged) {
+        _lastScrolledAyaIndex = session.ayaIndex;
+        _scrollToVerse(session.ayaIndex);
+      }
     }
   }
 
@@ -289,7 +318,22 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // ফিক্স: স্ক্রিন lock করে আবার খোলার সময় আগে থেকে শিডিউল করা
+      // পুরনো _scrollToVerse delayed-retry ব্যাচ (এখনো "resolved" হয়নি
+      // এমন) থাকলে সেগুলো বাতিল করে দেওয়া হচ্ছে — নইলে resume-এর সাথে
+      // সাথেই activeSession আবার sync হয়ে নতুন স্ক্রল শুরু করলে পুরনো ও
+      // নতুন ব্যাচ একসাথে চলে স্ক্রিনে দ্রুত up-down জাম্প দেখা যায়।
+      _scrollGeneration++;
       _loadPrefs();
+      // resume-এর সময় lock-স্ক্রিনে থাকা অবস্থাতেই অডিও যতদূর এগিয়ে
+      // গেছে তার সাথে অবিলম্বে sync করা হচ্ছে (পরের আয়াত শুরু না হওয়া
+      // পর্যন্ত অপেক্ষা না করে)। _lastScrolledAyaIndex ইচ্ছাকৃতভাবে
+      // রিসেট করে দিচ্ছি যাতে ইনডেক্স আগের মতোই থাকলেও (lock করার আগে
+      // যেখানে ছিল) resume-এ একবার নিশ্চিতভাবে সঠিক জায়গায় স্ক্রল হয় —
+      // scrollGeneration আগেই বাড়ানো হয়েছে বলে এই একটাই কল কার্যকর
+      // থাকবে, লকের আগের পুরনো কোনো ব্যাচ আর প্রভাব ফেলবে না।
+      _lastScrolledAyaIndex = null;
+      _syncWithActiveSession(QuranAudioHelper.activeSession.value);
     }
   }
 
@@ -595,8 +639,13 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   /// retry budget, so the GlobalKey's context was still null when we gave up
   /// and the jump silently did nothing. As a fallback, once we run out of
   /// attempts we jump to an estimated scroll offset based on the item's index.
-  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 5}) {
+  void _scrollToVerse(int ayaIndex, {int attemptsLeft = 5, int? generation}) {
     if (!mounted) return;
+    // নতুন টার্গেট আয়াতের জন্য কল হলে (attemptsLeft/generation নিজে থেকে
+    // পাস করা রিট্রাই কল না হলে) আগের সব pending delayed callback বাতিল
+    // করে দেওয়া হচ্ছে — নইলে পুরনো ও নতুন টার্গেট একসাথে স্ক্রল টানাটানি
+    // করে দ্রুত up-down জাম্প তৈরি করে।
+    final myGeneration = generation ?? (++_scrollGeneration);
     if (ayaIndex < 0 || ayaIndex >= _ayaKeys.length) return;
     final ctx = _ayaKeys[ayaIndex].currentContext;
     if (ctx != null) {
@@ -627,6 +676,9 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       for (final delayMs in [200, 350, 550, 800, 1100, 1500, 2000, 2600, 3300, 4000]) {
         Future.delayed(Duration(milliseconds: delayMs), () {
           if (!mounted) return;
+          // stale guard: এর মধ্যে অন্য কোনো নতুন _scrollToVerse কল হয়ে
+          // গেলে (নতুন আয়াত শুরু হওয়ায়) এই পুরনো কলটা আর কিছু করবে না।
+          if (myGeneration != _scrollGeneration) return;
           final ctx2 = _ayaKeys[ayaIndex].currentContext;
           if (ctx2 != null) {
             Scrollable.ensureVisible(
@@ -641,7 +693,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
       return;
     }
     if (attemptsLeft <= 0) {
-      _scrollToVerseFallback(ayaIndex);
+      _scrollToVerseFallback(ayaIndex, generation: myGeneration);
       return;
     }
     // Context not ready yet (widget not laid out on screen) — retry next frame.
@@ -649,7 +701,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // সময় লাগতে পারে বলে ব্যবধানও একটু বাড়ানো হয়েছে (১০০ms → ১৫০ms)।
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 150), () {
-        _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1);
+        if (myGeneration != _scrollGeneration) return;
+        _scrollToVerse(ayaIndex, attemptsLeft: attemptsLeft - 1, generation: myGeneration);
       });
     });
   }
@@ -658,7 +711,8 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   /// (e.g. very long surah still building off-screen items). Estimates an
   /// offset from the item's position among all verses so the jump still
   /// moves the user close to the right verse instead of doing nothing.
-  void _scrollToVerseFallback(int ayaIndex) {
+  void _scrollToVerseFallback(int ayaIndex, {int? generation}) {
+    final myGeneration = generation ?? (++_scrollGeneration);
     if (!_scrollController.hasClients) return;
     final maxExtent = _scrollController.position.maxScrollExtent;
     if (_ayat.isEmpty || maxExtent <= 0) return;
@@ -673,6 +727,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 450), () {
         if (!mounted) return;
+        if (myGeneration != _scrollGeneration) return;
         final ctx = _ayaKeys[ayaIndex].currentContext;
         if (ctx != null) {
           Scrollable.ensureVisible(

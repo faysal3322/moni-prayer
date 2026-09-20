@@ -459,11 +459,17 @@ class _NamesScreenState extends State<NamesScreen> {
                         ? AppTheme.primary.withOpacity(0.3)
                         : AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(16),
+                    // ফিক্স: আগে এখানে AppTheme.accent (সবুজ, #4CAF50)
+                    // ব্যবহার হতো — যেটা কার্ডের ব্যাকগ্রাউন্ড রঙের সাথে
+                    // প্রায় মিশে যেত বলে চলমান নাম চেনার বর্ডারটা চোখেই
+                    // পড়ত না। কোরআন স্ক্রিনে (surah_detail_screen.dart)
+                    // চলমান আয়াত ঠিক AppTheme.gold দিয়ে হাইলাইট হয় — এখানেও
+                    // সেই একই সোনালি রং ব্যবহার করে সামঞ্জস্য রাখা হলো।
                     border: Border.all(
                       color: isGroupPlaying
-                          ? AppTheme.accent
+                          ? AppTheme.gold
                           : AppTheme.primary.withOpacity(0.3),
-                      width: isGroupPlaying ? 1.5 : 1,
+                      width: isGroupPlaying ? 1.6 : 1,
                     ),
                   ),
                   child: Column(

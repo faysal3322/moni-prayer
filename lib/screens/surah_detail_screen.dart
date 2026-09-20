@@ -897,7 +897,7 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // রিট্রাই ফুরিয়ে যেত এবং কম-নির্ভরযোগ্য আনুমানিক fallback scroll-এ
     // চলে যেত। এখন বেশি রিট্রাই ও কিছুটা বেশি বিলম্ব দেওয়া হচ্ছে, যাতে
     // বড় সূরাতেও আসল (আনুমানিক নয়) scroll-টাই কাজ করার সুযোগ পায়।
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       _scrollToVerse(ayaIndex, attemptsLeft: 20);
     });
@@ -1116,64 +1116,86 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
                               currentAyaIndex: _fullSurahAyaIndex,
                               onAyaTap: (i) => _toggleFullSurahPlay(explicitStartIndex: i),
                             )
-                          : ListView(
+                          : ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(14),
-                          children: [
-                            if (showBismillah)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: BoxDecoration(
-                                  // বিসমিল্লাহ তেলাওয়াত চলাকালীন (_fullSurahAyaIndex == -1)
-                                  // এই লাইনটাও ঠিক আয়াতের মতোই হাইলাইট হয় — সূরা
-                                  // আল-ফাতিহায় যেমন ১ নং আয়াত হিসেবে বিসমিল্লাহ
-                                  // হাইলাইট হয়, বাকি সূরাতেও একই অনুভূতি দিতে।
-                                  color: _fullSurahAyaIndex == -1
-                                      ? AppTheme.primary.withOpacity(0.28)
-                                      : AppTheme.primary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: _fullSurahAyaIndex == -1
-                                      ? Border.all(color: AppTheme.gold, width: 1.6)
-                                      : null,
-                                ),
-                                child: Text(
-                                  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-                                  style: TextStyle(
-                                    fontSize: _fontSize + 2,
-                                    color: AppTheme.gold,
-                                    fontFamily: 'ScheherazadeNew',
-                                    height: 1.8,
+                          // ফিক্স: আগে এখানে non-lazy ListView(children: [...])
+                          // ব্যবহার হতো, যেটা সূরা বাকারার মতো বড় সূরায় (২৮৬টা
+                          // ভারী আরবি টেক্সট কার্ড) একসাথে সব child তৈরি করত।
+                          // ফলে "verse jump" শিট থেকে কোনো নির্দিষ্ট আয়াতে
+                          // (যেমন ১৮৫) লাফ দিতে গেলে Scrollable.ensureVisible
+                          // ভুল/আনুমানিক position-এ গিয়ে থামত — কারণ পুরো
+                          // তালিকার সঠিক pixel-height তখনো স্থির হয়নি, বিশেষত
+                          // bottom sheet বন্ধ হওয়ার সাথে সাথেই স্ক্রল-চেষ্টা
+                          // শুরু হওয়ায়। ব্যবহারকারী তাই মাঝেমধ্যে সঠিক আয়াতের
+                          // (১৮৫) বদলে ভুল আয়াতে (যেমন ১০৭) গিয়ে আটকে থাকতেন।
+                          // ListView.builder ব্যবহার করলে Flutter নিজে থেকেই
+                          // viewport-এর কাছের item-গুলোর প্রকৃত অবস্থান নির্ভুলভাবে
+                          // ট্র্যাক করে, ফলে ensureVisible-এর হিসাব অনেক বেশি
+                          // নির্ভরযোগ্য হয় — এমনকি বড় সূরাতেও।
+                          itemCount: (showBismillah ? 1 : 0) + _ayat.length + 1,
+                          itemBuilder: (context, listIndex) {
+                            int i = listIndex;
+                            if (showBismillah) {
+                              if (listIndex == 0) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    // বিসমিল্লাহ তেলাওয়াত চলাকালীন (_fullSurahAyaIndex == -1)
+                                    // এই লাইনটাও ঠিক আয়াতের মতোই হাইলাইট হয় — সূরা
+                                    // আল-ফাতিহায় যেমন ১ নং আয়াত হিসেবে বিসমিল্লাহ
+                                    // হাইলাইট হয়, বাকি সূরাতেও একই অনুভূতি দিতে।
+                                    color: _fullSurahAyaIndex == -1
+                                        ? AppTheme.primary.withOpacity(0.28)
+                                        : AppTheme.primary.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: _fullSurahAyaIndex == -1
+                                        ? Border.all(color: AppTheme.gold, width: 1.6)
+                                        : null,
                                   ),
-                                  textAlign: TextAlign.center,
-                                  textDirection: TextDirection.rtl,
-                                ),
-                              ),
-                            for (int i = 0; i < _ayat.length; i++)
-                              _AyaCard(
-                                key: _ayaKeys[i],
-                                sura: widget.sura,
-                                ayaNumber: _ayat[i]['aya'] as int,
-                                arabicText: _ayat[i]['text'] as String? ?? '',
-                                transliterationText: i < _transliteration.length
-                                    ? (_transliteration[i]['text'] as String? ?? '')
-                                    : '',
-                                banglaText: i < _bangla.length
-                                    ? (_bangla[i]['text'] as String? ?? '')
-                                    : '',
-                                lang: widget.lang,
-                                showArabic: _showArabic,
-                                showBangla: _showBangla,
-                                showTransliteration: _showTransliteration,
-                                fontSize: _fontSize,
-                                onPlayFromHere: () => _toggleFullSurahPlay(explicitStartIndex: i),
-                                isThisCardPlaying: _fullSurahPlaying && _fullSurahAyaIndex == i,
-                                isThisCardLoading: _fullSurahLoading && _resumeFromIndex == i,
-                              ),
-                            const SizedBox(height: 20),
-                          ],
+                                  child: Text(
+                                    'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+                                    style: TextStyle(
+                                      fontSize: _fontSize + 2,
+                                      color: AppTheme.gold,
+                                      fontFamily: 'ScheherazadeNew',
+                                      height: 1.8,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    textDirection: TextDirection.rtl,
+                                  ),
+                                );
+                              }
+                              i = listIndex - 1;
+                            }
+                            if (i >= _ayat.length) {
+                              // শেষে একটু ফাঁকা জায়গা (আগের SizedBox(height: 20)-এর বদলে)
+                              return const SizedBox(height: 20);
+                            }
+                            return _AyaCard(
+                              key: _ayaKeys[i],
+                              sura: widget.sura,
+                              ayaNumber: _ayat[i]['aya'] as int,
+                              arabicText: _ayat[i]['text'] as String? ?? '',
+                              transliterationText: i < _transliteration.length
+                                  ? (_transliteration[i]['text'] as String? ?? '')
+                                  : '',
+                              banglaText: i < _bangla.length
+                                  ? (_bangla[i]['text'] as String? ?? '')
+                                  : '',
+                              lang: widget.lang,
+                              showArabic: _showArabic,
+                              showBangla: _showBangla,
+                              showTransliteration: _showTransliteration,
+                              fontSize: _fontSize,
+                              onPlayFromHere: () => _toggleFullSurahPlay(explicitStartIndex: i),
+                              isThisCardPlaying: _fullSurahPlaying && _fullSurahAyaIndex == i,
+                              isThisCardLoading: _fullSurahLoading && _resumeFromIndex == i,
+                            );
+                          },
                         ),
         ),
         // নিচের কম্প্যাক্ট বার — দুই সারিতে ভাগ করা যাতে ছোট স্ক্রিনেও কোনো

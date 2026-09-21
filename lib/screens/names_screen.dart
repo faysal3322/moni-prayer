@@ -309,11 +309,20 @@ class _NamesScreenState extends State<NamesScreen> {
       final audio = _groups[_allPlayIndex]['audio'] as String;
       final scrollIdx = _allPlayIndex;
       setState(() {});
-      _allPlayIndex++;
+      // ফিক্স: আগে _allPlayIndex এখানেই (অডিও চালানোর আগে) বাড়ানো হতো,
+      // ফলে কোনো group-এর অডিও বাজার পুরোটা সময় জুড়ে _allPlayIndex আসলে
+      // *পরের* group-কে নির্দেশ করত, বর্তমানটাকে না — তাই কার্ড হাইলাইট
+      // (হলুদ বর্ডার) সবসময় ভুল/পরের কার্ডে বসত বা একদমই মিলত না। এখন
+      // audio play শুরুর *পরে* বাড়ানো হচ্ছে, যাতে বাজার পুরো সময় জুড়ে
+      // _allPlayIndex ঠিক এই group-কেই নির্দেশ করে।
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted || !_isPlayingAll) return;
       _scrollToGroup(scrollIdx);
       await _player.play(AssetSource('audio/$audio.mp3'));
+      if (!mounted || !_isPlayingAll) return;
+      setState(() {
+        _allPlayIndex++;
+      });
     } else {
       // সব শেষ — শুরু থেকে আবার
       setState(() {
@@ -448,8 +457,17 @@ class _NamesScreenState extends State<NamesScreen> {
                 final group = _groups[groupIndex];
                 final names = group['names'] as List<Map<String, dynamic>>;
                 final arabic = group['arabic'] as String;
-                final isGroupPlaying =
-                    _isPlaying && _playingGroupIndex == groupIndex;
+                // ফিক্স: "সব নাম চলছে" (play-all) মোডে _playingGroupIndex
+                // ইচ্ছাকৃতভাবে null-ই রাখা হয় (_togglePlayAll/_playNextAll
+                // দেখুন) — তখন কোন group বাজছে সেটা বরং _allPlayIndex দিয়ে
+                // ট্র্যাক হয়। কিন্তু এই চেকে আগে শুধু _playingGroupIndex
+                // দেখা হতো, তাই play-all চলাকালীন এটা কখনো true হতো না
+                // এবং কোনো কার্ডেই হলুদ বর্ডার/হাইলাইট দেখা যেত না। এখন
+                // দুটো মোডই (একক-group রিপিট, এবং সব-একসাথে) মেলানো হচ্ছে।
+                final isGroupPlaying = _isPlaying &&
+                    (_isPlayingAll
+                        ? _allPlayIndex == groupIndex
+                        : _playingGroupIndex == groupIndex);
 
                 return Container(
                   key: _groupKeys[groupIndex],

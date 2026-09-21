@@ -708,34 +708,95 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
   }
 
   /// Best-effort scroll when the target GlobalKey never got a context
-  /// (e.g. very long surah still building off-screen items). Estimates an
-  /// offset from the item's position among all verses so the jump still
-  /// moves the user close to the right verse instead of doing nothing.
-  void _scrollToVerseFallback(int ayaIndex, {int? generation}) {
+  /// (e.g. very long surah still building off-screen items). Repeatedly
+  /// jumps to an estimated offset and re-measures, narrowing in on the
+  /// real position instead of trusting a single linear guess.
+  ///
+  /// বাগ ফিক্স (মূল কারণ): list মোড এখন lazy `ListView.builder` ব্যবহার
+  /// করে (এটা নিজেই আরেকটা bug ফিক্সের অংশ ছিল), কিন্তু lazy builder-এ
+  /// viewport থেকে দূরের item-এর widget-ই কখনো তৈরি হয় না — তাই তার
+  /// GlobalKey-এর context কখনোই non-null হবে না, রিট্রাই যতই করা হোক।
+  /// ফলে বড় সূরায় (যেমন বাকারা, ২৮৬ আয়াত) দূরের কোনো আয়াতে (যেমন ১৮৫)
+  /// জাম্প করতে চাইলে এটা সবসময় fallback-এ যেত। fallback আগে মাত্র
+  /// *একবার* linear estimate ((index/length) × total height) দিয়ে
+  /// অনুমানভিত্তিক position-এ jump করত আর ধরে নিত সব আয়াতের height
+  /// সমান — কিন্তু প্রতিটা আয়াত কার্ডের উচ্চতা তার টেক্সটের দৈর্ঘ্য
+  /// অনুযায়ী ভিন্ন ভিন্ন, তাই এই একবারের অনুমান বাস্তব pixel অবস্থান
+  /// থেকে অনেকখানি সরে যেত (যেমন ১৮৫ নম্বরের বদলে ১০৭ নম্বর আয়াতের
+  /// কাছাকাছি কোথাও গিয়ে থামা) — আর যেহেতু সংশোধনের চেষ্টাও মাত্র
+  /// একবারই হতো, ভুল জায়গাতেই থেকে যেত।
+  ///
+  /// এখন এটা বারবার (সর্বোচ্চ ৮ বার) একই কাজ করে: যতটুকু list এখন
+  /// rendered/build হয়েছে তার মধ্যে target আয়াতের GlobalKey পাওয়া
+  /// গেলে সরাসরি সেখানে ensureVisible করে থেমে যায়; না পেলে এখন পর্যন্ত
+  /// যতটুকু rendered আয়াত পাওয়া গেছে তাদের গড় উচ্চতা দিয়ে নতুন,
+  /// আরও নিখুঁত estimate বানিয়ে আবার jump করে — প্রতিবার real
+  /// measurement দিয়ে অনুমান সংশোধন হতে থাকে (অনেকটা বাইনারি সার্চের
+  /// মতো), যতক্ষণ না আসল widget viewport-এর কাছে চলে আসে ও তার
+  /// context পাওয়া যায়।
+  void _scrollToVerseFallback(int ayaIndex, {int? generation, int attemptsLeft = 8}) {
     final myGeneration = generation ?? (++_scrollGeneration);
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients || !mounted) return;
+    if (myGeneration != _scrollGeneration) return;
+    if (_ayat.isEmpty) return;
+
+    // এখন পর্যন্ত যেসব আয়াত কার্ড আসলেই build/render হয়ে গেছে (viewport-এর
+    // কাছাকাছি) তাদের GlobalKey দিয়ে real pixel position ও height বের করে
+    // গড় height হিসাব করা হচ্ছে — শুরুতে কিছুই rendered না থাকলে
+    // (প্রথম চেষ্টাতেই) একটা যুক্তিসঙ্গত default height ধরে নেওয়া হয়।
+    double? knownDy;
+    int? knownIndex;
+    double totalKnownHeight = 0;
+    int knownCount = 0;
+    for (int i = 0; i < _ayaKeys.length; i++) {
+      final ctx = _ayaKeys[i].currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) continue;
+      totalKnownHeight += box.size.height;
+      knownCount++;
+      // target-এর সবচেয়ে কাছের rendered আয়াতটাই position হিসাবের জন্য
+      // সবচেয়ে নির্ভরযোগ্য রেফারেন্স — সেটাই বেছে নেওয়া হচ্ছে।
+      if (knownIndex == null || (i - ayaIndex).abs() < (knownIndex - ayaIndex).abs()) {
+        final translation = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
+        knownDy = translation.dy + _scrollController.offset;
+        knownIndex = i;
+      }
+    }
+
+    final avgHeight = knownCount > 0 ? (totalKnownHeight / knownCount) : 260.0;
+    double estimated;
+    if (knownDy != null && knownIndex != null) {
+      // রেফারেন্স আয়াত থেকে target পর্যন্ত যত আয়াত বাকি, তত গুণ গড়
+      // height যোগ/বিয়োগ করে target-এর সম্ভাব্য অবস্থান বের করা হচ্ছে —
+      // যত বেশিবার এই ফাংশন চলবে, রেফারেন্স তত target-এর কাছাকাছি
+      // rendered হবে, ফলে অনুমানও তত নির্ভুল হতে থাকবে।
+      estimated = knownDy + (ayaIndex - knownIndex) * avgHeight;
+    } else {
+      // কোনো আয়াতই এখনো rendered হয়নি (একেবারে প্রথম চেষ্টা) — পুরো
+      // তালিকার সম্ভাব্য মোট উচ্চতা দিয়ে সাধারণ linear অনুমান।
+      estimated = ayaIndex * avgHeight;
+    }
+
     final maxExtent = _scrollController.position.maxScrollExtent;
-    if (_ayat.isEmpty || maxExtent <= 0) return;
-    final estimated = (ayaIndex / _ayat.length) * maxExtent;
-    _scrollController.animateTo(
-      estimated.clamp(0.0, maxExtent),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
-    // After the estimated jump, the target card is likely close to visible,
-    // so its context should now exist — try one more precise pass.
+    _scrollController.jumpTo(estimated.clamp(0.0, maxExtent > 0 ? maxExtent : estimated));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 450), () {
+      Future.delayed(const Duration(milliseconds: 220), () {
         if (!mounted) return;
         if (myGeneration != _scrollGeneration) return;
         final ctx = _ayaKeys[ayaIndex].currentContext;
         if (ctx != null) {
+          // টার্গেট আয়াত এখন rendered — একদম নিখুঁতভাবে জায়গামতো আনা হচ্ছে।
           Scrollable.ensureVisible(
             ctx,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.linear,
-            alignment: 0.35,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: 0.3,
           );
+        } else if (attemptsLeft > 0) {
+          // এখনো target rendered হয়নি — নতুন (আরও নিখুঁত) অনুমান দিয়ে আবার চেষ্টা।
+          _scrollToVerseFallback(ayaIndex, generation: myGeneration, attemptsLeft: attemptsLeft - 1);
         }
       });
     });
@@ -899,7 +960,13 @@ class _SurahPageState extends State<_SurahPage> with WidgetsBindingObserver {
     // বড় সূরাতেও আসল (আনুমানিক নয়) scroll-টাই কাজ করার সুযোগ পায়।
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-      _scrollToVerse(ayaIndex, attemptsLeft: 20);
+      // এখানে অল্প attemptsLeft (৪) দেওয়া হচ্ছে: list মোডে GlobalKey lazy
+      // ListView.builder-এর কারণে দূরের আয়াতে কখনোই সরাসরি রেন্ডার হবে
+      // না, তাই বেশি রিট্রাই করে অপেক্ষা করানোর কোনো লাভ নেই — বরং দ্রুত
+      // নিচের iterative-estimate fallback-এ চলে যাওয়াই বেশি কার্যকর ও দ্রুত।
+      // (page/মুশাফ মোডে সবগুলো আয়াত একটাই widget-এ থাকে বলে সাধারণত
+      // প্রথম কয়েক চেষ্টাতেই context পাওয়া যায়।)
+      _scrollToVerse(ayaIndex, attemptsLeft: 4);
     });
   }
 

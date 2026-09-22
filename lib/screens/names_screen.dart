@@ -17,7 +17,12 @@ class _NamesScreenState extends State<NamesScreen> {
   final List<GlobalKey> _groupKeys = List.generate(18, (_) => GlobalKey());
   bool _isPlaying = false;
   int? _playingGroupIndex;   // কোন group repeat হচ্ছে
-  int _allPlayIndex = 0;     // "সব চালু" এ কোন group চলছে
+  int _allPlayIndex = 0;     // "সব চালু" মোডে queue-তে পরের বার কোন group বাজানো হবে
+  // ফিক্স: হাইলাইট (হলুদ বর্ডার) কোন group-এ বসবে তা _allPlayIndex থেকে
+  // আলাদাভাবে ট্র্যাক করা হচ্ছে — _allPlayIndex play() কল হওয়া মাত্রই
+  // পরের group-এর জন্য এগিয়ে যায় (queue পজিশন), কিন্তু হাইলাইট বদলাতে
+  // হবে শুধু তখনই যখন সেই group সত্যিই স্ক্রল-হয়ে বাজা শুরু করে।
+  int? _highlightGroupIndex;
   bool _isPlayingAll = false; // সব একসাথে চলছে কিনা
 
   // ayat.json থেকে আরবি লেখা হুবহু নেওয়া হয়েছে
@@ -287,6 +292,7 @@ class _NamesScreenState extends State<NamesScreen> {
         _isPlayingAll = false;
         _playingGroupIndex = null;
         _allPlayIndex = 0;
+        _highlightGroupIndex = null;
       });
       return;
     }
@@ -296,6 +302,9 @@ class _NamesScreenState extends State<NamesScreen> {
       _isPlayingAll = true;
       _playingGroupIndex = null;
       _allPlayIndex = 0;
+      // bismillah (part_0) চলাকালীন কোনো নির্দিষ্ট group হাইলাইট হবে না —
+      // group-ভিত্তিক হাইলাইট শুরু হবে group 0 থেকে (নিচে _playNextAll-এ)।
+      _highlightGroupIndex = null;
     });
     // bismillah দিয়ে শুরু
     await _player.play(AssetSource('audio/part_0.mp3'));
@@ -308,25 +317,37 @@ class _NamesScreenState extends State<NamesScreen> {
     if (_allPlayIndex < _groups.length) {
       final audio = _groups[_allPlayIndex]['audio'] as String;
       final scrollIdx = _allPlayIndex;
-      setState(() {});
-      // ফিক্স: আগে _allPlayIndex এখানেই (অডিও চালানোর আগে) বাড়ানো হতো,
-      // ফলে কোনো group-এর অডিও বাজার পুরোটা সময় জুড়ে _allPlayIndex আসলে
-      // *পরের* group-কে নির্দেশ করত, বর্তমানটাকে না — তাই কার্ড হাইলাইট
-      // (হলুদ বর্ডার) সবসময় ভুল/পরের কার্ডে বসত বা একদমই মিলত না। এখন
-      // audio play শুরুর *পরে* বাড়ানো হচ্ছে, যাতে বাজার পুরো সময় জুড়ে
-      // _allPlayIndex ঠিক এই group-কেই নির্দেশ করে।
+      // ফিক্স: আগের সংশোধনটা ভুল দিকে চলে গিয়েছিল। _player.play(...) এর
+      // await আসলে পুরো অডিও ট্র্যাকটা শেষ হওয়া পর্যন্ত অপেক্ষা করে না —
+      // এটা শুধু প্লেব্যাক-কমান্ড platform-এ পাঠিয়ে সাথে সাথেই resolve
+      // হয়ে যায় (নাহলে নিচের onPlayerComplete listener-এরই দরকার পড়ত না,
+      // যেটাই আসলে ট্র্যাক শেষ হওয়া চিনে পরের group-এ যায়)। তাই play()
+      // এর ঠিক পরে _allPlayIndex++ করলে সেটা প্রায় সাথে সাথেই ঘটে যেত —
+      // অডিওটা তখনও কয়েক সেকেন্ড বাকি থাকতেই হাইলাইট (হলুদ বর্ডার)
+      // পরের group-এ চলে যেত (ব্যবহারকারী যেটা লক্ষ্য করেছেন)।
+      //
+      // সমাধান: হাইলাইটের জন্য আলাদা _highlightGroupIndex variable রাখা
+      // হলো, যেটা শুধু "এখন কোন group বাজছে" বোঝাতে ব্যবহার হবে, আর
+      // _allPlayIndex রইলো শুধু "queue-তে পরের বার কোনটা বাজাতে হবে"
+      // ট্র্যাক করার জন্য — play() কল হওয়ার সাথে সাথেই _allPlayIndex
+      // এগিয়ে নেওয়া নিরাপদ (কারণ এটা এখন আর হাইলাইট নির্ধারণ করে না),
+      // কিন্তু _highlightGroupIndex বদলাবে শুধু scroll/highlight করার
+      // মুহূর্তেই — অর্থাৎ যখন এই group-টা সত্যিই বাজা শুরু করে।
+      setState(() {
+        _highlightGroupIndex = scrollIdx;
+      });
+      _allPlayIndex++;
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted || !_isPlayingAll) return;
       _scrollToGroup(scrollIdx);
       await _player.play(AssetSource('audio/$audio.mp3'));
-      if (!mounted || !_isPlayingAll) return;
-      setState(() {
-        _allPlayIndex++;
-      });
     } else {
       // সব শেষ — শুরু থেকে আবার
       setState(() {
         _allPlayIndex = 0;
+        // বিসমিল্লাহ আবার চালানো হচ্ছে — এই সময়টায় কোনো নির্দিষ্ট group
+        // হাইলাইট থাকবে না (যেমন প্রথমবার শুরুতেও ছিল না)।
+        _highlightGroupIndex = null;
       });
       // আগে scroll উপরে নিয়ে যাও
       if (_scrollController.hasClients) {
@@ -459,14 +480,16 @@ class _NamesScreenState extends State<NamesScreen> {
                 final arabic = group['arabic'] as String;
                 // ফিক্স: "সব নাম চলছে" (play-all) মোডে _playingGroupIndex
                 // ইচ্ছাকৃতভাবে null-ই রাখা হয় (_togglePlayAll/_playNextAll
-                // দেখুন) — তখন কোন group বাজছে সেটা বরং _allPlayIndex দিয়ে
-                // ট্র্যাক হয়। কিন্তু এই চেকে আগে শুধু _playingGroupIndex
-                // দেখা হতো, তাই play-all চলাকালীন এটা কখনো true হতো না
-                // এবং কোনো কার্ডেই হলুদ বর্ডার/হাইলাইট দেখা যেত না। এখন
-                // দুটো মোডই (একক-group রিপিট, এবং সব-একসাথে) মেলানো হচ্ছে।
+                // দেখুন) — তখন কোন group বাজছে সেটা বরং _highlightGroupIndex
+                // দিয়ে ট্র্যাক হয় (_allPlayIndex শুধু queue-পজিশন, দেখুন
+                // _playNextAll-এর কমেন্ট)। কিন্তু এই চেকে আগে শুধু
+                // _playingGroupIndex দেখা হতো, তাই play-all চলাকালীন এটা
+                // কখনো true হতো না এবং কোনো কার্ডেই হলুদ বর্ডার/হাইলাইট
+                // দেখা যেত না। এখন দুটো মোডই (একক-group রিপিট, এবং
+                // সব-একসাথে) মেলানো হচ্ছে।
                 final isGroupPlaying = _isPlaying &&
                     (_isPlayingAll
-                        ? _allPlayIndex == groupIndex
+                        ? _highlightGroupIndex == groupIndex
                         : _playingGroupIndex == groupIndex);
 
                 return Container(

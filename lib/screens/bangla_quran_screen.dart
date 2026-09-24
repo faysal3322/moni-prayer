@@ -163,8 +163,18 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(
+              onTap: () async {
+                // ফিক্স: আগে এখানে শুধু Navigator.push করা হতো, কিন্তু
+                // ফলাফল await/then না করায় detail screen থেকে ফিরে
+                // আসার পরেও _loadLastRead() নতুন করে কল হতো না —
+                // didChangeDependencies() ভরসা করা হয়েছিল, কিন্তু এই
+                // ট্যাবটা TabBarView/IndexedStack-এর ভিতরে থাকায় pop-এ
+                // dispose হয় না, তাই didChangeDependencies সবসময় আবার
+                // ফায়ার হয় না। ফলে ব্যবহারকারী পড়ে ফিরে এলে "সর্বশেষ
+                // পঠিত অবস্থান" কার্ডটা পুরনো (আগের) আয়াতই দেখাত, যতক্ষণ
+                // না পুরো অ্যাপ বন্ধ করে আবার খোলা হতো। এখন push শেষ
+                // হয়ে ফিরে আসামাত্রই সরাসরি _loadLastRead() কল করা হচ্ছে।
+                await Navigator.push(context, MaterialPageRoute(
                   builder: (_) => BanglaSurahDetailScreen(
                     lang: widget.lang,
                     sura: _lastRead!['sura'] as int,
@@ -173,6 +183,7 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
                     jumpToAyaNumber: _lastRead!['aya'] as int,
                   ),
                 ));
+                if (mounted) _loadLastRead();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -304,8 +315,10 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
                                   ),
                                   textDirection: TextDirection.rtl,
                                 ),
-                                onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
+                                onTap: () async {
+                                  // একই ফিক্স — ফিরে আসার পর last-read
+                                  // কার্ড রিফ্রেশ করা হচ্ছে (উপরের কমেন্ট দ্রষ্টব্য)।
+                                  await Navigator.push(context, MaterialPageRoute(
                                     builder: (_) => BanglaSurahDetailScreen(
                                       lang: widget.lang,
                                       sura: suraNum,
@@ -313,6 +326,7 @@ class _BanglaQuranTabState extends State<BanglaQuranTab> {
                                       suraNameArabic: nameArabic,
                                     ),
                                   ));
+                                  if (mounted) _loadLastRead();
                                 },
                               ),
                             );
@@ -506,34 +520,71 @@ class _BanglaSurahDetailScreenState extends State<BanglaSurahDetailScreen> {
   }
 
   /// Best-effort scroll যখন টার্গেট GlobalKey-র context কখনোই তৈরি হয়নি
-  /// (যেমন লম্বা সূরায় আয়াতটা তখনও অফ-স্ক্রিনে build হয়নি)। মোট
-  /// scroll-extent-এর মধ্যে আয়াতের index অনুপাত হিসেব করে একটা আনুমানিক
-  /// অবস্থানে জাম্প করে দেয়, যাতে অন্তত কাছাকাছি জায়গায় পৌঁছানো যায় —
-  /// কিছুই না করার চেয়ে অনেক ভালো।
-  void _scrollToVerseFallback(int ayaIndex) {
-    if (!_scrollController.hasClients) return;
+  /// (যেমন লম্বা সূরায় আয়াতটা তখনও অফ-স্ক্রিনে build হয়নি)। বারবার
+  /// (সর্বোচ্চ ৮ বার) একটা আনুমানিক অবস্থানে জাম্প করে, প্রতিবার এতক্ষণে
+  /// rendered হওয়া আয়াতগুলোর প্রকৃত উচ্চতা মেপে অনুমানকে আরও নিখুঁত করে
+  /// তোলে — অনেকটা বাইনারি সার্চের মতো।
+  ///
+  /// বাগ ফিক্স (মূল কারণ): আগে এটা মাত্র *একবার* সব আয়াতের height সমান
+  /// ধরে ((ayaIndex/length) × totalHeight) একটা অনুমান করে jump করত।
+  /// কিন্তু প্রতিটা আয়াতের কার্ডের উচ্চতা তার টেক্সটের দৈর্ঘ্য অনুযায়ী
+  /// ভিন্ন ভিন্ন হওয়ায় এই একবারের অনুমান আসল pixel অবস্থান থেকে অনেক
+  /// দূরে গিয়ে থামত — যেমন সূরা বাকারার ২৪ নম্বর আয়াতে যেতে চাইলে আসলে
+  /// ১৮ নম্বরের কাছাকাছি, বা মায়েদার ৪১ নম্বরে যেতে চাইলে ৫৪ নম্বরের
+  /// কাছাকাছি কোথাও গিয়ে থেমে যেত — আর সংশোধনের চেষ্টাও মাত্র একবারই
+  /// হতো, তাই ভুল জায়গাতেই থেকে যেত (surah_detail_screen.dart-এ একই
+  /// বাগ আগে ধরা পড়ে ঠিক করা হয়েছিল, কিন্তু এই বাংলা কোরআন স্ক্রিনে
+  /// আলাদা কোড-কপি থাকায় এখানে প্রয়োগ হয়নি)।
+  void _scrollToVerseFallback(int ayaIndex, {int attemptsLeft = 8}) {
+    if (!_scrollController.hasClients || !mounted) return;
+    if (_ayat.isEmpty) return;
+
+    // এতক্ষণে যেসব আয়াত কার্ড আসলেই rendered হয়ে গেছে, তাদের real
+    // pixel position ও height থেকে গড় height বের করে, target-এর
+    // সবচেয়ে কাছের rendered আয়াতকে রেফারেন্স ধরে নতুন, আরও নিখুঁত
+    // অবস্থান হিসাব করা হচ্ছে।
+    double? knownDy;
+    int? knownIndex;
+    double totalKnownHeight = 0;
+    int knownCount = 0;
+    for (int i = 0; i < _ayaKeys.length; i++) {
+      final ctx = _ayaKeys[i].currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) continue;
+      totalKnownHeight += box.size.height;
+      knownCount++;
+      if (knownIndex == null || (i - ayaIndex).abs() < (knownIndex - ayaIndex).abs()) {
+        final translation = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
+        knownDy = translation.dy + _scrollController.offset;
+        knownIndex = i;
+      }
+    }
+
+    final avgHeight = knownCount > 0 ? (totalKnownHeight / knownCount) : 260.0;
+    double estimated;
+    if (knownDy != null && knownIndex != null) {
+      estimated = knownDy + (ayaIndex - knownIndex) * avgHeight;
+    } else {
+      estimated = ayaIndex * avgHeight;
+    }
+
     final maxExtent = _scrollController.position.maxScrollExtent;
-    if (_ayat.isEmpty || maxExtent <= 0) return;
-    final estimated = (ayaIndex / _ayat.length) * maxExtent;
-    _scrollController.animateTo(
-      estimated.clamp(0.0, maxExtent),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
-    // আনুমানিক জাম্পের পর টার্গেট কার্ডটা এখন viewport-এর কাছাকাছি চলে
-    // এসেছে বলে ধরে নিয়ে, এর context এতক্ষণে তৈরি হয়ে থাকার কথা — তাই
-    // একবার নিখুঁতভাবে align করার শেষ চেষ্টা।
+    _scrollController.jumpTo(estimated.clamp(0.0, maxExtent > 0 ? maxExtent : estimated));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 450), () {
+      Future.delayed(const Duration(milliseconds: 220), () {
         if (!mounted) return;
         final ctx = _ayaKeys[ayaIndex].currentContext;
         if (ctx != null) {
           Scrollable.ensureVisible(
             ctx,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.linear,
-            alignment: 0.35,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: 0.25,
           );
+        } else if (attemptsLeft > 0) {
+          _scrollToVerseFallback(ayaIndex, attemptsLeft: attemptsLeft - 1);
         }
       });
     });

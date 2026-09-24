@@ -224,8 +224,12 @@ class _SuraTabState extends State<_SuraTab> {
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(
+              onTap: () async {
+                // ফিক্স: push-এর ফলাফল await না করলে ফিরে আসার পর
+                // last-read কার্ড আপডেট হতো না, যতক্ষণ না অ্যাপ পুরো
+                // বন্ধ করে আবার খোলা হতো (bangla_quran_screen.dart-এ
+                // একই বাগ ও একই কারণ — বিস্তারিত সেখানকার কমেন্টে)।
+                await Navigator.push(context, MaterialPageRoute(
                   settings: const RouteSettings(name: kSurahDetailRouteName),
                   builder: (_) => SurahDetailScreen(
                     lang: widget.lang,
@@ -233,6 +237,7 @@ class _SuraTabState extends State<_SuraTab> {
                     jumpToAyaNumber: _lastRead!['aya'] as int,
                   ),
                 ));
+                if (mounted) _loadLastRead();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -364,11 +369,12 @@ class _SuraTabState extends State<_SuraTab> {
                                   ),
                                   textDirection: TextDirection.rtl,
                                 ),
-                                onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
+                                onTap: () async {
+                                  await Navigator.push(context, MaterialPageRoute(
                                     settings: const RouteSettings(name: kSurahDetailRouteName),
                                     builder: (_) => SurahDetailScreen(lang: widget.lang, sura: suraNum),
                                   ));
+                                  if (mounted) _loadLastRead();
                                 },
                               ),
                             );

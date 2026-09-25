@@ -184,7 +184,41 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     String? suraName,
     int? ayaNumber,
     void Function()? onComplete,
+    // ফিক্স ("আমার কোরআন" কালেকশনে প্রতি আয়াতের মাঝে ধাক্কা/থমকানো):
+    // আগে প্রতিটা আয়াতের জন্য (এমনকি ঠিক আগের আয়াতের পরপরই হলেও) এখানে
+    // player.pause() → seek() → play() — এই তিন ধাপ চলত (নিচে দেখুন)।
+    // মূল সূরা স্ক্রিনে (playFullSurah) কিন্তু পুরো সূরা একটানা বাজে,
+    // মাঝে কোনো pause/seek/play হয় না — শুধু position stream শুনে
+    // হাইলাইট বদলায়, তাই সেখানে সম্পূর্ণ মসৃণ শোনায়। pause()-এর পর
+    // আবার play() করলে decoder/buffer সংক্ষিপ্তভাবে রিসেট হয়, যেটাই
+    // প্রতিটা আয়াতের মাঝে শোনা যাওয়া ছোট ধাক্কার কারণ।
+    //
+    // যখন caller জানে যে এই আয়াতটা ঠিক আগেরটারই "পরপর" (একই ফাইল, আগের
+    // endMs আর এই startMs প্রায় একই বিন্দুতে মেলে) এবং প্লেয়ার তখনো
+    // playing অবস্থায় আছে, [continuePlayback]=true পাঠালে pause/seek/play
+    // কোনোটাই না করে শুধু নতুন stop-boundary (endMs) ও onComplete
+    // বসিয়ে দেওয়া হয় — playFullSurah-এর মতোই audio অবিচ্ছিন্নভাবে
+    // চলতে থাকে, কোনো ধাক্কা ছাড়াই।
+    bool continuePlayback = false,
   }) async {
+    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
+    if (continuePlayback &&
+        sameFileAlreadyLoaded &&
+        player.playing &&
+        (player.position.inMilliseconds - startMs).abs() < 400) {
+      // মসৃণ পথ: player এমনিতেই সঠিক জায়গার কাছাকাছি বাজছে — শুধু
+      // পরবর্তী boundary/callback সেট করে দেওয়া হচ্ছে, playback একদম
+      // অবিচ্ছিন্ন থাকে।
+      _currentStopAtMs = endMs;
+      _onAyaComplete = onComplete;
+      if (suraNumber != null && suraName != null) {
+        _currentSuraNumber = suraNumber;
+        _currentSuraName = suraName;
+        _publishMediaItem(ayaNumber ?? 0, ayaNumber ?? 0);
+      }
+      return;
+    }
+
     final myToken = ++_sequenceToken; // invalidate any in-flight full-surah sequence
     await _positionSub?.cancel();
     await _completionSub?.cancel();
@@ -207,7 +241,6 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     // এখন playFullSurah-এর মতোই — ফাইল আগের থেকে একই থাকলে
     // setAudioSource() আর কল হয় না, শুধু seek() হয়, যেটা অনেক দ্রুত ও
     // মসৃণ (audio source-টা আগে থেকেই buffered/loaded অবস্থায় থাকে)।
-    final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
     if (!sameFileAlreadyLoaded) {
       if (player.processingState == ProcessingState.completed) {
         await player.stop();

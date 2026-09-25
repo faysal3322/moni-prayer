@@ -240,11 +240,18 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       final arabicRow = await QuranDatabaseHelper.getSingleAya(sura, aya);
       final banglaRow = await QuranDatabaseHelper.getSingleAyaBangla(sura, aya);
       final translitRow = await QuranDatabaseHelper.getSingleAyaTransliteration(sura, aya);
+      // ফিক্স (মসৃণ প্লেব্যাক): অডিও সেগমেন্টের timestamp তথ্যও এখানেই
+      // একবার cache করে রাখা হচ্ছে — _isSeamlessContinuation() এটা
+      // ব্যবহার করে বুঝতে পারে কোন আয়াতগুলো একই সূরার সত্যিকারের
+      // পরপর আয়াত, যাতে সেগুলোর মাঝে অডিও pause/seek/play না করে
+      // অবিচ্ছিন্নভাবে বাজানো যায় (দেখুন _isSeamlessContinuation-এর কমেন্ট)।
+      final segmentRow = await QuranDatabaseHelper.getAyaSegment(sura, aya);
       cache[itemId] = {
         'arabic': arabicRow?['text'] as String? ?? '',
         'bangla': banglaRow?['text'] as String? ?? '',
         'translit': translitRow?['text'] as String? ?? '',
         'suraName': suraNameMap[sura] ?? '',
+        'segment': segmentRow,
       };
     }
 
@@ -1458,6 +1465,37 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     });
   }
 
+  /// এই আইটেমটা কি কালেকশনে তার ঠিক আগের আইটেমের অডিও-ধারাবাহিকতা?
+  /// অর্থাৎ দুটোই একই সূরার আয়াত এবং আগের আয়াতের timestamp_to_ms এই
+  /// আয়াতের timestamp_from_ms-এর প্রায় সমান (মাঝে কোনো ফাঁক/লাফ নেই)।
+  /// এমন হলে playAya()-কে continuePlayback:true পাঠানো নিরাপদ — audio
+  /// pause/seek/play না করেই সরাসরি পরের সীমানায় চালিয়ে যাওয়া যায়,
+  /// ঠিক সূরা-স্ক্রিনের playFullSurah-এর মতো নিরবচ্ছিন্নভাবে।
+  ///
+  /// এটাই "সূরা" অংশের মসৃণ তেলাওয়াতের সাথে কালেকশনের পার্থক্য দূর করে:
+  /// একই mp3 ফাইলের একই ডেটা হলেও, কালেকশনে যেকোনো ক্রমে ভিন্ন ভিন্ন
+  /// সূরা/রিপিট/গ্রুপ মেশানো থাকতে পারে বলে আগে প্রতিটা আয়াতেই safety-র
+  /// জন্য pause→seek→play করা হতো — এই ফাংশনটা যখন সত্যিই টানা পাঠ
+  /// (যেমন সূরা ফাতিহার ১→২→৩...৭) চিনতে পারবে, শুধু তখনই সেই বাড়তি
+  /// ধাপ এড়িয়ে যাওয়া হবে।
+  bool _isSeamlessContinuation(Map<String, dynamic> item) {
+    final itemType = item['item_type'] as String? ?? 'aya';
+    if (itemType != 'aya') return false;
+    final itemId = item['id'] as int;
+    final idx = _items.indexWhere((it) => it['id'] == itemId);
+    if (idx <= 0) return false;
+    final prev = _items[idx - 1];
+    if ((prev['item_type'] as String? ?? 'aya') != 'aya') return false;
+    if (prev['sura'] != item['sura']) return false;
+    final prevSegment = _ayaCache[prev['id'] as int]?['segment'] as Map<String, dynamic>?;
+    final segment = _ayaCache[itemId]?['segment'] as Map<String, dynamic>?;
+    if (prevSegment == null || segment == null) return false;
+    final prevEnd = prevSegment['timestamp_to_ms'] as int?;
+    final thisStart = segment['timestamp_from_ms'] as int?;
+    if (prevEnd == null || thisStart == null) return false;
+    return (thisStart - prevEnd).abs() < 400;
+  }
+
   /// [groupPassStart] দেওয়া থাকলে (group-play মোডে), এই itemId-টা যেই
   /// গ্রুপের প্রথম আয়াত সেই গ্রুপের "এক পাস" শুরুর id হিসেবে মনে রাখা
   /// হয় — যাতে গ্রুপের শেষ আয়াত শেষ হওয়ার পর দরকার হলে আবার এখান
@@ -1581,6 +1619,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         endMs: segment['timestamp_to_ms'] as int,
         suraName: (_ayaCache[itemId]?['suraName'] as String?) ?? _suraNameFor(sura),
         ayaNumber: aya,
+        // ফিক্স (মূল সমস্যা — প্রতি আয়াতের মাঝে ধাক্কা/থমকানো): এই
+        // আয়াতটা যদি ঠিক আগের আয়াতেরই সরাসরি ধারাবাহিকতা হয় (একই সূরা,
+        // ফাঁকহীন), তাহলে প্লেয়ারকে pause→seek→play করতে বলা হয় না —
+        // বরং playFullSurah-এর (সূরা স্ক্রিন) মতোই একটানা বাজতে দিয়ে
+        // শুধু পরের থামার সীমানা বসিয়ে দেওয়া হয়। বিস্তারিত ব্যাখ্যা
+        // QuranPlaybackHandler.playAya()-এর কমেন্টে।
+        continuePlayback: _isSeamlessContinuation(item),
         onComplete: () {
           // ফিক্স: এটাই মূল বাগ ছিল — আগে এখানে "if (!mounted) return;"
           // থাকায় ব্যবহারকারী স্ক্রিন থেকে বেরিয়ে গেলে (back বাটনে চাপলে)

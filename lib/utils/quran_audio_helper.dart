@@ -595,6 +595,11 @@ class QuranAudioHelper {
     String? suraName,
     int? ayaNumber,
     void Function()? onComplete,
+    // ফিক্স: "আমার কোরআন" কালেকশনে পরপর আয়াত বাজানোর সময় ধাক্কা/থমকানো
+    // এড়াতে — এই আয়াতটা যদি ঠিক আগেরটারই "পরপর" (একই সূরা, একই ফাইলে
+    // সরাসরি continuation) হয়, caller true পাঠাতে পারে। বিস্তারিত ব্যাখ্যা
+    // QuranPlaybackHandler.playAya()-এর কমেন্টে।
+    bool continuePlayback = false,
   }) async {
     final handler = await _ensureHandler();
     // আগে প্রতিটা আয়াতে setSpeed() ও file.exists() কল হতো (ডিস্ক I/O),
@@ -627,6 +632,7 @@ class QuranAudioHelper {
       suraNumber: sura,
       suraName: suraName,
       ayaNumber: ayaNumber,
+      continuePlayback: continuePlayback,
       onComplete: () {
         if (suraName != null) nowPlaying.value = null;
         onComplete?.call();

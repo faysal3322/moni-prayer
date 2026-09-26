@@ -2246,17 +2246,17 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       const SizedBox(height: 4),
                       if (waqt != null) ...[
                         Text(
-                          isBn ? 'ওয়াক্ত শেষ হতে বাকি' : 'Time remaining',
+                          isBn ? 'ওয়াক্ত বাকি' : 'Time remaining',
                           style: const TextStyle(
                             color: AppTheme.gold,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -2321,7 +2321,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: AppTheme.gold,
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2332,8 +2332,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: Color(0xFF80DEEA),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],

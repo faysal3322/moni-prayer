@@ -2244,7 +2244,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         Text(
                           _fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime),
                           style: const TextStyle(
-                            color: Colors.white70,
+                            color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -2281,7 +2281,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                   width: 1,
                   height: 110,
                   color: Colors.white.withOpacity(0.1),
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  margin: const EdgeInsets.only(left: 6, right: 18),
                 ),
 
                 // ডান: দিনের নাম + তারিখসমূহ

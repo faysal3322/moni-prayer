@@ -466,6 +466,51 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     } catch (e) { debugPrint('WIDGET ERROR (waqt timestamps): $e'); }
 
     try {
+      // ══ ফিক্স: অ্যাপ না খুললে উইজেট "আপডেট হচ্ছে না" মনে হওয়া ══
+      // উপরের widget_*_ms শুধু *একটা* দিনের (আজকের) সময় রাখে। নামাজের সময়
+      // হিসাব (adhan) কেবল Dart-এ আছে, Kotlin-এ নেই — তাই ব্যবহারকারী যদি
+      // এক-দুদিন অ্যাপ না খোলেন, কাল থেকে উইজেট সেই পুরনো দিনের সময় দেখায়
+      // (বা "বাসি" ধরা পড়ে খালি/পুরনো লেখা দেখায়)।
+      // সমাধান: আজ থেকে পরবর্তী ৭ দিনের প্রতিদিনের ৬টা সময় আগাম হিসাব
+      // করে আলাদা key-তে (widget_dN_..._ms, N = আজ থেকে কত দিন পরে) রাখা
+      // হচ্ছে, সাথে কোন তারিখের জন্য তা widget_dN_date-এ। উইজেট (Kotlin)
+      // নিজেই ফোনের আজকের তারিখ মিলিয়ে সঠিক দিনের সেট বেছে নেয় — অ্যাপ
+      // বন্ধ থাকলেও ৭ দিন পর্যন্ত সময় ঠিক থাকে। অ্যাপ খুললেই আবার নতুন
+      // ৭ দিনের হিসাব রিফ্রেশ হয়। (লোকেশন বদলালে অ্যাপ খুললেই ঠিক হয়ে যায়।)
+      const daysAhead = 7;
+      for (var i = 0; i < daysAhead; i++) {
+        final day = DateTime.now().add(Duration(days: i));
+        final dayTimes = i == 0
+            ? pt
+            : await PrayerTimeHelper.getPrayerTimes(date: day);
+        await HomeWidget.saveWidgetData('widget_d${i}_date', DateHelper.dateKey(day));
+        await HomeWidget.saveWidgetData('widget_d${i}_fajr_ms', dayTimes.fajr.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_d${i}_sunrise_ms', dayTimes.sunrise.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_d${i}_dhuhr_ms', dayTimes.dhuhr.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_d${i}_asr_ms', dayTimes.asr.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_d${i}_maghrib_ms', dayTimes.maghrib.millisecondsSinceEpoch);
+        await HomeWidget.saveWidgetData('widget_d${i}_isha_ms', dayTimes.isha.millisecondsSinceEpoch);
+      }
+      await HomeWidget.saveWidgetData('widget_days_ahead', daysAhead);
+    } catch (e) { debugPrint('WIDGET ERROR (multi-day timestamps): $e'); }
+
+    try {
+      // একই কারণে বার/ইংরেজি তারিখ/হিজরি/বাংলা তারিখও আগামী ৭ দিনের জন্য
+      // আগাম সেভ করা হচ্ছে — অ্যাপ না খুললেও উইজেট (Kotlin) আজকের তারিখ
+      // মিলিয়ে সঠিকটা দেখাতে পারবে, গতকালের তারিখ আটকে থাকবে না।
+      for (var i = 0; i < 7; i++) {
+        final day = DateTime.now().add(Duration(days: i));
+        await HomeWidget.saveWidgetData('widget_d${i}_day', widget.lang.dayName(day.weekday));
+        await HomeWidget.saveWidgetData(
+            'widget_d${i}_gregorian', DateHelper.formatGregorian(day, bangla: isBn));
+        await HomeWidget.saveWidgetData('widget_d${i}_hijri',
+            await DateHelper.toHijriWithUserAdjust(day, bangla: isBn));
+        await HomeWidget.saveWidgetData(
+            'widget_d${i}_bangla_date', DateHelper.toBanglaWithSeason(day));
+      }
+    } catch (e) { debugPrint('WIDGET ERROR (multi-day dates): $e'); }
+
+    try {
       // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়
       // (widget প্রতি মিনিটে আপডেট হয় বলে সেকেন্ড না দেখিয়ে HH:MM আকারে দেখানো হচ্ছে)
       // লেবেল ("ওয়াক্ত বাকি") ও সময় (HH:MM) আলাদা key-তে পাঠানো হয়, যাতে
@@ -630,17 +675,25 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   // ══ লোকেশন ও আবহাওয়া fetch ══
   Future<void> _fetchLocationAndWeather() async {
     try {
+      // লোকেশন সার্ভিস বন্ধ থাকলে বা অনুমতি না থাকলে কোনো জোরাজুরি নেই —
+      // চুপচাপ ফিরে যাওয়া হয়, আগের cache করা লোকেশন দিয়েই অ্যাপ চলে।
+      // পারমিশন ডায়ালগ পুরো ইনস্টলে সর্বোচ্চ একবার দেখানো হয় (দেখুন
+      // PrayerTimeHelper.ensureLocationPermissionAskedOnce-এর কমেন্ট)।
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return;
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return;
+      final permission = await PrayerTimeHelper.ensureLocationPermissionAskedOnce();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
+        return;
       }
-      if (permission == LocationPermission.deniedForever) return;
 
+      // ফিক্স: Google Play Services-এর "লোকেশন চালু করুন / No thanks" সিস্টেম
+      // ডায়ালগ এড়াতে forceAndroidLocationManager:true (বিস্তারিত
+      // PrayerTimeHelper._getCoordinates-এর কমেন্টে)।
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
+        forceAndroidLocationManager: true,
         timeLimit: const Duration(seconds: 10),
       );
 

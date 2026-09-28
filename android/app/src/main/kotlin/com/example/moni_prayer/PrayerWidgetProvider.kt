@@ -49,6 +49,67 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     // এক জায়গায় রাখা হলো যাতে দুই ফাংশনে ভিন্ন মান হয়ে না যায়।
     private fun fajrForbiddenEnd(sunrise: Long) = sunrise + 15L * 60L * 1000L
 
+    // ফিক্স (অ্যাপ না খুললে উইজেট আপডেট না হওয়া): Dart এখন আজ থেকে পরবর্তী
+    // ৭ দিনের প্রতিদিনের ওয়াক্ত-সময় আগাম widget_dN_..._ms key-তে সেভ করে
+    // রাখে (N = আজ থেকে কত দিন পরে, সাথে widget_dN_date = "yyyy-MM-dd")।
+    // এই ফাংশন ফোনের *আজকের* তারিখ মিলিয়ে সঠিক দিনের সেট খুঁজে বের করে
+    // এবং সেই সময়গুলো মূল widget_*_ms key-তে (in-memory map হিসেবে) বসিয়ে
+    // দেয়, যাতে নিচের বাকি সব হিসাব কোড (যা widget_fajr_ms ইত্যাদি পড়ে)
+    // একটুও না বদলেই সঠিক দিনের সময় পায়। অ্যাপ কয়েক দিন না খুললেও
+    // উইজেট তাই ঠিক থাকে। মিল না পেলে (৭ দিনের বেশি অ্যাপ বন্ধ) null —
+    // তখন আগের আচরণই (মূল widget_*_ms) কাজ করে।
+    private fun todayOverrides(
+        prefs: android.content.SharedPreferences,
+        nowMs: Long
+    ): Map<String, Long>? {
+        val days = prefs.getInt("widget_days_ahead", 0)
+        if (days <= 0) return null
+        val cal = Calendar.getInstance().apply { timeInMillis = nowMs }
+        val todayKey = String.format(
+            Locale.US, "%04d-%02d-%02d",
+            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH)
+        )
+        val yCal = Calendar.getInstance().apply { timeInMillis = nowMs; add(Calendar.DAY_OF_YEAR, -1) }
+        val yesterdayKey = String.format(
+            Locale.US, "%04d-%02d-%02d",
+            yCal.get(Calendar.YEAR), yCal.get(Calendar.MONTH) + 1, yCal.get(Calendar.DAY_OF_MONTH)
+        )
+        var todayIdx = -1
+        var yesterdayIdx = -1
+        for (i in 0 until days) {
+            val d = prefs.getString("widget_d${i}_date", null) ?: continue
+            if (d == todayKey) todayIdx = i
+            if (d == yesterdayKey) yesterdayIdx = i
+        }
+        if (todayIdx < 0) return null
+        val out = HashMap<String, Long>()
+        val names = listOf("fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha")
+        for (n in names) {
+            out["widget_${n}_ms"] = prefs.getLong("widget_d${todayIdx}_${n}_ms", 0L)
+        }
+        if (yesterdayIdx >= 0) {
+            out["widget_y_maghrib_ms"] = prefs.getLong("widget_d${yesterdayIdx}_maghrib_ms", 0L)
+            out["widget_y_isha_ms"] = prefs.getLong("widget_d${yesterdayIdx}_isha_ms", 0L)
+        }
+        return out
+    }
+
+    // আজকের তারিখের সাথে মেলা widget_dN_date-এর N (না পেলে -1)। বার/তারিখের
+    // লেখা (widget_dN_day, _gregorian, _hijri, _bangla_date) নির্বাচনে লাগে।
+    private fun todayIndex(prefs: android.content.SharedPreferences, nowMs: Long): Int {
+        val days = prefs.getInt("widget_days_ahead", 0)
+        if (days <= 0) return -1
+        val cal = Calendar.getInstance().apply { timeInMillis = nowMs }
+        val todayKey = String.format(
+            Locale.US, "%04d-%02d-%02d",
+            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH)
+        )
+        for (i in 0 until days) {
+            if (prefs.getString("widget_d${i}_date", null) == todayKey) return i
+        }
+        return -1
+    }
+
     private fun computeWaqtInfo(
         prefs: android.content.SharedPreferences,
         nowMs: Long,
@@ -60,14 +121,19 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // দেখাবে (crash না করে)।
         if (!prefs.contains("widget_fajr_ms")) return null
 
-        val fajr = prefs.getLong("widget_fajr_ms", 0L)
-        val sunrise = prefs.getLong("widget_sunrise_ms", 0L)
-        val dhuhr = prefs.getLong("widget_dhuhr_ms", 0L)
-        val asr = prefs.getLong("widget_asr_ms", 0L)
-        val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
-        val isha = prefs.getLong("widget_isha_ms", 0L)
-        val yMaghribStored = prefs.getLong("widget_y_maghrib_ms", 0L)
-        val yIshaStored = prefs.getLong("widget_y_isha_ms", 0L)
+        // আজকের তারিখের জন্য আগাম-সেভ করা সেট থাকলে (অ্যাপ কয়েকদিন না
+        // খুললেও) সেটাই ব্যবহার হবে, নইলে আগের মতো মূল prefs।
+        val ov = todayOverrides(prefs, nowMs)
+        fun pl(key: String): Long = ov?.get(key) ?: prefs.getLong(key, 0L)
+
+        val fajr = pl("widget_fajr_ms")
+        val sunrise = pl("widget_sunrise_ms")
+        val dhuhr = pl("widget_dhuhr_ms")
+        val asr = pl("widget_asr_ms")
+        val maghrib = pl("widget_maghrib_ms")
+        val isha = pl("widget_isha_ms")
+        val yMaghribStored = pl("widget_y_maghrib_ms")
+        val yIshaStored = pl("widget_y_isha_ms")
 
         // ══ মূল ফিক্স: বাসি (stale) prefs ডেটা শনাক্ত করা ══
         // আগে ধরে নেওয়া হতো prefs-এ থাকা fajr/isha/maghrib সবসময়
@@ -189,9 +255,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     // হিসাব — Dart-এর _updateHomeWidget()-এ থাকা isForbidden লজিকের মতোই।
     private fun computeIsForbidden(prefs: android.content.SharedPreferences, nowMs: Long): Boolean {
         if (!prefs.contains("widget_sunrise_ms")) return false
-        val sunrise = prefs.getLong("widget_sunrise_ms", 0L)
-        val dhuhr = prefs.getLong("widget_dhuhr_ms", 0L)
-        val maghrib = prefs.getLong("widget_maghrib_ms", 0L)
+        val ov = todayOverrides(prefs, nowMs)
+        val sunrise = ov?.get("widget_sunrise_ms") ?: prefs.getLong("widget_sunrise_ms", 0L)
+        val dhuhr = ov?.get("widget_dhuhr_ms") ?: prefs.getLong("widget_dhuhr_ms", 0L)
+        val maghrib = ov?.get("widget_maghrib_ms") ?: prefs.getLong("widget_maghrib_ms", 0L)
 
         val fajrForbiddenEnd = fajrForbiddenEnd(sunrise)
         val zawalStart = dhuhr - 5L * 60L * 1000L
@@ -308,12 +375,24 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             }
         } catch (e: Exception) { }
 
-        views.setTextViewText(R.id.widget_day, prefs.getString("widget_day", "") ?: "")
+        // ফিক্স: বার/তারিখগুলো আগে সরাসরি Dart-এর সেভ করা (একদিনের) স্ট্রিং
+        // থেকে আসত — অ্যাপ না খুললে পরদিনও গতকালের তারিখ আটকে থাকত। এখন
+        // আজকের তারিখের আগাম-সেভ করা লেখা বেছে নেওয়া হয়; না পেলে আগের মতো
+        // মূল স্ট্রিংই ফলব্যাক।
+        val dIdx = todayIndex(prefs, now.timeInMillis)
+        fun dateText(suffix: String, fallbackKey: String): String {
+            if (dIdx >= 0) {
+                val v = prefs.getString("widget_d${dIdx}_$suffix", null)
+                if (!v.isNullOrEmpty()) return v
+            }
+            return prefs.getString(fallbackKey, "") ?: ""
+        }
+        views.setTextViewText(R.id.widget_day, dateText("day", "widget_day"))
         views.setTextViewText(R.id.widget_weather, prefs.getString("widget_weather", "") ?: "")
         views.setTextViewText(R.id.widget_location, prefs.getString("widget_location", "") ?: "")
-        views.setTextViewText(R.id.widget_gregorian, prefs.getString("widget_gregorian", "") ?: "")
-        views.setTextViewText(R.id.widget_hijri, prefs.getString("widget_hijri", "") ?: "")
-        views.setTextViewText(R.id.widget_bangla_date, prefs.getString("widget_bangla_date", "") ?: "")
+        views.setTextViewText(R.id.widget_gregorian, dateText("gregorian", "widget_gregorian"))
+        views.setTextViewText(R.id.widget_hijri, dateText("hijri", "widget_hijri"))
+        views.setTextViewText(R.id.widget_bangla_date, dateText("bangla_date", "widget_bangla_date"))
 
         // ══ মূল ফিক্স ══
         // আগে widget_waqt_name/range/remaining সরাসরি prefs থেকে
@@ -347,10 +426,20 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
             views.setTextViewText(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
         }
-        views.setTextViewText(R.id.widget_sunrise, prefs.getString("widget_sunrise", "") ?: "")
-        views.setTextViewText(R.id.widget_sunset, prefs.getString("widget_sunset", "") ?: "")
-        views.setTextViewText(R.id.widget_sehri, prefs.getString("widget_sehri", "") ?: "")
-        views.setTextViewText(R.id.widget_iftar, prefs.getString("widget_iftar", "") ?: "")
+        // ফিক্স: এই চারটা সময় আগে Dart-এর সেভ করা স্ট্রিং থেকে সরাসরি আসত,
+        // যা অ্যাপ না খুললে গতকালের সময়ই দেখাত। এখন আজকের তারিখের আগাম-সেভ
+        // করা timestamp থেকে এখানেই (Kotlin-এ) ফরম্যাট করা হচ্ছে; না পেলে
+        // আগের মতো Dart-এর স্ট্রিংই ফলব্যাক।
+        val ovTimes = todayOverrides(prefs, now.timeInMillis)
+        fun timeText(key: String, fallbackKey: String): String {
+            val ms = ovTimes?.get(key)
+            return if (ms != null && ms > 0L) fmtNoAmPm(ms, is24Hour)
+            else (prefs.getString(fallbackKey, "") ?: "")
+        }
+        views.setTextViewText(R.id.widget_sunrise, timeText("widget_sunrise_ms", "widget_sunrise"))
+        views.setTextViewText(R.id.widget_sunset, timeText("widget_maghrib_ms", "widget_sunset"))
+        views.setTextViewText(R.id.widget_sehri, timeText("widget_fajr_ms", "widget_sehri"))
+        views.setTextViewText(R.id.widget_iftar, timeText("widget_maghrib_ms", "widget_iftar"))
 
         // ══ দিন / রাত — মূল অ্যাপের ClockCard-এর _bottomTimeCol-এর সাথে
         // অভিন্ন সূত্র: দিন = সাহরি (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত
@@ -360,8 +449,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // দিন/রাতের ব্যবধান বের করা হচ্ছে।
         try {
             if (prefs.contains("widget_fajr_ms") && prefs.contains("widget_maghrib_ms")) {
-                val fajrMs = prefs.getLong("widget_fajr_ms", 0L)
-                val maghribMs = prefs.getLong("widget_maghrib_ms", 0L)
+                val ovDay = todayOverrides(prefs, now.timeInMillis)
+                val fajrMs = ovDay?.get("widget_fajr_ms") ?: prefs.getLong("widget_fajr_ms", 0L)
+                val maghribMs = ovDay?.get("widget_maghrib_ms") ?: prefs.getLong("widget_maghrib_ms", 0L)
                 val dayMs = maghribMs - fajrMs
                 val nightMs = 24L * 3600L * 1000L - dayMs
                 fun fmtDuration(ms: Long): String {

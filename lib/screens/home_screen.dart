@@ -2334,7 +2334,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                   width: 1,
                   height: 110,
                   color: Colors.white.withOpacity(0.1),
-                  margin: const EdgeInsets.only(left: 4, right: 20),
+                  margin: const EdgeInsets.only(left: 2, right: 22),
                 ),
 
                 // ডান: দিনের নাম + তারিখসমূহ

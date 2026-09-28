@@ -2280,7 +2280,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               children: [
                 // বাম: বর্তমান নামাজের ওয়াক্ত
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2334,12 +2334,12 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                   width: 1,
                   height: 110,
                   color: Colors.white.withOpacity(0.1),
-                  margin: const EdgeInsets.only(left: 2, right: 22),
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
                 ),
 
                 // ডান: দিনের নাম + তারিখসমূহ
                 Expanded(
-                  flex: 5,
+                  flex: 6,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [

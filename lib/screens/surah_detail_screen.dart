@@ -47,6 +47,17 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
     WidgetsBinding.instance.addObserver(this);
     _currentSura = widget.sura;
     _pageController = PageController(initialPage: _currentSura - 1);
+    // ফিক্স (স্ক্রিন লক করে অনেকক্ষণ পর খুললে UI পুরনো সূরায় আটকে থাকা):
+    // অডিও chain এখন হ্যান্ডলার-স্তরে চলে, তাই স্ক্রিন লক থাকা অবস্থায়
+    // অডিও ঠিকই পরের সূরায় (যেমন মুলক → কলম → ...) চলে যায় এবং
+    // নোটিফিকেশনও আপডেট হয়। কিন্তু PageView-কে পরের সূরায় সরানোর কাজটা
+    // আগে শুধু _SurahPage-এর onSequenceComplete কলব্যাক (→
+    // animateToPage) করত — লক অবস্থায় Flutter-এর ফ্রেমই চলে না, তাই ওই
+    // অ্যানিমেশন/কলব্যাক ঠিকমতো কাজ করত না। ফলে স্ক্রিন খুললে UI আটকে
+    // থাকত পুরনো সূরায় (Al-Qalam), play বাটনও "বন্ধ" দেখাত, যদিও অডিও
+    // চলছিল। এখন activeSession (অডিওর আসল অবস্থা) সরাসরি শুনে PageView
+    // মিলিয়ে নেওয়া হচ্ছে।
+    QuranAudioHelper.activeSession.addListener(_syncPageWithActiveSession);
     // নোটিফিকেশনের "পরের/আগের সূরা" বাটন চাপলে যাতে এই স্ক্রিনের
     // PageView-ই নেভিগেট করে (এবং নতুন সূরা অটো-প্লে শুরু করে)।
     QuranAudioHelper.setSurahNavCallbacks(
@@ -58,9 +69,37 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> with WidgetsBindi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    QuranAudioHelper.activeSession.removeListener(_syncPageWithActiveSession);
     QuranAudioHelper.setSurahNavCallbacks(onNext: null, onPrevious: null);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // স্ক্রিন আনলক/অ্যাপ ফোরগ্রাউন্ডে ফিরলে সাথে সাথে অডিও সেশনের সাথে
+    // PageView মিলিয়ে নেওয়া হচ্ছে (লক থাকা অবস্থায় যা মিস হয়েছে)।
+    if (state == AppLifecycleState.resumed) {
+      _syncPageWithActiveSession();
+    }
+  }
+
+  /// অডিও সেশন এখন যে সূরা বাজাচ্ছে, PageView সেই সূরার পেজেই আছে কিনা
+  /// দেখে; না থাকলে (যেমন লক অবস্থায় chain হয়ে পরের সূরায় চলে গেছে)
+  /// অ্যানিমেশন ছাড়াই সরাসরি সেই পেজে জাম্প করে। অ্যানিমেশন ইচ্ছা করেই
+  /// ব্যবহার করা হয়নি — ব্যাকগ্রাউন্ড/লক অবস্থায় অ্যানিমেশন ফ্রেম না
+  /// চলায় সেটা অসম্পূর্ণ থেকে যেতে পারে।
+  void _syncPageWithActiveSession() {
+    if (!mounted) return;
+    final session = QuranAudioHelper.activeSession.value;
+    if (session == null) return;
+    final targetSura = session.sura;
+    if (targetSura < 1 || targetSura > _totalSurahs) return;
+    if (targetSura == _currentSura) return;
+    if (!_pageController.hasClients) return;
+    _currentSura = targetSura;
+    _pageController.jumpToPage(targetSura - 1);
+    setState(() {});
   }
 
   // সেটিংস থেকে ফিরে আসার পর PageView-এর সব পেজ জোর করে নতুন করে তৈরি

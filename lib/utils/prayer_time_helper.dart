@@ -39,19 +39,27 @@ class PrayerTimeHelper {
         return _fallback(cachedLat, cachedLng);
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return _fallback(cachedLat, cachedLng);
-        }
-      }
-      if (permission == LocationPermission.deniedForever) {
+      final permission = await ensureLocationPermissionAskedOnce();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
         return _fallback(cachedLat, cachedLng);
       }
 
+      // ফিক্স ("লোকেশন চালু করুন — No thanks" ডায়ালগ বারবার আসা): geolocator
+      // ডিফল্টে Google Play Services (Fused provider) ব্যবহার করে, আর
+      // লোকেশন বন্ধ/সীমিত থাকলে Google-এর নিজস্ব "আরও সঠিক লোকেশনের জন্য
+      // লোকেশন চালু করুন" সিস্টেম ডায়ালগ (বাটন: No thanks / OK) তুলে ধরে —
+      // "No thanks" দিলেও পরের চেষ্টায় আবার আসে। forceAndroidLocationManager:true
+      // দিলে Android-এর সাধারণ LocationManager ব্যবহার হয়, যা কখনোই ওই
+      // ডায়ালগ দেখায় না; লোকেশন না পেলে শুধু ব্যতিক্রম ছোড়ে, যা নিচের
+      // catch চুপচাপ সামলে cache-এ ফিরে যায়।
+      // (geolocator ^11-এ এই প্যারামিটারগুলোই সমর্থিত — locationSettings/
+      // AndroidSettings ভার্সন ১৩+ এর জন্য এবং আলাদা geolocator_android
+      // ইমপোর্ট লাগে, তাই এখানে ব্যবহার করা হয়নি।)
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        forceAndroidLocationManager: true,
         timeLimit: const Duration(seconds: 15),
       );
 
@@ -63,6 +71,35 @@ class PrayerTimeHelper {
     } catch (_) {
       return _fallback(cachedLat, cachedLng);
     }
+  }
+
+  // ফিক্স (লোকেশন পারমিশন ডায়ালগ বারবার আসা): আগে প্রতিবার লোকেশন দরকার
+  // হলে (অ্যাপ খোলা, প্রতি ১৫ মিনিটের টাইমার, অ্যাপে ফিরে আসা, নোটিফিকেশন
+  // শিডিউল, নামাজের সময় হিসাব ইত্যাদি) পারমিশন denied থাকলে
+  // Geolocator.requestPermission() আবার আবার কল হতো — তাই Android-এর
+  // "লোকেশন অনুমতি দিন" ডায়ালগ ব্যবহারকারী "না" বললেও বারবার ফিরে আসত।
+  // ব্যবহারকারী লোকেশন না দিতে চাইলে সেটা তাঁর অধিকার — অ্যাপ জোর করবে না।
+  //
+  // এখন পারমিশন-ডায়ালগ পুরো ইনস্টলে সর্বোচ্চ *একবার* (এবং একবার "না"
+  // বললে আর কখনোই স্বয়ংক্রিয়ভাবে না) দেখানো হয়। এর পরে লোকেশন না পেলে
+  // অ্যাপ চুপচাপ শেষবারের cache করা লোকেশন (বা ঢাকার ডিফল্ট) দিয়ে চলে।
+  // ব্যবহারকারী পরে নিজে চাইলে ফোনের সেটিংস থেকে অনুমতি দিতে পারেন।
+  static const String _kAskedPermissionKey = 'location_permission_asked_once';
+  static bool _askedThisSession = false;
+
+  static Future<LocationPermission> ensureLocationPermissionAskedOnce() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission != LocationPermission.denied) return permission;
+
+    // denied অবস্থা: আগে কখনো জিজ্ঞাসা করা হয়েছে কিনা দেখা হচ্ছে।
+    if (_askedThisSession) return permission;
+    final prefs = await SharedPreferences.getInstance();
+    final askedBefore = prefs.getBool(_kAskedPermissionKey) ?? false;
+    if (askedBefore) return permission;
+
+    _askedThisSession = true;
+    await prefs.setBool(_kAskedPermissionKey, true);
+    return await Geolocator.requestPermission();
   }
 
   // GPS ব্যর্থ হলে: cache থাকলে cache ব্যবহার করা (সঠিক তথ্যের সবচেয়ে

@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import '../utils/quran_audio_helper.dart';
 
 class NamesScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -12,7 +15,33 @@ class NamesScreen extends StatefulWidget {
 }
 
 class _NamesScreenState extends State<NamesScreen> {
-  final AudioPlayer _player = AudioPlayer();
+  // ফিক্স: আগে এখানে audioplayers-এর AudioPlayer সরাসরি ব্যবহার হতো।
+  // সেটা কোনো Android foreground service ছাড়াই বাজে, তাই স্ক্রিন বন্ধ
+  // হলে কিছুক্ষণ পর সিস্টেম (Doze/battery optimization) এটাকে মেরে
+  // দিত — "সব নাম চলছে" মাঝপথে থেমে যেত, কোনো নোটিফিকেশনও দেখাত না।
+  // কুরআন অংশ (surah_detail_screen.dart) এই একই সমস্যায় পড়েনি কারণ
+  // সেটা QuranAudioHelper/QuranPlaybackHandler ব্যবহার করে, যেটা
+  // audio_service দিয়ে একটা আসল foreground service + notification
+  // চালায় — এখন ৯৯ নামও সেই একই পথ ব্যবহার করছে, তাই স্ক্রিন বন্ধ
+  // থাকলেও চলতেই থাকবে এবং নোটিফিকেশনও দেখাবে, ঠিক কুরআন অংশের মতো।
+  //
+  // QuranAudioHelper.playCustomAudio() একটা ডিস্কের ফাইল-পাথ চায়
+  // (asset bundle সরাসরি চালাতে পারে না), তাই প্রতিটা part_N.mp3
+  // প্রথমবার ব্যবহারের সময় app-এর temp ফোল্ডারে কপি করে সেই পাথ
+  // cache করে রাখা হয় — পরের বার একই group চাইলে আর কপি করতে হয় না।
+  final Map<String, String> _assetFilePathCache = {};
+
+  Future<String> _resolveAssetAudioPath(String audioName) async {
+    final cached = _assetFilePathCache[audioName];
+    if (cached != null && await File(cached).exists()) return cached;
+    final bytes = await rootBundle.load('assets/audio/$audioName.mp3');
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/names99_$audioName.mp3');
+    await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
+    _assetFilePathCache[audioName] = file.path;
+    return file.path;
+  }
+
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _groupKeys = List.generate(18, (_) => GlobalKey());
   bool _isPlaying = false;
@@ -240,24 +269,19 @@ class _NamesScreenState extends State<NamesScreen> {
   @override
   void initState() {
     super.initState();
-    // audio শেষ হলে
-    _player.onPlayerComplete.listen((_) {
-      if (!mounted) return;
-      if (_isPlayingAll) {
-        // সব চালু মোড — পরবর্তী group এ যাও
-        _playNextAll();
-      } else if (_playingGroupIndex != null) {
-        // repeat মোড — একই group আবার চালাও
-        _repeatCurrentGroup();
-      }
-    });
+    // ফিক্স: আগে এখানে audioplayers-এর player.onPlayerComplete শোনা হতো।
+    // এখন QuranPlaybackHandler-ভিত্তিক playback ব্যবহার হচ্ছে, যেখানে
+    // "audio শেষ হলে কী হবে" সরাসরি প্রতিটা play কলের onComplete
+    // প্যারামিটার দিয়ে দেওয়া হয় (নিচে _playGroup/_togglePlayAll/
+    // _playNextAll দেখুন) — তাই এখানে আলাদা কোনো গ্লোবাল লিসেনার লাগে না।
   }
 
   // ══ Group repeat ══
   void _playGroup(int groupIndex) async {
     if (_playingGroupIndex == groupIndex && _isPlaying) {
       // চলছে → বন্ধ করো
-      await _player.stop();
+      await QuranAudioHelper.stop();
+      if (!mounted) return;
       setState(() {
         _isPlaying = false;
         _isPlayingAll = false;
@@ -265,28 +289,39 @@ class _NamesScreenState extends State<NamesScreen> {
       });
       return;
     }
-    await _player.stop();
+    await QuranAudioHelper.stop();
     setState(() {
       _isPlaying = true;
       _isPlayingAll = false;
       _playingGroupIndex = groupIndex;
     });
-    await _player.play(AssetSource('audio/${_groups[groupIndex]['audio']}.mp3'));
     _scrollToGroup(groupIndex);
+    final path = await _resolveAssetAudioPath(_groups[groupIndex]['audio'] as String);
+    if (!mounted || _playingGroupIndex != groupIndex) return; // ইতিমধ্যে বদলে গেলে বাতিল
+    await QuranAudioHelper.playCustomAudio(
+      filePath: path,
+      onComplete: _repeatCurrentGroup,
+    );
   }
 
   void _repeatCurrentGroup() async {
-    if (_playingGroupIndex == null || !_isPlaying) return;
+    if (_playingGroupIndex == null || !_isPlaying || _isPlayingAll) return;
     await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted || !_isPlaying) return;
-    await _player.play(AssetSource('audio/${_groups[_playingGroupIndex!]['audio']}.mp3'));
+    if (!mounted || !_isPlaying || _playingGroupIndex == null) return;
+    final path = await _resolveAssetAudioPath(_groups[_playingGroupIndex!]['audio'] as String);
+    if (!mounted || _playingGroupIndex == null) return;
+    await QuranAudioHelper.playCustomAudio(
+      filePath: path,
+      onComplete: _repeatCurrentGroup,
+    );
   }
 
   // ══ সব একসাথে চালু ══
   void _togglePlayAll() async {
     if (_isPlayingAll) {
       // চলছে → বন্ধ করো
-      await _player.stop();
+      await QuranAudioHelper.stop();
+      if (!mounted) return;
       setState(() {
         _isPlaying = false;
         _isPlayingAll = false;
@@ -296,7 +331,7 @@ class _NamesScreenState extends State<NamesScreen> {
       });
       return;
     }
-    await _player.stop();
+    await QuranAudioHelper.stop();
     setState(() {
       _isPlaying = true;
       _isPlayingAll = true;
@@ -307,7 +342,12 @@ class _NamesScreenState extends State<NamesScreen> {
       _highlightGroupIndex = null;
     });
     // bismillah দিয়ে শুরু
-    await _player.play(AssetSource('audio/part_0.mp3'));
+    final path = await _resolveAssetAudioPath('part_0');
+    if (!mounted || !_isPlayingAll) return;
+    await QuranAudioHelper.playCustomAudio(
+      filePath: path,
+      onComplete: _playNextAll,
+    );
   }
 
   void _playNextAll() async {
@@ -340,7 +380,12 @@ class _NamesScreenState extends State<NamesScreen> {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted || !_isPlayingAll) return;
       _scrollToGroup(scrollIdx);
-      await _player.play(AssetSource('audio/$audio.mp3'));
+      final path = await _resolveAssetAudioPath(audio);
+      if (!mounted || !_isPlayingAll) return;
+      await QuranAudioHelper.playCustomAudio(
+        filePath: path,
+        onComplete: _playNextAll,
+      );
     } else {
       // সব শেষ — শুরু থেকে আবার
       setState(() {
@@ -359,7 +404,12 @@ class _NamesScreenState extends State<NamesScreen> {
       }
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted || !_isPlayingAll) return;
-      await _player.play(AssetSource('audio/part_0.mp3'));
+      final path = await _resolveAssetAudioPath('part_0');
+      if (!mounted || !_isPlayingAll) return;
+      await QuranAudioHelper.playCustomAudio(
+        filePath: path,
+        onComplete: _playNextAll,
+      );
     }
   }
 
@@ -379,7 +429,12 @@ class _NamesScreenState extends State<NamesScreen> {
 
   @override
   void dispose() {
-    _player.dispose();
+    // গুরুত্বপূর্ণ: এখানে QuranAudioHelper.stop() কল করা হচ্ছে না।
+    // QuranPlaybackHandler একটা গ্লোবাল/শেয়ার্ড অডিও সেশন (কুরআন
+    // স্ক্রিন সহ অন্য জায়গাতেও ব্যবহৃত হয়) — এই স্ক্রিন থেকে বের
+    // হয়ে গেলেও যদি ৯৯ নাম তখনও চলতে থাকে, সেটা চলতেই থাকবে
+    // (ব্যাকগ্রাউন্ডে, ঠিক কুরআন তেলাওয়াতের মতোই), এখান থেকে বের
+    // হওয়া মাত্র বন্ধ হয়ে যাবে না।
     _scrollController.dispose();
     super.dispose();
   }
@@ -408,13 +463,16 @@ class _NamesScreenState extends State<NamesScreen> {
           // Bismillah — tap করলে part_0 play হয়
           GestureDetector(
             onTap: () async {
-              await _player.stop();
+              await QuranAudioHelper.stop();
+              if (!mounted) return;
               setState(() {
                 _isPlaying = true;
                 _isPlayingAll = false;
                 _playingGroupIndex = -1; // bismillah
               });
-              await _player.play(AssetSource('audio/part_0.mp3'));
+              final path = await _resolveAssetAudioPath('part_0');
+              if (!mounted || _playingGroupIndex != -1) return;
+              await QuranAudioHelper.playCustomAudio(filePath: path);
             },
             child: Container(
               width: double.infinity,

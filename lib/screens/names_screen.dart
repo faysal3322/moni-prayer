@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -53,6 +54,16 @@ class _NamesScreenState extends State<NamesScreen> {
   // হবে শুধু তখনই যখন সেই group সত্যিই স্ক্রল-হয়ে বাজা শুরু করে।
   int? _highlightGroupIndex;
   bool _isPlayingAll = false; // সব একসাথে চলছে কিনা
+
+  // ══ Repeat অপশন ══
+  // repeatForever = true হলে "সব নাম" শেষ হলে বারবার (অসীম) আবার শুরু
+  // হবে — এটাই আগের আচরণ, ডিফল্ট true রাখা হলো যাতে আগের ব্যবহারকারীরা
+  // কোনো পরিবর্তন ছাড়াই আগের মতো ব্যবহার করতে পারেন।
+  // repeatForever = false হলে _repeatCount বার চালিয়ে (১/২/৩ ইত্যাদি)
+  // পুরো "সব নাম" সাইকেল শেষে থেমে যাবে।
+  bool _repeatForever = true;
+  int _repeatCount = 1;      // ব্যবহারকারীর বাছাই করা repeat সংখ্যা (১–১০)
+  int _completedCycles = 0;  // "সব নাম" এখন পর্যন্ত কতবার সম্পূর্ণ হয়েছে
 
   // ayat.json থেকে আরবি লেখা হুবহু নেওয়া হয়েছে
   final List<Map<String, dynamic>> _groups = [
@@ -337,6 +348,7 @@ class _NamesScreenState extends State<NamesScreen> {
       _isPlayingAll = true;
       _playingGroupIndex = null;
       _allPlayIndex = 0;
+      _completedCycles = 0;
       // bismillah (part_0) চলাকালীন কোনো নির্দিষ্ট group হাইলাইট হবে না —
       // group-ভিত্তিক হাইলাইট শুরু হবে group 0 থেকে (নিচে _playNextAll-এ)।
       _highlightGroupIndex = null;
@@ -377,9 +389,25 @@ class _NamesScreenState extends State<NamesScreen> {
         _highlightGroupIndex = scrollIdx;
       });
       _allPlayIndex++;
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted || !_isPlayingAll) return;
-      _scrollToGroup(scrollIdx);
+      // ফিক্স: এখানে আগে "await Future.delayed(...)" এবং পরে
+      // "_scrollToGroup(scrollIdx)" (যেটা Scrollable.ensureVisible দিয়ে
+      // widget-context ও স্ক্রিন রেন্ডারিং-এর উপর নির্ভরশীল) থাকার কারণে
+      // এই পুরো চেইনটা স্ক্রিন বন্ধ অবস্থায় (Flutter engine রেন্ডারিং
+      // পজ করে দেয়) মাঝপথে আটকে থাকত। অডিও চালানোর নেটিভ foreground
+      // service ঠিকই চলত, কিন্তু "পরের অডিও চালাও" কমান্ডটা এই আটকে
+      // থাকা await-এর পেছনে অপেক্ষা করত — ফলে স্ক্রিন বন্ধ করলে ৯৯ নাম
+      // শেষ হওয়ার পর পরের সাইকেল আর শুরু হতো না, স্ক্রিন চালু করা
+      // মাত্রই (রেন্ডারিং আবার শুরু হলে) সেই আটকে থাকা কমান্ড চলে
+      // অডিওটা "নিজে নিজে" চালু হয়ে যেত।
+      //
+      // সমাধান: scroll/animation অংশটা "fire-and-forget" করা হলো —
+      // অর্থাৎ এটাকে await না করে আলাদাভাবে চালানো হচ্ছে। ফলে অডিও
+      // চালানোর কমান্ড স্ক্রিন বন্ধ থাকা অবস্থাতেও সাথে সাথেই পাঠানো
+      // হয়, কোনো UI/রেন্ডারিং নির্ভর কাজের জন্য আটকে থাকে না। স্ক্রিন
+      // চালু থাকলে scroll/হাইলাইট আগের মতোই স্বাভাবিকভাবে কাজ করবে।
+      unawaited(Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && _isPlayingAll) _scrollToGroup(scrollIdx);
+      }));
       final path = await _resolveAssetAudioPath(audio);
       if (!mounted || !_isPlayingAll) return;
       await QuranAudioHelper.playCustomAudio(
@@ -387,23 +415,37 @@ class _NamesScreenState extends State<NamesScreen> {
         onComplete: _playNextAll,
       );
     } else {
-      // সব শেষ — শুরু থেকে আবার
+      // এক সাইকেল ("সব নাম" গোড়া থেকে শেষ পর্যন্ত) সম্পূর্ণ হলো
+      _completedCycles++;
+      if (!_repeatForever && _completedCycles >= _repeatCount) {
+        // ব্যবহারকারী যতবার চেয়েছেন ততবার হয়ে গেছে — থেমে যাও
+        if (!mounted) return;
+        setState(() {
+          _isPlaying = false;
+          _isPlayingAll = false;
+          _playingGroupIndex = null;
+          _allPlayIndex = 0;
+          _highlightGroupIndex = null;
+        });
+        return;
+      }
+      // আবার চালাও (repeatForever=true হলে অসীমবার, নাহলে বাকি যতবার)
       setState(() {
         _allPlayIndex = 0;
         // বিসমিল্লাহ আবার চালানো হচ্ছে — এই সময়টায় কোনো নির্দিষ্ট group
         // হাইলাইট থাকবে না (যেমন প্রথমবার শুরুতেও ছিল না)।
         _highlightGroupIndex = null;
       });
-      // আগে scroll উপরে নিয়ে যাও
+      // ফিক্স: scroll-to-top আগে "await" করা হতো, এখন ওপরের কারণেই
+      // fire-and-forget করা হলো — স্ক্রিন বন্ধ থাকলে এটার জন্য অডিও
+      // চেইন আটকে থাকবে না।
       if (_scrollController.hasClients) {
-        await _scrollController.animateTo(
+        unawaited(_scrollController.animateTo(
           0,
           duration: const Duration(milliseconds: 600),
           curve: Curves.easeInOut,
-        );
+        ));
       }
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted || !_isPlayingAll) return;
       final path = await _resolveAssetAudioPath('part_0');
       if (!mounted || !_isPlayingAll) return;
       await QuranAudioHelper.playCustomAudio(
@@ -411,6 +453,103 @@ class _NamesScreenState extends State<NamesScreen> {
         onComplete: _playNextAll,
       );
     }
+  }
+
+  // "সব নাম" কতবার চলবে তা বাছাই করার ডায়ালগ — "বারবার (অসীম)" বা ১-১০ বার
+  void _showRepeatOptionsDialog() {
+    final isBn = widget.lang.isBn;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.surface,
+              title: Text(
+                isBn ? 'কতবার চলবে' : 'Repeat options',
+                style: const TextStyle(color: AppTheme.gold),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RadioListTile<bool>(
+                      value: true,
+                      groupValue: _repeatForever,
+                      activeColor: AppTheme.gold,
+                      title: Text(
+                        isBn ? 'বারবার (অসীম)' : 'Repeat forever',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onChanged: (v) => setDialogState(() => _repeatForever = true),
+                    ),
+                    RadioListTile<bool>(
+                      value: false,
+                      groupValue: _repeatForever,
+                      activeColor: AppTheme.gold,
+                      title: Text(
+                        isBn ? 'নির্দিষ্ট সংখ্যক বার' : 'Specific number of times',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onChanged: (v) => setDialogState(() => _repeatForever = false),
+                    ),
+                    if (!_repeatForever)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 12, top: 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              isBn ? 'বার' : 'times',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                            Expanded(
+                              child: Slider(
+                                value: _repeatCount.toDouble(),
+                                min: 1,
+                                max: 10,
+                                divisions: 9,
+                                activeColor: AppTheme.gold,
+                                label: '$_repeatCount',
+                                onChanged: (v) =>
+                                    setDialogState(() => _repeatCount = v.round()),
+                              ),
+                            ),
+                            Text(
+                              '$_repeatCount',
+                              style: const TextStyle(
+                                color: AppTheme.gold,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(isBn ? 'বাতিল' : 'Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // নতুন সেটিং কার্যকর করার আগে cycle-counter রিসেট করা
+                    // হচ্ছে, যাতে এখন থেকে নতুন বাছাই অনুযায়ী গণনা শুরু হয়।
+                    setState(() {
+                      _completedCycles = 0;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(isBn ? 'ঠিক আছে' : 'OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // Auto-scroll to current playing group
@@ -447,6 +586,15 @@ class _NamesScreenState extends State<NamesScreen> {
       appBar: AppBar(
         title: Text(isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah'),
         actions: [
+          // Repeat অপশন: "বারবার (অসীম)" বা নির্দিষ্ট সংখ্যক বার (১–১০)
+          IconButton(
+            onPressed: _showRepeatOptionsDialog,
+            icon: Icon(
+              _repeatForever ? Icons.repeat : Icons.repeat_one,
+              color: AppTheme.gold,
+            ),
+            tooltip: isBn ? 'কতবার চলবে' : 'Repeat options',
+          ),
           IconButton(
             onPressed: _togglePlayAll,
             icon: Icon(

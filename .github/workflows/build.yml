@@ -39,4 +39,4 @@ jobs:
         with:
           name: moni-prayer-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 3
+          retention-days: 1

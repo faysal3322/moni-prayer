@@ -323,7 +323,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       return {'name': isBn ? 'যাওয়াল' : 'Zawal', 'range': range(zawalStart, zawalEnd), 'end': zawalEnd};
     }
     if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'range': range(pt.dhuhr, pt.asr), 'end': pt.asr};
+      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যোহর' : 'Dhuhr'), 'range': range(pt.dhuhr, pt.asr), 'end': pt.asr};
     }
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
       return {'name': isBn ? 'আসর' : 'Asr', 'range': range(pt.asr, pt.maghrib), 'end': pt.maghrib};
@@ -2076,7 +2076,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       return {'name': isBn ? 'যাওয়াল (নিষিদ্ধ সময়)' : 'Zawal (Forbidden)', 'start': zawalStart, 'end': zawalEnd};
     }
     if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      return {'name': isBn ? 'যোহর' : 'Dhuhr', 'start': pt.dhuhr, 'end': pt.asr};
+      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যোহর' : 'Dhuhr'), 'start': pt.dhuhr, 'end': pt.asr};
     }
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
       return {'name': isBn ? 'আসর' : 'Asr', 'start': pt.asr, 'end': pt.maghrib};

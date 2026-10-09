@@ -210,6 +210,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         fun range(s: Long, e: Long) = "${fmtNoAmPm(s, is24Hour)} - ${fmtNoAmPm(e, is24Hour)}"
 
+        // শুক্রবারে যোহরের ওয়াক্তের নাম "জুম'আ" দেখানো হবে
+        val isFriday = Calendar.getInstance().apply { timeInMillis = nowMs }
+            .get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
+
         return when {
             nowMs > fajr && nowMs < sunrise ->
                 WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise)
@@ -230,7 +234,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     range(forbidden2Start, forbidden2End), forbidden2End
                 )
             nowMs >= forbidden2End && nowMs < asr ->
-                WaqtInfo(if (isBn) "যোহর" else "Dhuhr", range(forbidden2End, asr), asr)
+                WaqtInfo(
+                    if (isFriday) (if (isBn) "জুম'আ" else "Jumu'ah")
+                    else (if (isBn) "যোহর" else "Dhuhr"),
+                    range(forbidden2End, asr), asr
+                )
             // নিষিদ্ধ সময় ৩: মাগরিবের ঠিক ১৫ মিনিট আগে থেকে মাগরিব পর্যন্ত
             nowMs >= forbidden3Start && nowMs < maghrib ->
                 WaqtInfo(

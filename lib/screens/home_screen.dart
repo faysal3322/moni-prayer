@@ -241,6 +241,11 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   Timer? _autoQazaTimer;
   Timer? _weatherTimer;
   int _alertRotationIndex = 0;
+  // widget-এর আগাম ৯০ দিনের ডেটা কখন শেষবার তৈরি হয়েছিল তার চাবি — চাবি না
+  // বদলালে (নতুন দিন/লোকেশন-মেথড বদল/ভাষা বা হিজরি অ্যাডজাস্ট বদল না হলে)
+  // প্রতি ৩০ সেকেন্ডে এই ভারী কাজ আর করা হয় না।
+  String? _widgetMultiDayKey;
+  bool _widgetMultiDayBusy = false;
 
   // ══ লোকেশন ও আবহাওয়া ══
   String _locationName = '';
@@ -465,50 +470,66 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       await HomeWidget.saveWidgetData('widget_is_bn', isBn);
     } catch (e) { debugPrint('WIDGET ERROR (waqt timestamps): $e'); }
 
-    try {
-      // ══ ফিক্স: অ্যাপ না খুললে উইজেট "আপডেট হচ্ছে না" মনে হওয়া ══
-      // উপরের widget_*_ms শুধু *একটা* দিনের (আজকের) সময় রাখে। নামাজের সময়
-      // হিসাব (adhan) কেবল Dart-এ আছে, Kotlin-এ নেই — তাই ব্যবহারকারী যদি
-      // এক-দুদিন অ্যাপ না খোলেন, কাল থেকে উইজেট সেই পুরনো দিনের সময় দেখায়
-      // (বা "বাসি" ধরা পড়ে খালি/পুরনো লেখা দেখায়)।
-      // সমাধান: আজ থেকে পরবর্তী ৭ দিনের প্রতিদিনের ৬টা সময় আগাম হিসাব
-      // করে আলাদা key-তে (widget_dN_..._ms, N = আজ থেকে কত দিন পরে) রাখা
-      // হচ্ছে, সাথে কোন তারিখের জন্য তা widget_dN_date-এ। উইজেট (Kotlin)
-      // নিজেই ফোনের আজকের তারিখ মিলিয়ে সঠিক দিনের সেট বেছে নেয় — অ্যাপ
-      // বন্ধ থাকলেও ৭ দিন পর্যন্ত সময় ঠিক থাকে। অ্যাপ খুললেই আবার নতুন
-      // ৭ দিনের হিসাব রিফ্রেশ হয়। (লোকেশন বদলালে অ্যাপ খুললেই ঠিক হয়ে যায়।)
-      const daysAhead = 7;
-      for (var i = 0; i < daysAhead; i++) {
-        final day = DateTime.now().add(Duration(days: i));
-        final dayTimes = i == 0
-            ? pt
-            : await PrayerTimeHelper.getPrayerTimes(date: day);
-        await HomeWidget.saveWidgetData('widget_d${i}_date', DateHelper.dateKey(day));
-        await HomeWidget.saveWidgetData('widget_d${i}_fajr_ms', dayTimes.fajr.millisecondsSinceEpoch);
-        await HomeWidget.saveWidgetData('widget_d${i}_sunrise_ms', dayTimes.sunrise.millisecondsSinceEpoch);
-        await HomeWidget.saveWidgetData('widget_d${i}_dhuhr_ms', dayTimes.dhuhr.millisecondsSinceEpoch);
-        await HomeWidget.saveWidgetData('widget_d${i}_asr_ms', dayTimes.asr.millisecondsSinceEpoch);
-        await HomeWidget.saveWidgetData('widget_d${i}_maghrib_ms', dayTimes.maghrib.millisecondsSinceEpoch);
-        await HomeWidget.saveWidgetData('widget_d${i}_isha_ms', dayTimes.isha.millisecondsSinceEpoch);
-      }
-      await HomeWidget.saveWidgetData('widget_days_ahead', daysAhead);
-    } catch (e) { debugPrint('WIDGET ERROR (multi-day timestamps): $e'); }
+    // ══ ফিক্স: অ্যাপ এক-দুই মাস না খুললেও উইজেট ঠিক থাকা ══
+    // নামাজের সময় হিসাব (adhan) কেবল Dart-এ আছে, তাই আজ থেকে পরবর্তী ৯০
+    // দিনের প্রতিদিনের ৬টা সময় (widget_dN_..._ms) এবং বার/ইংরেজি তারিখ/
+    // হিজরি/বাংলা তারিখ (widget_dN_day, _gregorian, _hijri, _bangla_date)
+    // আগাম হিসাব করে সেভ রাখা হয় (N = আজ থেকে কত দিন পরে, সাথে
+    // widget_dN_date = "yyyy-MM-dd")। উইজেট (Kotlin) নিজেই ফোনের আজকের
+    // তারিখ মিলিয়ে সঠিক দিনের সেট বেছে নেয় — অ্যাপ বন্ধ থাকলেও ৯০ দিন
+    // পর্যন্ত সব ঠিক থাকে, আর অ্যাপ খুললেই আবার নতুন ৯০ দিন রিফ্রেশ হয়।
+    //
+    // আগে এই কাজ (৭ দিনের জন্য, প্রতিদিনের জন্য আলাদা GPS-সহ) প্রতি ৩০
+    // সেকেন্ডে বারবার চলত। এখন শুধু তখনই চলে যখন চাবি (তারিখ + আজকের
+    // ফজর/মাগরিব + ভাষা + হিজরি লেখা) বদলায়।
+    const int daysAhead = 90;
+    final multiDayKey =
+        '${DateHelper.dateKey(now)}|${pt.fajr.millisecondsSinceEpoch}|'
+        '${pt.maghrib.millisecondsSinceEpoch}|$isBn|$_hijriDate';
+    if (_widgetMultiDayKey != multiDayKey && !_widgetMultiDayBusy) {
+      _widgetMultiDayBusy = true;
+      var multiDayOk = true;
+      try {
+        try {
+          final range = await PrayerTimeHelper.getPrayerTimesRange(days: daysAhead);
+          for (var i = 0; i < daysAhead; i++) {
+            final day = DateTime(now.year, now.month, now.day + i, 12);
+            final dayTimes = i == 0 ? pt : range[i];
+            await HomeWidget.saveWidgetData('widget_d${i}_date', DateHelper.dateKey(day));
+            await HomeWidget.saveWidgetData('widget_d${i}_fajr_ms', dayTimes.fajr.millisecondsSinceEpoch);
+            await HomeWidget.saveWidgetData('widget_d${i}_sunrise_ms', dayTimes.sunrise.millisecondsSinceEpoch);
+            await HomeWidget.saveWidgetData('widget_d${i}_dhuhr_ms', dayTimes.dhuhr.millisecondsSinceEpoch);
+            await HomeWidget.saveWidgetData('widget_d${i}_asr_ms', dayTimes.asr.millisecondsSinceEpoch);
+            await HomeWidget.saveWidgetData('widget_d${i}_maghrib_ms', dayTimes.maghrib.millisecondsSinceEpoch);
+            await HomeWidget.saveWidgetData('widget_d${i}_isha_ms', dayTimes.isha.millisecondsSinceEpoch);
+          }
+          await HomeWidget.saveWidgetData('widget_days_ahead', daysAhead);
+        } catch (e) {
+          multiDayOk = false;
+          debugPrint('WIDGET ERROR (multi-day timestamps): $e');
+        }
 
-    try {
-      // একই কারণে বার/ইংরেজি তারিখ/হিজরি/বাংলা তারিখও আগামী ৭ দিনের জন্য
-      // আগাম সেভ করা হচ্ছে — অ্যাপ না খুললেও উইজেট (Kotlin) আজকের তারিখ
-      // মিলিয়ে সঠিকটা দেখাতে পারবে, গতকালের তারিখ আটকে থাকবে না।
-      for (var i = 0; i < 7; i++) {
-        final day = DateTime.now().add(Duration(days: i));
-        await HomeWidget.saveWidgetData('widget_d${i}_day', widget.lang.dayName(day.weekday));
-        await HomeWidget.saveWidgetData(
-            'widget_d${i}_gregorian', DateHelper.formatGregorian(day, bangla: isBn));
-        await HomeWidget.saveWidgetData('widget_d${i}_hijri',
-            await DateHelper.toHijriWithUserAdjust(day, bangla: isBn));
-        await HomeWidget.saveWidgetData(
-            'widget_d${i}_bangla_date', DateHelper.toBanglaWithSeason(day));
+        try {
+          for (var i = 0; i < daysAhead; i++) {
+            final day = DateTime(now.year, now.month, now.day + i, 12);
+            await HomeWidget.saveWidgetData('widget_d${i}_day', widget.lang.dayName(day.weekday));
+            await HomeWidget.saveWidgetData(
+                'widget_d${i}_gregorian', DateHelper.formatGregorian(day, bangla: isBn));
+            await HomeWidget.saveWidgetData('widget_d${i}_hijri',
+                await DateHelper.toHijriWithUserAdjust(day, bangla: isBn));
+            await HomeWidget.saveWidgetData(
+                'widget_d${i}_bangla_date', DateHelper.toBanglaWithSeason(day));
+          }
+        } catch (e) {
+          multiDayOk = false;
+          debugPrint('WIDGET ERROR (multi-day dates): $e');
+        }
+
+        if (multiDayOk) _widgetMultiDayKey = multiDayKey;
+      } finally {
+        _widgetMultiDayBusy = false;
       }
-    } catch (e) { debugPrint('WIDGET ERROR (multi-day dates): $e'); }
+    }
 
     try {
       // বর্তমানে সক্রিয় নামাজের ওয়াক্তের নাম, সময়সীমা ও শেষ হতে বাকি সময়

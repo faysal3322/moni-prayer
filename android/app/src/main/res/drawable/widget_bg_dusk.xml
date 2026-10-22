@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- গোধূলি (সূর্যাস্তের পর, এশার আগে): বেগুনি-ম্যাজেন্টা
+     উপর থেকে নিচে গ্রেডিয়েন্ট (angle 270 = উপর→নিচ)। রং বদলাতে চাইলে নিচের
+     তিনটা hex (উপর / মাঝ / নিচ) বদলান। কোণের গোলাকার ভাব: corners radius। -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#FF6B2F6B"
+        android:centerColor="#FF3E2260"
+        android:endColor="#FF150F33" />
+    <corners android:radius="20dp" />
+</shape>

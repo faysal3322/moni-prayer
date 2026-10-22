@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- গভীর রাত: প্রায়-কালো নীল
+     উপর থেকে নিচে গ্রেডিয়েন্ট (angle 270 = উপর→নিচ)। রং বদলাতে চাইলে নিচের
+     তিনটা hex (উপর / মাঝ / নিচ) বদলান। কোণের গোলাকার ভাব: corners radius। -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#FF0F1330"
+        android:centerColor="#FF080A1E"
+        android:endColor="#FF020309" />
+    <corners android:radius="20dp" />
+</shape>

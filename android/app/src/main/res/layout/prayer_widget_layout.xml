@@ -5,10 +5,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:paddingStart="10dp"
-    android:paddingEnd="10dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="10dp">
 
     <!-- ══ উপরে: সময় (বাম) + লোকেশন ও আবহাওয়া (ডান) ══ -->
     <LinearLayout
@@ -72,7 +72,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="0dp"
         android:layout_marginBottom="2dp"
-        android:background="#22FFFFFF"
+        android:background="#88FFFFFF"
         android:text="" />
 
     <!-- ══ মাঝে: নামাজের ওয়াক্ত (বাম) | দিন-তারিখ (ডান) ══ -->
@@ -186,11 +186,23 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- ══ নতুন: মাঝের অংশ (ওয়াক্ত | তারিখ) ও নিচের সময়ের সারির মাঝে উজ্জ্বল
+         সাদা আনুভূমিক লাইন। রং বদলাতে চাইলে android:background এর hex বদলান
+         (#FFFFFFFF = পুরো উজ্জ্বল সাদা)। (RemoteViews-এ <View> চলে না, তাই
+         উপরের লাইনের মতোই TextView) ══ -->
+    <TextView
+        android:id="@+id/widget_divider_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:background="#FFFFFFFF"
+        android:text="" />
+
     <!-- ══ নিচে: সাহরি শেষ | সূর্যোদয় | সূর্যাস্ত | ইফতার শুরু (কোনো আইকন ছাড়া) ══ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -373,7 +385,7 @@
         android:paddingBottom="4dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
-        android:background="#55000000"
+        android:background="@drawable/widget_alert_bg"
         android:text=""
         android:textColor="#FFD54F"
         android:textSize="13sp"

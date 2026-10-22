@@ -212,6 +212,30 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val forbidden2End = dhuhr + 5L * 60L * 1000L
         val forbidden3Start = maghrib - 15L * 60L * 1000L
 
+        // ══ সারাদিনের রং-ধাপ: সূর্যের অবস্থান (ওয়াক্তের সময়) ধরে ১৪টা ধাপ ══
+        // আগে প্রতি ওয়াক্তে একটাই রং ছিল (যেমন দুহা ৬:৪৪–১১:৩৯ পুরোটা একই)।
+        // এখন সূর্যোদয়/যোহর/আসর/মাগরিব/এশা-র আসল সময়ের সাপেক্ষে ধাপ ঠিক হয়,
+        // তাই সকাল-৯টা-১০টা, দুপুর, বিকেল, সন্ধ্যা, রাত, গভীর রাত — সব আলাদা রং।
+        // ধাপের নাম থেকে ড্রয়েবল বাছে backgroundForWaqt() (নিচে)।
+        val min = 60_000L
+        val asrToMaghrib = maghrib - asr
+        val stage = when {
+            nowMs >= fajr && nowMs < sunrise -> "fajr"
+            nowMs >= sunrise && nowMs < sunrise + 45 * min -> "sunrise"
+            nowMs >= sunrise + 45 * min && nowMs < sunrise + 150 * min -> "morning1"
+            nowMs >= sunrise + 150 * min && nowMs < dhuhr - 90 * min -> "morning2"
+            nowMs >= dhuhr - 90 * min && nowMs < dhuhr + 60 * min -> "noon"
+            nowMs >= dhuhr + 60 * min && nowMs < asr -> "afternoon1"
+            nowMs >= asr && nowMs < asr + asrToMaghrib * 45L / 100L -> "asr1"
+            nowMs >= asr + asrToMaghrib * 45L / 100L && nowMs < maghrib - 30 * min -> "asr2"
+            nowMs >= maghrib - 30 * min && nowMs < maghrib + 25 * min -> "sunset"
+            nowMs >= maghrib + 25 * min && nowMs < isha -> "dusk"
+            nowMs >= lastThird && nowMs < nextFajr -> "tahajjud"
+            nowMs - nightIsha < 90 * min -> "isha"
+            nowMs - nightIsha < 240 * min -> "night"
+            else -> "deepnight"
+        }
+
         fun range(s: Long, e: Long) = "${fmtNoAmPm(s, is24Hour)} - ${fmtNoAmPm(e, is24Hour)}"
 
         // শুক্রবারে যোহরের ওয়াক্তের নাম "জুম'আ" দেখানো হবে
@@ -220,7 +244,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         return when {
             nowMs > fajr && nowMs < sunrise ->
-                WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise, "fajr")
+                WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise, stage)
             // নিষিদ্ধ সময় ১: সূর্যোদয় থেকে পরবর্তী ১৫ মিনিট পর্যন্ত
             nowMs >= sunrise && nowMs < forbidden1End ->
                 WaqtInfo(
@@ -228,9 +252,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     range(sunrise, forbidden1End), forbidden1End, "forbidden"
                 )
             nowMs >= forbidden1End && nowMs < ishraqEnd ->
-                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd, "ishraq")
+                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd, stage)
             nowMs > chashtStart && nowMs < forbidden2Start ->
-                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start, "duha")
+                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start, stage)
             // নিষিদ্ধ সময় ২: যাওয়াল — দুহুরের ৫ মিনিট আগে থেকে ৫ মিনিট পর পর্যন্ত
             nowMs >= forbidden2Start && nowMs < forbidden2End ->
                 WaqtInfo(
@@ -241,7 +265,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 WaqtInfo(
                     if (isFriday) (if (isBn) "জুম'আ" else "Jumu'ah")
                     else (if (isBn) "যোহর" else "Dhuhr"),
-                    range(forbidden2End, asr), asr, "dhuhr"
+                    range(forbidden2End, asr), asr, stage
                 )
             // নিষিদ্ধ সময় ৩: মাগরিবের ঠিক ১৫ মিনিট আগে থেকে মাগরিব পর্যন্ত
             nowMs >= forbidden3Start && nowMs < maghrib ->
@@ -250,15 +274,15 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     range(forbidden3Start, maghrib), maghrib, "forbidden"
                 )
             nowMs > asr && nowMs < forbidden3Start ->
-                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, forbidden3Start), forbidden3Start, "asr")
+                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, forbidden3Start), forbidden3Start, stage)
             nowMs > maghrib && nowMs < isha ->
-                WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha, "maghrib")
+                WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha, stage)
             nowMs > isha && nowMs < ishaaEnd ->
-                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd, "isha")
+                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd, stage)
             nowMs > nightIsha && nowMs >= lastThird && nowMs < nextFajr ->
-                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr, "tahajjud")
+                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr, stage)
             nowMs > nightIsha && nowMs < nextFajr ->
-                WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird, "night")
+                WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird, stage)
             else -> null
         }
     }
@@ -564,15 +588,20 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     // চলতি ওয়াক্তের চাবি থেকে ব্যাকগ্রাউন্ড ড্রয়েবল বাছাই — ড্রয়েবলগুলো
     // res/drawable/widget_bg_*.xml এ আছে; রং বদলাতে চাইলে সেখানের hex বদলান।
     private fun backgroundForWaqt(key: String?): Int = when (key) {
-        "fajr" -> R.drawable.widget_bg_fajr
-        "ishraq" -> R.drawable.widget_bg_ishraq
-        "duha" -> R.drawable.widget_bg_duha
-        "dhuhr" -> R.drawable.widget_bg_dhuhr
-        "asr" -> R.drawable.widget_bg_asr
-        "maghrib" -> R.drawable.widget_bg_maghrib
-        "isha" -> R.drawable.widget_bg_isha
-        "night" -> R.drawable.widget_bg_night
-        "tahajjud" -> R.drawable.widget_bg_tahajjud
+        "fajr" -> R.drawable.widget_bg_fajr              // ভোর/ফজর
+        "sunrise" -> R.drawable.widget_bg_ishraq         // সূর্যোদয় (পীচ→ম্যাজেন্টা)
+        "morning1" -> R.drawable.widget_bg_duha          // সকাল — সবুজাভ নীল
+        "morning2" -> R.drawable.widget_bg_morning2      // ৯–১০টা — উজ্জ্বল আকাশি
+        "noon" -> R.drawable.widget_bg_dhuhr             // দুপুর — গাঢ় নীল
+        "afternoon1" -> R.drawable.widget_bg_afternoon1  // দুপুর গড়ানো — ধূসর-নীল
+        "asr1" -> R.drawable.widget_bg_asr               // বিকেল — সোনালি
+        "asr2" -> R.drawable.widget_bg_asr2              // বিকেলের শেষ — কমলা
+        "sunset" -> R.drawable.widget_bg_maghrib         // সূর্যাস্ত — লালচে কমলা
+        "dusk" -> R.drawable.widget_bg_dusk              // গোধূলি — বেগুনি
+        "isha" -> R.drawable.widget_bg_isha              // এশা — নেভি
+        "night" -> R.drawable.widget_bg_night            // রাত — ইন্ডিগো
+        "deepnight" -> R.drawable.widget_bg_deepnight    // গভীর রাত — প্রায় কালো
+        "tahajjud" -> R.drawable.widget_bg_tahajjud      // শেষ রাত — বেগুনি
         else -> R.drawable.widget_background
     }
 

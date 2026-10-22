@@ -17,6 +17,26 @@ class PrayerTimeHelper {
     return PrayerTimes(myCoordinates, dateComponents, params);
   }
 
+  // ══ widget-এর জন্য: আজ থেকে শুরু করে [days] দিনের ওয়াক্ত একসাথে ══
+  // getPrayerTimes() প্রতিবার GPS লোকেশন চায় (সর্বোচ্চ ১৫ সেকেন্ড পর্যন্ত
+  // অপেক্ষা) — ৯০ দিনের জন্য ৯০ বার GPS ডাকা অসম্ভব। তাই এখানে GPS না
+  // ডেকে শেষবার সফলভাবে cache করা লোকেশন (lat/lng) একবার পড়ে সব দিনের
+  // হিসাব করা হয়। হিসাবের মেথড/মাযহাব getPrayerTimes()-এর সাথে হুবহু এক।
+  static Future<List<PrayerTimes>> getPrayerTimesRange({required int days}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final coords = _fallback(prefs.getDouble('lat'), prefs.getDouble('lng'));
+    final myCoordinates = Coordinates(coords[0], coords[1]);
+    final now = DateTime.now();
+    final out = <PrayerTimes>[];
+    for (var i = 0; i < days; i++) {
+      final params = CalculationMethod.karachi.getParameters();
+      params.madhab = Madhab.hanafi;
+      final day = DateTime(now.year, now.month, now.day + i, 12);
+      out.add(PrayerTimes(myCoordinates, DateComponents.from(day), params));
+    }
+    return out;
+  }
+
   // ফিক্স: আগে GPS ব্যর্থ হলে (timeout, সাময়িক service glitch, ইত্যাদি)
   // সরাসরি ঢাকার কোঅর্ডিনেট (defaultLat/defaultLng) ব্যবহার হতো — কোনো
   // সতর্কতা বা cache ছাড়াই। ব্যবহারকারী ভেলোরে থেকেও ঢাকার হিসাবে নামাজের

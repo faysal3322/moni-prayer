@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ফজর — ভোরের আলো: পোড়ামাটি-গোলাপি থেকে গাঢ় স্লেট
+     উপর থেকে নিচে গ্রেডিয়েন্ট (angle 270 = উপর→নিচ)। রং বদলাতে চাইলে নিচের
+     তিনটা hex (উপর / মাঝ / নিচ) বদলান। কোণের গোলাকার ভাব: corners radius। -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#FF8A4A44"
+        android:centerColor="#FF4A3550"
+        android:endColor="#FF1D2135" />
+    <corners android:radius="20dp" />
+</shape>

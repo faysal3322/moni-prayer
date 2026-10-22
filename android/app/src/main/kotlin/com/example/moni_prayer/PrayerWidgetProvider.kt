@@ -7,6 +7,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.RelativeSizeSpan
@@ -29,7 +30,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     data class WaqtInfo(
         val name: String,
         val range: String,
-        val endMs: Long
+        val endMs: Long,
+        // ব্যাকগ্রাউন্ডের রং বাছাইয়ের জন্য ভাষা-নিরপেক্ষ চাবি
+        // (fajr/forbidden/ishraq/duha/dhuhr/asr/maghrib/isha/tahajjud/night)
+        val key: String = ""
     )
 
     private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
@@ -216,45 +220,45 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         return when {
             nowMs > fajr && nowMs < sunrise ->
-                WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise)
+                WaqtInfo(if (isBn) "ফজর" else "Fajr", range(fajr, sunrise), sunrise, "fajr")
             // নিষিদ্ধ সময় ১: সূর্যোদয় থেকে পরবর্তী ১৫ মিনিট পর্যন্ত
             nowMs >= sunrise && nowMs < forbidden1End ->
                 WaqtInfo(
                     if (isBn) "নিষিদ্ধ সময় (সূর্যোদয়)" else "Forbidden time (Sunrise)",
-                    range(sunrise, forbidden1End), forbidden1End
+                    range(sunrise, forbidden1End), forbidden1End, "forbidden"
                 )
             nowMs >= forbidden1End && nowMs < ishraqEnd ->
-                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd)
+                WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd, "ishraq")
             nowMs > chashtStart && nowMs < forbidden2Start ->
-                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start)
+                WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start, "duha")
             // নিষিদ্ধ সময় ২: যাওয়াল — দুহুরের ৫ মিনিট আগে থেকে ৫ মিনিট পর পর্যন্ত
             nowMs >= forbidden2Start && nowMs < forbidden2End ->
                 WaqtInfo(
                     if (isBn) "নিষিদ্ধ সময় (যাওয়াল)" else "Forbidden time (Zawal)",
-                    range(forbidden2Start, forbidden2End), forbidden2End
+                    range(forbidden2Start, forbidden2End), forbidden2End, "forbidden"
                 )
             nowMs >= forbidden2End && nowMs < asr ->
                 WaqtInfo(
                     if (isFriday) (if (isBn) "জুম'আ" else "Jumu'ah")
                     else (if (isBn) "যোহর" else "Dhuhr"),
-                    range(forbidden2End, asr), asr
+                    range(forbidden2End, asr), asr, "dhuhr"
                 )
             // নিষিদ্ধ সময় ৩: মাগরিবের ঠিক ১৫ মিনিট আগে থেকে মাগরিব পর্যন্ত
             nowMs >= forbidden3Start && nowMs < maghrib ->
                 WaqtInfo(
                     if (isBn) "নিষিদ্ধ সময় (সূর্যাস্ত)" else "Forbidden time (Sunset)",
-                    range(forbidden3Start, maghrib), maghrib
+                    range(forbidden3Start, maghrib), maghrib, "forbidden"
                 )
             nowMs > asr && nowMs < forbidden3Start ->
-                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, forbidden3Start), forbidden3Start)
+                WaqtInfo(if (isBn) "আসর" else "Asr", range(asr, forbidden3Start), forbidden3Start, "asr")
             nowMs > maghrib && nowMs < isha ->
-                WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha)
+                WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha, "maghrib")
             nowMs > isha && nowMs < ishaaEnd ->
-                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd)
+                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd, "isha")
             nowMs > nightIsha && nowMs >= lastThird && nowMs < nextFajr ->
-                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr)
+                WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr, "tahajjud")
             nowMs > nightIsha && nowMs < nextFajr ->
-                WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird)
+                WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird, "night")
             else -> null
         }
     }
@@ -297,6 +301,31 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         try { scheduleNextUpdate(context) } catch (e: Exception) { }
     }
 
+    // ══ ফিক্স: উইজেটের মিনিট-অ্যালার্ম চেইন মরে গিয়ে উইজেট আটকে যাওয়া ══
+    // AlarmManager-এর অ্যালার্ম ফোন রিস্টার্ট দিলে, ঘড়ি/তারিখ/টাইমজোন বদলালে
+    // বা অ্যাপ আপডেট হলে মুছে যায় — তখন কেউ উইজেটকে আর জাগাত না এবং অ্যাপ না
+    // খুলে উইজেট ঠিক হতো না। এখন এই ঘটনাগুলো ধরে উইজেট সঙ্গে সঙ্গে আপডেট
+    // করা হয় এবং অ্যালার্ম চেইন আবার চালু করা হয় (এর জন্য Manifest-এ
+    // নিচের action গুলো intent-filter-এ যোগ করা আছে)।
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_DATE_CHANGED -> {
+                try {
+                    val mgr = AppWidgetManager.getInstance(context)
+                    val ids = mgr.getAppWidgetIds(
+                        ComponentName(context, PrayerWidgetProvider::class.java)
+                    )
+                    if (ids.isNotEmpty()) onUpdate(context, mgr, ids)
+                } catch (e: Exception) { }
+            }
+        }
+    }
+
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         try { scheduleNextUpdate(context) } catch (e: Exception) { }
@@ -324,7 +353,22 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMinute.timeInMillis, pendingIntent)
+        val triggerAt = nextMinute.timeInMillis
+        // ফিক্স: Android 12+ এ exact-alarm অনুমতি না থাকলে বা বাতিল হলে
+        // setExactAndAllowWhileIdle SecurityException ছোড়ে — আগে সেটা চুপচাপ
+        // গিলে ফেলা হতো ফলে অ্যালার্ম চেইন সম্পূর্ণ বন্ধ হয়ে উইজেট আটকে যেত।
+        // এখন অনুমতি না থাকলে (বা ব্যতিক্রম হলে) অন্তত অনুমানভিত্তিক
+        // (inexact) অ্যালার্মে ফিরে যায়, যাতে উইজেট একদম থেমে না যায়।
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            }
+        } catch (e: SecurityException) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        }
     }
 
     private fun cancelUpdate(context: Context) {
@@ -485,7 +529,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 computeIsForbidden(prefs, now.timeInMillis)
             else
                 prefs.getBoolean("widget_is_forbidden", false)
-            val bgRes = if (isForbidden) R.drawable.widget_background_forbidden else R.drawable.widget_background
+            // নিষিদ্ধ সময়ে লাল (সতর্কতা) — অন্য সময়ে চলতি ওয়াক্ত অনুযায়ী
+            // আলাদা সুন্দর গ্রেডিয়েন্ট (ফজর/ইশরাক/দুহা/যোহর/আসর/মাগরিব/এশা/
+            // রাত/তাহাজ্জুদ)। প্রতি মিনিটে উইজেট আপডেটের সাথে রং বদলায়।
+            val bgRes = if (isForbidden) R.drawable.widget_background_forbidden
+                        else backgroundForWaqt(waqtInfo?.key)
             views.setInt(R.id.widget_root, "setBackgroundResource", bgRes)
         } catch (e: Exception) { }
 
@@ -511,6 +559,21 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         }
 
         appWidgetManager.updateAppWidget(widgetId, views)
+    }
+
+    // চলতি ওয়াক্তের চাবি থেকে ব্যাকগ্রাউন্ড ড্রয়েবল বাছাই — ড্রয়েবলগুলো
+    // res/drawable/widget_bg_*.xml এ আছে; রং বদলাতে চাইলে সেখানের hex বদলান।
+    private fun backgroundForWaqt(key: String?): Int = when (key) {
+        "fajr" -> R.drawable.widget_bg_fajr
+        "ishraq" -> R.drawable.widget_bg_ishraq
+        "duha" -> R.drawable.widget_bg_duha
+        "dhuhr" -> R.drawable.widget_bg_dhuhr
+        "asr" -> R.drawable.widget_bg_asr
+        "maghrib" -> R.drawable.widget_bg_maghrib
+        "isha" -> R.drawable.widget_bg_isha
+        "night" -> R.drawable.widget_bg_night
+        "tahajjud" -> R.drawable.widget_bg_tahajjud
+        else -> R.drawable.widget_background
     }
 
     private fun toBanglaDigits(input: String): String {

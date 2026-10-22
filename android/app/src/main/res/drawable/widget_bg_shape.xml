@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- উইজেটের ব্যাকগ্রাউন্ডের গোল-কোণ আকার (widget_bg ImageView-এর ছবি)।
+     এখানকার solid রং শুধু "ব্যাকআপ" — আসল রং Kotlin (SkyColor.kt) সময় অনুযায়ী
+     এর ওপর বসিয়ে দেয়। কোণের গোলাকার ভাব বদলাতে চাইলে corners radius বদলান। -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FF1B2E1F" />
+    <corners android:radius="20dp" />
+</shape>

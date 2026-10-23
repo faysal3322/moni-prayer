@@ -182,6 +182,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   // কারণ pause হলে audio position ধরে রাখা হয় এবং resume করলে সেখান
   // থেকেই আবার শুরু হয়, শুরু থেকে না।
   bool _sequencePaused = false;
+  final Map<int, Map<String, dynamic>?> _surahAudioCache = {};
   bool _audioBusy = false; // ডাউনলোড/লোড হওয়ার সময় ডাবল-ট্যাপ ঠেকাতে
   double _playbackSpeed = 1.0;
   static const List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
@@ -1496,6 +1497,26 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     return (thisStart - prevEnd).abs() < 400;
   }
 
+  /// এই আইটেম শেষ হওয়ার পর _playNextInSequence() যেটা চালাবে, সেটা কি
+  /// একই সূরার ঠিক পরের (ফাঁকহীন) আয়াত? — _playNextInSequence-এর সিদ্ধান্তের
+  /// হুবহু প্রতিরূপ, যাতে handler আগে থেকেই জানে শেষে pause করা যাবে না।
+  bool _nextWillBeSeamless(Map<String, dynamic> item, int? groupPassStart) {
+    final id = item['id'] as int;
+    final repeatCount = (item['repeat_count'] as int?) ?? 1;
+    // একক আয়াতের রিপিট বাকি — একই আয়াত আবার (seek-back লাগবে)।
+    if (groupPassStart == null && _currentRepeatIndex + 1 < repeatCount) return false;
+    final idx = _items.indexWhere((it) => it['id'] == id);
+    if (idx < 0 || idx + 1 >= _items.length) return false;
+    final next = _items[idx + 1];
+    if (groupPassStart != null) {
+      final groupKey = item['group_key'] as String?;
+      final hasNextInGroup = next['group_key'] == groupKey;
+      // গ্রুপ শেষ + গ্রুপ রিপিট বাকি — শুরুতে ফিরতে হবে।
+      if (!hasNextInGroup && _currentRepeatIndex + 1 < repeatCount) return false;
+    }
+    return _isSeamlessContinuation(next);
+  }
+
   /// [groupPassStart] দেওয়া থাকলে (group-play মোডে), এই itemId-টা যেই
   /// গ্রুপের প্রথম আয়াত সেই গ্রুপের "এক পাস" শুরুর id হিসেবে মনে রাখা
   /// হয় — যাতে গ্রুপের শেষ আয়াত শেষ হওয়ার পর দরকার হলে আবার এখান
@@ -1591,8 +1612,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     _scrollToPlayingItem(itemId);
 
     try {
-      final surahAudio = await QuranDatabaseHelper.getSurahAudio(sura);
-      final segment = await QuranDatabaseHelper.getAyaSegment(sura, aya);
+      // ফিক্স: প্রতি আয়াতে দুটো DB query (await) হতো — এই সময়টা প্লেয়ার
+      // থেমে থাকত। এখন cache থেকে নেওয়া হয়; সূরার URL-ও একবারই আনা হয়।
+      final segment = (_ayaCache[itemId]?['segment'] as Map<String, dynamic>?) ??
+          await QuranDatabaseHelper.getAyaSegment(sura, aya);
+      final surahAudio = _surahAudioCache[sura] ??
+          (_surahAudioCache[sura] = await QuranDatabaseHelper.getSurahAudio(sura));
       if (surahAudio == null || segment == null) {
         if (mounted) {
           setState(() {
@@ -1626,6 +1651,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         // শুধু পরের থামার সীমানা বসিয়ে দেওয়া হয়। বিস্তারিত ব্যাখ্যা
         // QuranPlaybackHandler.playAya()-এর কমেন্টে।
         continuePlayback: _isSeamlessContinuation(item),
+        nextIsSeamless: chainNext && _sequencePlaying && _nextWillBeSeamless(item, groupPassStart),
         onComplete: () {
           // ফিক্স: এটাই মূল বাগ ছিল — আগে এখানে "if (!mounted) return;"
           // থাকায় ব্যবহারকারী স্ক্রিন থেকে বেরিয়ে গেলে (back বাটনে চাপলে)

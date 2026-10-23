@@ -1278,30 +1278,30 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
           : 'It is Shawwal — keep 6 nafl fasts this month! Equals fasting the whole year (Muslim, Amal 43).', 'color': const Color(0xFF81C784)});
     }
 
-    // ══ জিলকদ শেষ হচ্ছে (২৫-২৯ জিলকদ) ══
+    // ══ জ্বিলকদ শেষ হচ্ছে (২৫-২৯ জ্বিলকদ) ══
     if (hijriMonth == 11 && h >= 25) {
-      alerts.add({'icon': '🕋', 'text': isBn ? 'জিলকদ শেষ হচ্ছে — জিলহজ শুরু হলে কোরবানিদাতারা নখ, চুল ও গোঁফ কাটবেন না!' : 'Dhul Qa\'dah ending — When Dhul Hijjah starts, don\'t cut nails or hair if sacrificing!', 'color': AppTheme.gold});
+      alerts.add({'icon': '🕋', 'text': isBn ? 'জ্বিলকদ শেষ হচ্ছে — জ্বিলহজ্জ শুরু হলে কোরবানিদাতারা নখ, চুল ও গোঁফ কাটবেন না!' : 'Dhul Qa\'dah ending — When Dhul Hijjah starts, don\'t cut nails or hair if sacrificing!', 'color': AppTheme.gold});
     }
 
-    // ══ জিলহজ মাসের বিশেষ আমল ══
+    // ══ জ্বিলহজ্জ মাসের বিশেষ আমল ══
     if (hijriMonth == 12) {
-      // ১-৯ জিলহজ: সার্বক্ষণিক ফজিলতের reminder
+      // ১-৯ জ্বিলহজ্জ: সার্বক্ষণিক ফজিলতের reminder
       if (h >= 1 && h <= 9) {
-        alerts.add({'icon': '🕋', 'text': isBn ? 'আজ $h জিলহজ — বছরের শ্রেষ্ঠ দিন! বেশি বেশি ইবাদত করুন। এই দিনের আমল জিহাদের চেয়েও উত্তম!' : 'Today $h Dhul Hijjah — Best days of the year! Worship is better than Jihad!', 'color': AppTheme.gold});
+        alerts.add({'icon': '🕋', 'text': isBn ? 'আজ $h জ্বিলহজ্জ — বছরের শ্রেষ্ঠ দিন! বেশি বেশি ইবাদত করুন। এই দিনের আমল জিহাদের চেয়েও উত্তম!' : 'Today $h Dhul Hijjah — Best days of the year! Worship is better than Jihad!', 'color': AppTheme.gold});
         // জিকিরের reminder
-        alerts.add({'icon': '📿', 'text': isBn ? 'জিলহজের আমল: বেশি বেশি পড়ুন — সুবহানাল্লাহ, আলহামদুলিল্লাহ, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহ!' : 'Dhul Hijjah Dhikr: Subhanallah, Alhamdulillah, Allahu Akbar, La ilaha illallah!', 'color': const Color(0xFF7C4DFF)});
-        // জিলহজের প্রথম ৯ দিন সবচেয়ে প্রিয় আমল
-        alerts.add({'icon': '💎', 'text': isBn ? 'জিলহজের প্রথম ৯ দিনের নেক আমল আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮) — বেশি বেশি ইবাদত করুন।' : 'Good deeds in first 9 days of Dhul Hijjah are most beloved to Allah (Amal 48).', 'color': AppTheme.gold});
+        alerts.add({'icon': '📿', 'text': isBn ? 'জ্বিলহজ্জের আমল: বেশি বেশি পড়ুন — সুবহানাল্লাহ, আলহামদুলিল্লাহ, আল্লাহু আকবার, লা ইলাহা ইল্লাল্লাহ!' : 'Dhul Hijjah Dhikr: Subhanallah, Alhamdulillah, Allahu Akbar, La ilaha illallah!', 'color': const Color(0xFF7C4DFF)});
+        // জ্বিলহজ্জের প্রথম ৯ দিন সবচেয়ে প্রিয় আমল
+        alerts.add({'icon': '💎', 'text': isBn ? 'জ্বিলহজ্জের প্রথম ৯ দিনের নেক আমল আল্লাহর কাছে সবচেয়ে প্রিয় (আমল ৪৮) — বেশি বেশি ইবাদত করুন।' : 'Good deeds in first 9 days of Dhul Hijjah are most beloved to Allah (Amal 48).', 'color': AppTheme.gold});
       }
 
-      // ১-৮ জিলহজ সেহরির আগে: রোজার reminder
+      // ১-৮ জ্বিলহজ্জ সেহরির আগে: রোজার reminder
       if (h >= 1 && h <= 8 && now.isBefore(pt.fajr)) {
-        alerts.add({'icon': '🌙', 'text': isBn ? '$h জিলহজ — আজ রোজা রাখুন! রাসূল ﷺ জিলহজের প্রথম ৯ দিন রোজা রাখতেন।' : '$h Dhul Hijjah — Keep fast! Prophet ﷺ fasted first 9 days.', 'color': const Color(0xFF81C784)});
+        alerts.add({'icon': '🌙', 'text': isBn ? '$h জ্বিলহজ্জ — আজ রোজা রাখুন! রাসূল ﷺ জ্বিলহজ্জের প্রথম ৯ দিন রোজা রাখতেন।' : '$h Dhul Hijjah — Keep fast! Prophet ﷺ fasted first 9 days.', 'color': const Color(0xFF81C784)});
       }
 
-      // ১-১০ জিলহজ: চুল-নখ না কাটার reminder
+      // ১-১০ জ্বিলহজ্জ: চুল-নখ না কাটার reminder
       if (h >= 1 && h <= 10) {
-        alerts.add({'icon': '✂️', 'text': isBn ? 'জিলহজের সুন্নত: কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না। এতে কুরবানির সওয়াব পাবেন।' : 'Dhul Hijjah Sunnah: Don\'t cut hair/nails until Qurbani.', 'color': const Color(0xFF26A69A)});
+        alerts.add({'icon': '✂️', 'text': isBn ? 'জ্বিলহজ্জের সুন্নত: কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না। এতে কুরবানির সওয়াব পাবেন।' : 'Dhul Hijjah Sunnah: Don\'t cut hair/nails until Qurbani.', 'color': const Color(0xFF26A69A)});
       }
 
       // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
@@ -1309,13 +1309,13 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         alerts.add({'icon': '📢', 'text': isBn ? 'তাকবিরে তাশরিক: প্রতি ফরজ নামাজের পর পড়ুন —\nআল্লাহু আকবর, আল্লাহু আকবর, লা ইলাহা ইল্লাল্লাহু, ওয়াল্লাহু আকবর, আল্লাহু আকবর, ওয়ালিল্লাহিল হামদ।' : 'Takbeer al-Tashriq after every Fard: Allahu Akbar, Allahu Akbar...', 'color': const Color(0xFFFF8F00)});
       }
 
-      // ১০ জিলহজ: ঈদুল আযহা
+      // ১০ জ্বিলহজ্জ: ঈদুল আযহা
       if (h == 10) {
-        alerts.add({'icon': '🎉', 'text': isBn ? 'আজ ১০ জিলহজ — ঈদুল আযহা মোবারক! ঈদের নামাজ আদায় করুন। সামর্থ্য থাকলে কুরবানি করুন।' : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak! Pray Eid & sacrifice if able.', 'color': AppTheme.gold});
+        alerts.add({'icon': '🎉', 'text': isBn ? 'আজ ১০ জ্বিলহজ্জ — ঈদুল আযহা মোবারক! ঈদের নামাজ আদায় করুন। সামর্থ্য থাকলে কুরবানি করুন।' : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak! Pray Eid & sacrifice if able.', 'color': AppTheme.gold});
       }
     }
 
-    // ══ রমজানের reminder (শাবান মাসে ২৫-২৯ তারিখ) ══
+    // ══ রমজানের reminder (শা'বান মাসে ২৫-২৯ তারিখ) ══
     if (hijriMonth == 8 && h >= 25) {
       alerts.add({'icon': '🌙', 'text': isBn ? 'রমজান আসছে — এখনই নিয়ত ও প্রস্তুতি নিন। রমজানে উমরাহর সওয়াব হজের সমান!' : 'Ramadan is coming — Prepare now. Umrah in Ramadan equals Hajj in reward!', 'color': const Color(0xFF7C4DFF)});
     }
@@ -1383,10 +1383,10 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       }
     }
 
-    // ══ শাবান মাসের বিশেষ আমল — বেশি বেশি রোজা ══
+    // ══ শা'বান মাসের বিশেষ আমল — বেশি বেশি রোজা ══
     if (hijriMonth == 8 && h < 25) {
       alerts.add({'icon': '🌙', 'text': isBn
-          ? 'শাবান মাস চলছে — রাসূল ﷺ শাবান মাসে সবচেয়ে বেশি নফল রোজা রাখতেন। এই মাসে বেশি বেশি রোজা রাখার চেষ্টা করুন।'
+          ? 'শা\'বান মাস চলছে — রাসূল ﷺ শা\'বান মাসে সবচেয়ে বেশি নফল রোজা রাখতেন। এই মাসে বেশি বেশি রোজা রাখার চেষ্টা করুন।'
           : 'It is the month of Shaban — the Prophet ﷺ fasted most in this month. Try to fast more this month.', 'color': const Color(0xFF7C4DFF)});
     }
 
@@ -1578,10 +1578,10 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
           : 'Rajab deeds (sacred month):\n◆ Keep nafl fasts\n◆ Increase good deeds\n◆ Avoid sins — punishment is heavier this month\n◆ Start preparing for Ramadan', 'color': AppTheme.gold});
     }
 
-    // ══ শবে বরাত (১৪ শাবান রাত) ══
+    // ══ শবে বরাত (১৪ শা'বান রাত) ══
     if (hijriMonth == 8 && h == 14 && now.isAfter(pt.maghrib)) {
       alerts.add({'icon': '✨', 'text': isBn
-          ? 'আজ রাত — শবে বরাত (১৫ শাবানের রাত):\n◆ এ রাতে ইবাদত করুন — বিশেষ ফজিলত রয়েছে\n◆ নফল নামাজ, কুরআন তিলাওয়াত, জিকির করুন\n◆ দোয়া কবুলের রাত\n◆ কবরস্থানে গিয়ে মৃতদের জন্য দোয়া করুন'
+          ? 'আজ রাত — শবে বরাত (১৫ শা\'বানের রাত):\n◆ এ রাতে ইবাদত করুন — বিশেষ ফজিলত রয়েছে\n◆ নফল নামাজ, কুরআন তিলাওয়াত, জিকির করুন\n◆ দোয়া কবুলের রাত\n◆ কবরস্থানে গিয়ে মৃতদের জন্য দোয়া করুন'
           : 'Tonight — Shab-e-Barat (15th Shaban night):\n◆ Worship tonight — special virtue\n◆ Nafl prayers, Quran, dhikr\n◆ Night of acceptance of dua\n◆ Pray for the deceased', 'color': const Color(0xFF7C4DFF)});
     }
 
@@ -1618,42 +1618,42 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     }
 
 
-    // ══ জিলহজ মাসের বিশেষ আমল — দিনভিত্তিক ══
+    // ══ জ্বিলহজ্জ মাসের বিশেষ আমল — দিনভিত্তিক ══
     if (hijriMonth == 12) {
-      // ১-৯ জিলহজ: ফজিলত ও আমলের reminder
+      // ১-৯ জ্বিলহজ্জ: ফজিলত ও আমলের reminder
       if (h >= 1 && h <= 9) {
         alerts.add({'icon': '🕋', 'text': isBn
-            ? 'আজ $h জিলহজ — বছরের শ্রেষ্ঠ দিন!\n◆ এই দিনের আমল জিহাদের চেয়েও উত্তম (বুখারি)\n◆ সূরা ফাজরে আল্লাহ এই ১০ রাতের শপথ করেছেন\n◆ প্রতিটি মুহূর্ত ইবাদতে কাজে লাগান'
+            ? 'আজ $h জ্বিলহজ্জ — বছরের শ্রেষ্ঠ দিন!\n◆ এই দিনের আমল জিহাদের চেয়েও উত্তম (বুখারি)\n◆ সূরা ফাজরে আল্লাহ এই ১০ রাতের শপথ করেছেন\n◆ প্রতিটি মুহূর্ত ইবাদতে কাজে লাগান'
             : 'Today $h Dhul Hijjah — Best days of the year!\n◆ Worship better than Jihad (Bukhari)\n◆ Allah swore by these 10 nights in Surah Fajr', 'color': AppTheme.gold});
         alerts.add({'icon': '📿', 'text': isBn
-            ? 'জিলহজের জিকির বেশি বেশি পড়ুন:\n◆ তাহলিল: লা ইলাহা ইল্লাল্লাহ\n◆ তাকবির: আল্লাহু আকবার\n◆ তাহমিদ: আলহামদুলিল্লাহ\n◆ তাসবিহ: সুবহানাল্লাহ\n(মুসনাদে আহমাদ: ৫৪৪৬)'
+            ? 'জ্বিলহজ্জের জিকির বেশি বেশি পড়ুন:\n◆ তাহলিল: লা ইলাহা ইল্লাল্লাহ\n◆ তাকবির: আল্লাহু আকবার\n◆ তাহমিদ: আলহামদুলিল্লাহ\n◆ তাসবিহ: সুবহানাল্লাহ\n(মুসনাদে আহমাদ: ৫৪৪৬)'
             : 'Dhul Hijjah Dhikr:\n◆ Tahlil: La ilaha illallah\n◆ Takbeer: Allahu Akbar\n◆ Tahmeed: Alhamdulillah\n◆ Tasbeeh: Subhanallah (Ahmad: 5446)', 'color': const Color(0xFF7C4DFF)});
         alerts.add({'icon': '🤲', 'text': isBn
-            ? 'জিলহজের বিশেষ আমলসমূহ:\n◆ তওবা ও ইস্তিগফার করুন\n◆ দান-সদকা বাড়িয়ে দিন (সওয়াব বহুগুণ)\n◆ আত্মীয়তার সম্পর্ক জোরদার করুন\n◆ পাপাচার থেকে সম্পূর্ণ বিরত থাকুন'
+            ? 'জ্বিলহজ্জের বিশেষ আমলসমূহ:\n◆ তওবা ও ইস্তিগফার করুন\n◆ দান-সদকা বাড়িয়ে দিন (সওয়াব বহুগুণ)\n◆ আত্মীয়তার সম্পর্ক জোরদার করুন\n◆ পাপাচার থেকে সম্পূর্ণ বিরত থাকুন'
             : 'Dhul Hijjah special deeds:\n◆ Make Tawbah & Istighfar\n◆ Give Sadaqah (multiplied reward)\n◆ Strengthen family ties\n◆ Avoid all sins', 'color': const Color(0xFF26A69A)});
       }
-      // ১-৮ জিলহজ সেহরির আগে: রোজার reminder
+      // ১-৮ জ্বিলহজ্জ সেহরির আগে: রোজার reminder
       if (h >= 1 && h <= 8 && now.isBefore(pt.fajr)) {
         alerts.add({'icon': '🌙', 'text': isBn
-            ? '$h জিলহজ — আজ রোজা রাখুন!\n◆ রাসূল ﷺ প্রথম ৯ দিন রোজা রাখতেন\n◆ হাফসা (রা.) বর্ণিত: এই আমল তিনি কখনো ছাড়তেন না\n◆ (সুনানে আবু দাউদ: ২১০৬)'
+            ? '$h জ্বিলহজ্জ — আজ রোজা রাখুন!\n◆ রাসূল ﷺ প্রথম ৯ দিন রোজা রাখতেন\n◆ হাফসা (রা.) বর্ণিত: এই আমল তিনি কখনো ছাড়তেন না\n◆ (সুনানে আবু দাউদ: ২১০৬)'
             : '$h Dhul Hijjah — Keep fast!\n◆ Prophet ﷺ fasted first 9 days\n◆ Never missed this (Abu Dawud: 2106)', 'color': const Color(0xFF81C784)});
       }
-      // ১-১০ জিলহজ: চুল-নখ না কাটার reminder
+      // ১-১০ জ্বিলহজ্জ: চুল-নখ না কাটার reminder
       if (h >= 1 && h <= 10) {
         alerts.add({'icon': '✂️', 'text': isBn
-            ? 'জিলহজের সুন্নত (কুরবানিদাতার জন্য):\n◆ কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না\n◆ এতে কুরবানির পূর্ণ সওয়াব পাবেন\n◆ (সহিহ মুসলিম, ইবনে হিব্বান)'
+            ? 'জ্বিলহজ্জের সুন্নত (কুরবানিদাতার জন্য):\n◆ কুরবানি সম্পন্ন না হওয়া পর্যন্ত চুল, নখ ও গোঁফ কাটবেন না\n◆ এতে কুরবানির পূর্ণ সওয়াব পাবেন\n◆ (সহিহ মুসলিম, ইবনে হিব্বান)'
             : 'Dhul Hijjah Sunnah (for those sacrificing):\n◆ Don\'t cut hair, nails or mustache until Qurbani\n◆ Gain full Qurbani reward (Muslim, Ibn Hibban)', 'color': const Color(0xFF26A69A)});
       }
-      // ৮ জিলহজ সন্ধ্যায়: আরাফার রোজার আগাম reminder
+      // ৮ জ্বিলহজ্জ সন্ধ্যায়: আরাফার রোজার আগাম reminder
       if (h == 8 && now.isAfter(pt.maghrib)) {
         alerts.add({'icon': '🕋', 'text': isBn
-            ? 'আগামীকাল ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখলে আগের ও পরের ১ বছরের গুনাহ মাফ (মুসলিম)\n◆ এখনই সেহরির প্রস্তুতি নিন\n◆ বেশি বেশি দোয়া ও জিকির করুন'
+            ? 'আগামীকাল ৯ জ্বিলহজ্জ — আরাফার দিন!\n◆ রোজা রাখলে আগের ও পরের ১ বছরের গুনাহ মাফ (মুসলিম)\n◆ এখনই সেহরির প্রস্তুতি নিন\n◆ বেশি বেশি দোয়া ও জিকির করুন'
             : 'Tomorrow 9 Dhul Hijjah — Day of Arafah!\n◆ Fasting forgives 2 years of sins (Muslim)\n◆ Prepare for Sehri now', 'color': AppTheme.gold});
       }
-      // ৯ জিলহজ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
+      // ৯ জ্বিলহজ্জ: আরাফার দিনের reminder — শুধু সেহরি শেষ হওয়া পর্যন্ত
       if (h == 9 && now.isBefore(pt.fajr)) {
         alerts.add({'icon': '🕋', 'text': isBn
-            ? 'আজ ৯ জিলহজ — আরাফার দিন!\n◆ রোজা রাখুন — আগের ও পরের ১ বছরের গুনাহ মাফ ইনশাআল্লাহ (মুসলিম)\n◆ আরাফার রাত মুজদালিফায় অবস্থান — শবে কদরের মতো গুরুত্বপূর্ণ\n◆ বেশি বেশি দোয়া ও ইস্তিগফার করুন'
+            ? 'আজ ৯ জ্বিলহজ্জ — আরাফার দিন!\n◆ রোজা রাখুন — আগের ও পরের ১ বছরের গুনাহ মাফ ইনশাআল্লাহ (মুসলিম)\n◆ আরাফার রাত মুজদালিফায় অবস্থান — শবে কদরের মতো গুরুত্বপূর্ণ\n◆ বেশি বেশি দোয়া ও ইস্তিগফার করুন'
             : 'Today 9 Dhul Hijjah — Day of Arafah!\n◆ Fast — 2 years sins forgiven insha\'Allah (Muslim)\n◆ Night at Muzdalifah — like Laylatul Qadr in importance\n◆ Make lots of dua & Istighfar', 'color': AppTheme.gold});
         if (now.isAfter(pt.maghrib.subtract(const Duration(minutes: 30))) && now.isBefore(pt.maghrib)) {
           final cd = _countdown(pt.maghrib);
@@ -1663,25 +1663,25 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       // ৯ আসরের পর থেকে ১৩ পর্যন্ত: তাকবিরে তাশরিক
       if ((h == 9 && now.isAfter(pt.asr)) || (h >= 10 && h <= 13)) {
         alerts.add({'icon': '📢', 'text': isBn
-            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জিলহজ ফজর থেকে ১৩ জিলহজ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবর, আল্লাহু আকবর, লা ইলাহা ইল্লাল্লাহু, ওয়াল্লাহু আকবর, আল্লাহু আকবর, ওয়ালিল্লাহিল হামদ।'
+            ? 'তাকবিরে তাশরিক (ওয়াজিব):\n◆ প্রতি ফরজ নামাজের পর পড়ুন\n◆ ৯ জ্বিলহজ্জ ফজর থেকে ১৩ জ্বিলহজ্জ আসর পর্যন্ত — মোট ২৩ ওয়াক্ত\n◆ পুরুষ: উচ্চ স্বরে | মহিলা: নিচু স্বরে\n◆ আল্লাহু আকবর, আল্লাহু আকবর, লা ইলাহা ইল্লাল্লাহু, ওয়াল্লাহু আকবর, আল্লাহু আকবর, ওয়ালিল্লাহিল হামদ।'
             : 'Takbeer al-Tashriq (Wajib):\n◆ After every Fard prayer\n◆ From 9 Dhul Hijjah Fajr to 13 Dhul Hijjah Asr (23 prayers)\n◆ Men: aloud | Women: softly\n◆ Allahu Akbar, Allahu Akbar, La ilaha illallahu wallahu Akbar, Allahu Akbar wa lillahil hamd', 'color': const Color(0xFFFF8F00)});
       }
-      // ১০ জিলহজ: ঈদুল আযহা
+      // ১০ জ্বিলহজ্জ: ঈদুল আযহা
       if (h == 10) {
         alerts.add({'icon': '🎉', 'text': isBn
-            ? 'আজ ১০ জিলহজ — ঈদুল আযহা মোবারক!\n◆ ঈদের নামাজ জামাতে আদায় করুন (ওয়াজিব)\n◆ সামর্থ্য থাকলে কুরবানি করুন\n◆ কুরবানির গোশত আত্মীয়দের মাঝে বণ্টন করুন\n◆ ঈদের দিন কোনো নফল রোজা রাখবেন না'
+            ? 'আজ ১০ জ্বিলহজ্জ — ঈদুল আযহা মোবারক!\n◆ ঈদের নামাজ জামাতে আদায় করুন (ওয়াজিব)\n◆ সামর্থ্য থাকলে কুরবানি করুন\n◆ কুরবানির গোশত আত্মীয়দের মাঝে বণ্টন করুন\n◆ ঈদের দিন কোনো নফল রোজা রাখবেন না'
             : 'Today 10 Dhul Hijjah — Eid al-Adha Mubarak!\n◆ Pray Eid Salah in congregation\n◆ Perform Qurbani if able\n◆ Distribute meat to relatives\n◆ No nafl fasting today', 'color': AppTheme.gold});
         alerts.add({'icon': '🐄', 'text': isBn
             ? 'কুরবানির ফজিলত:\n◆ কুরবানির রক্ত জমিনে পড়ার আগেই আল্লাহর কাছে কবুল হয়\n◆ কিয়ামতে শিং, পশম ও ক্ষুরসহ উপস্থিত করা হবে\n◆ সন্তুষ্টচিত্তে কুরবানি করুন\n◆ (জামে তিরমিজি: ১৪৯৩)'
             : 'Qurbani reward:\n◆ Accepted before blood touches ground\n◆ Presented with horns, hair & hooves on Qiyamah\n◆ Sacrifice with a content heart (Tirmidhi: 1493)', 'color': const Color(0xFFFF8F00)});
       }
-      // ১১-১৩ জিলহজ: আইয়ামে তাশরিক
+      // ১১-১৩ জ্বিলহজ্জ: আইয়ামে তাশরিক
       if (h >= 11 && h <= 13) {
         alerts.add({'icon': '🕋', 'text': isBn
-            ? 'আজ আইয়ামে তাশরিকের দিন ($h জিলহজ):\n◆ প্রতি ফরজ নামাজের পর তাকবিরে তাশরিক পড়ুন\n◆ এই তিন দিনে নফল রোজা রাখা নিষেধ\n◆ বেশি বেশি জিকির ও দোয়া করুন'
+            ? 'আজ আইয়ামে তাশরিকের দিন ($h জ্বিলহজ্জ):\n◆ প্রতি ফরজ নামাজের পর তাকবিরে তাশরিক পড়ুন\n◆ এই তিন দিনে নফল রোজা রাখা নিষেধ\n◆ বেশি বেশি জিকির ও দোয়া করুন'
             : 'Today is Ayyam al-Tashriq ($h Dhul Hijjah):\n◆ Continue Takbeer al-Tashriq after every Fard\n◆ Nafl fasting forbidden these 3 days\n◆ Increase dhikr & dua', 'color': const Color(0xFFFF8F00)});
       }
-      // সার্বক্ষণিক হজের reminder (১-১৩ জিলহজ)
+      // সার্বক্ষণিক হজের reminder (১-১৩ জ্বিলহজ্জ)
       if (h >= 1 && h <= 13) {
         alerts.add({'icon': '🕌', 'text': isBn
             ? 'হজের ফজিলত:\n◆ মাবরুর হজের একমাত্র পুরস্কার জান্নাত (বুখারি: ১৭৭৩)\n◆ সামর্থ্যবান হলে জীবনে একবার হজ ফরজ\n◆ হজের মাধ্যমে সব পাপ মাফ হয়\n◆ সক্ষম হলে এখনই প্রস্তুতি নিন'

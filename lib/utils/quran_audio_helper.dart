@@ -192,6 +192,10 @@ class QuranAudioHelper {
   /// that's what lets [_getAudioDir] write to a public folder instead of the
   /// app-specific one that Android deletes automatically on uninstall.
   static Future<QuranPlaybackHandler> _ensureHandler() async {
+    // ফিক্স: আগে প্রতিটা playAya()-তে প্রতিবার notification permission
+    // request (platform channel কল) হতো — handler তৈরি হয়ে গেলে এটার
+    // আর দরকার নেই, তাই সরাসরি রিটার্ন (প্রতি আয়াতের মাঝের বাড়তি ল্যাগ বাদ)।
+    if (_handler != null) return _handler!;
     if (Platform.isAndroid) {
       await Permission.notification.request();
       await _ensureManageExternalStoragePermission();
@@ -600,6 +604,7 @@ class QuranAudioHelper {
     // সরাসরি continuation) হয়, caller true পাঠাতে পারে। বিস্তারিত ব্যাখ্যা
     // QuranPlaybackHandler.playAya()-এর কমেন্টে।
     bool continuePlayback = false,
+    bool nextIsSeamless = false,
   }) async {
     final handler = await _ensureHandler();
     // আগে প্রতিটা আয়াতে setSpeed() ও file.exists() কল হতো (ডিস্ক I/O),
@@ -633,8 +638,10 @@ class QuranAudioHelper {
       suraName: suraName,
       ayaNumber: ayaNumber,
       continuePlayback: continuePlayback,
+      nextIsSeamless: nextIsSeamless,
       onComplete: () {
-        if (suraName != null) nowPlaying.value = null;
+        // পরেরটা seamless হলে ব্যানার null করার দরকার নেই (ঝিকিমিকি এড়াতে)।
+        if (suraName != null && !nextIsSeamless) nowPlaying.value = null;
         onComplete?.call();
       },
     );

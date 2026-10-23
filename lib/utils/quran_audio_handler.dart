@@ -176,6 +176,12 @@ class QuranPlaybackHandler extends BaseAudioHandler {
 
   /// Plays a single ayah by seeking into the surah's gapless mp3 and
   /// stopping automatically once the ayah's end timestamp is reached.
+  ///
+  /// [nextIsSeamless] = true মানে caller জানে যে এই আয়াতের পরের আইটেমটা
+  /// একই ফাইলের ঠিক পরের অংশ। তখন আয়াতের শেষ সীমানায় পৌঁছে player.pause()
+  /// করা হয় না — অডিও চলতেই থাকে, আর পরের playAya() কল এসে শুধু নতুন
+  /// সীমানা বসিয়ে দেয় (কোনো pause/seek/play ছাড়া)। এটাই সূরা-স্ক্রিনের
+  /// মতো একটানা শোনার ব্যবস্থা।
   Future<void> playAya({
     required String filePath,
     required int startMs,
@@ -184,72 +190,94 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     String? suraName,
     int? ayaNumber,
     void Function()? onComplete,
-    // ফিক্স ("আমার কোরআন" কালেকশনে প্রতি আয়াতের মাঝে ধাক্কা/থমকানো):
-    // আগে প্রতিটা আয়াতের জন্য (এমনকি ঠিক আগের আয়াতের পরপরই হলেও) এখানে
-    // player.pause() → seek() → play() — এই তিন ধাপ চলত (নিচে দেখুন)।
-    // মূল সূরা স্ক্রিনে (playFullSurah) কিন্তু পুরো সূরা একটানা বাজে,
-    // মাঝে কোনো pause/seek/play হয় না — শুধু position stream শুনে
-    // হাইলাইট বদলায়, তাই সেখানে সম্পূর্ণ মসৃণ শোনায়। pause()-এর পর
-    // আবার play() করলে decoder/buffer সংক্ষিপ্তভাবে রিসেট হয়, যেটাই
-    // প্রতিটা আয়াতের মাঝে শোনা যাওয়া ছোট ধাক্কার কারণ।
-    //
-    // যখন caller জানে যে এই আয়াতটা ঠিক আগেরটারই "পরপর" (একই ফাইল, আগের
-    // endMs আর এই startMs প্রায় একই বিন্দুতে মেলে) এবং প্লেয়ার তখনো
-    // playing অবস্থায় আছে, [continuePlayback]=true পাঠালে pause/seek/play
-    // কোনোটাই না করে শুধু নতুন stop-boundary (endMs) ও onComplete
-    // বসিয়ে দেওয়া হয় — playFullSurah-এর মতোই audio অবিচ্ছিন্নভাবে
-    // চলতে থাকে, কোনো ধাক্কা ছাড়াই।
     bool continuePlayback = false,
+    bool nextIsSeamless = false,
   }) async {
     final sameFileAlreadyLoaded = _currentFilePath == filePath && player.duration != null;
-    if (continuePlayback &&
-        sameFileAlreadyLoaded &&
-        player.playing &&
-        (player.position.inMilliseconds - startMs).abs() < 400) {
-      // মসৃণ পথ: player এমনিতেই সঠিক জায়গার কাছাকাছি বাজছে — শুধু
-      // পরবর্তী boundary/callback সেট করে দেওয়া হচ্ছে, playback একদম
-      // অবিচ্ছিন্ন থাকে।
-      _currentStopAtMs = endMs;
-      _onAyaComplete = onComplete;
+
+    void publish() {
       if (suraNumber != null && suraName != null) {
         _currentSuraNumber = suraNumber;
         _currentSuraName = suraName;
         _publishMediaItem(ayaNumber ?? 0, ayaNumber ?? 0);
       }
+    }
+
+    // আয়াতের শেষ সীমানা পাহারা দেওয়া: position stream + ফাইল-শেষ (completed)।
+    void armBoundary(int myToken) {
+      _positionSub?.cancel();
+      _completionSub?.cancel();
+      bool fired = false;
+      void fire({required bool pause}) {
+        if (fired) return;
+        fired = true;
+        _positionSub?.cancel();
+        _positionSub = null;
+        _completionSub?.cancel();
+        _completionSub = null;
+        if (pause) player.pause();
+        final cb = _onAyaComplete;
+        _onAyaComplete = null;
+        cb?.call();
+      }
+
+      // ছোট interval (১৬–৫০ms) — ডিফল্ট ২০০ms হলে সীমানা পার হয়ে যেত।
+      _positionSub = player
+          .createPositionStream(
+            minPeriod: const Duration(milliseconds: 16),
+            maxPeriod: const Duration(milliseconds: 50),
+          )
+          .listen((pos) {
+        if (myToken != _sequenceToken) return;
+        final ms = pos.inMilliseconds;
+        if (ms < startMs - 400) return; // stale pre-seek event
+        if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
+          // পরেরটা seamless হলে pause না করেই callback — অডিও বইতে থাকে।
+          fire(pause: !nextIsSeamless);
+        }
+      });
+
+      _completionSub = player.playerStateStream.listen((state) {
+        if (myToken != _sequenceToken) return;
+        if (state.processingState == ProcessingState.completed) {
+          fire(pause: false);
+        }
+      });
+    }
+
+    // মসৃণ পথ: আগের আয়াত থেকে অডিও থামেনি (playing), আর এখনকার position
+    // এই আয়াতের পরিসরের ভেতরেই (callback আসতে সামান্য দেরি হলে position
+    // startMs-এর একটু সামনে থাকতে পারে — তাই শুধু "প্রায় সমান" না, পুরো
+    // [startMs-400, endMs) পরিসর ধরা হয়)। এই পথে seek/play কিছুই হয় না।
+    final posMs = player.position.inMilliseconds;
+    if (continuePlayback &&
+        sameFileAlreadyLoaded &&
+        player.playing &&
+        posMs >= startMs - 400 &&
+        posMs < endMs) {
+      final myToken = ++_sequenceToken;
+      _onAyaComplete = onComplete;
+      _currentStopAtMs = endMs;
+      publish();
+      armBoundary(myToken);
       return;
     }
 
-    final myToken = ++_sequenceToken; // invalidate any in-flight full-surah sequence
+    final myToken = ++_sequenceToken; // invalidate any in-flight sequence
     await _positionSub?.cancel();
     await _completionSub?.cancel();
+    _positionSub = null;
+    _completionSub = null;
     _onAyaComplete = onComplete;
     _currentStopAtMs = endMs;
-    if (suraNumber != null && suraName != null) {
-      _currentSuraNumber = suraNumber;
-      _currentSuraName = suraName;
-      _publishMediaItem(ayaNumber ?? 0, ayaNumber ?? 0);
-    }
+    publish();
 
-    // ফিক্স: "আমার কোরআন" কালেকশনে একই সূরার একাধিক আয়াত পরপর বাজানোর
-    // সময় (যেমন সূরা ফাতিহার ৭টা আয়াত একে একে) আগে প্রতিটা আয়াতের জন্য
-    // setAudioSource() নতুন করে কল হতো, এমনকি ফাইলটা আগের আয়াতেরই হলেও।
-    // just_audio-তে setAudioSource() পুরো mp3 নতুন করে খোলে এবং buffer
-    // রিসেট করে — এতে প্রতিটা আয়াতের মাঝখানে একটা ছোট থেমে-যাওয়া/আটকানো
-    // (stutter) হতো, আর fresh-loaded source-এ সাথে সাথে seek করাতে
-    // মাঝেমধ্যে audio শুরুর কয়েক milliseconds/শব্দ বাদও পড়ে যেত (buffering
-    // এখনো seek position-এ পৌঁছায়নি এমন অবস্থায় play শুরু হওয়ার কারণে)।
-    // এখন playFullSurah-এর মতোই — ফাইল আগের থেকে একই থাকলে
-    // setAudioSource() আর কল হয় না, শুধু seek() হয়, যেটা অনেক দ্রুত ও
-    // মসৃণ (audio source-টা আগে থেকেই buffered/loaded অবস্থায় থাকে)।
     if (!sameFileAlreadyLoaded) {
       if (player.processingState == ProcessingState.completed) {
         await player.stop();
       }
       await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
       _currentFilePath = filePath;
-      // playAya শুরু করলে এটা আর কোনো playFullSurah সেশনের অংশ না, তাই
-      // পুরনো সূরা-সিকোয়েন্স স্টেট (থাকলে) পরিষ্কার করা হচ্ছে যাতে
-      // seekToIndex/chain-continuation ভুল ফাইলে কাজ করার চেষ্টা না করে।
       _currentSegments = null;
       _currentOnAyaStart = null;
       _currentOnSequenceComplete = null;
@@ -259,50 +287,7 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     // পর্যন্ত resolve হয় না।
     unawaited(player.play());
     if (myToken != _sequenceToken) return; // stopped/superseded while loading
-
-    _positionSub = player.positionStream.listen((pos) {
-      final ms = pos.inMilliseconds;
-      // startMs-এর আগের (stale/pre-seek) position event উপেক্ষা করা হয়।
-      // setAudioSource()/seek()-এর পরও positionStream থেকে সাথে সাথেই
-      // নতুন (seek-করা) position আসার নিশ্চয়তা নেই — মাঝেমধ্যে আগের
-      // অবস্থানের একটা event ফাঁকতালে চলে আসে, যেটা কাকতালীয়ভাবে
-      // endMs-এর সমান/বেশি হলে আয়াত সময়ের অনেক আগেই থেমে যেত। startMs-এর
-      // নিচের যেকোনো event উপেক্ষা করলে শুধু আসল, seek-পরবর্তী progress-ই
-      // boundary চেক করবে।
-      if (ms < startMs) return;
-      if (_currentStopAtMs != null && ms >= _currentStopAtMs!) {
-        player.pause();
-        _positionSub?.cancel();
-        _positionSub = null;
-        _completionSub?.cancel();
-        final cb = _onAyaComplete;
-        _onAyaComplete = null;
-        cb?.call();
-      }
-    });
-
-    // ফিক্স: "আমার কোরআন" কালেকশনে সূরা ফাতিহার পর থেমে যাওয়ার আসল কারণ
-    // এটাই ছিল। endMs যদি ফাইলের একদম শেষের কাছাকাছি হয় (যেমন সূরা
-    // ফাতিহার মতো পুরো একটা সূরা/আয়াত-গ্রুপ, যার শেষ আয়াতের endMs ==
-    // ফাইলের প্রকৃত দৈর্ঘ্য), তাহলে player নিজে থেকেই ফাইল শেষ হয়ে
-    // ProcessingState.completed-এ চলে যায় — position stream তখন আর নতুন
-    // event পাঠায় না, তাই উপরের positionStream listener-এর
-    // "ms >= endMs" শর্ত কখনো ট্রিগার হয় না এবং onComplete কখনো call
-    // হয় না। ফলে chainNext/_playNextInSequence কখনো চলত না এবং পুরো
-    // "সব শোনো" সিকোয়েন্স নিঃশব্দে আটকে যেত। এখানে playerStateStream-এ
-    // completed state-ও আলাদাভাবে শোনা হচ্ছে, যাতে ফাইল স্বাভাবিকভাবে
-    // শেষ হয়ে গেলেও onComplete reliably call হয়।
-    _completionSub = player.playerStateStream.listen((state) {
-      if (myToken != _sequenceToken) return;
-      if (state.processingState == ProcessingState.completed) {
-        _completionSub?.cancel();
-        _positionSub?.cancel();
-        _positionSub = null;
-        final cb = _onAyaComplete;
-        _onAyaComplete = null;
-        cb?.call();
-      }
-    });
+    armBoundary(myToken);
   }
 
   /// Plays every ayah of a surah back-to-back from one gapless mp3, calling

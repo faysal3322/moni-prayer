@@ -596,7 +596,18 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 // (RemoteViews প্রতি আপডেটে নতুন করে বানানো হয়, তাই এই ছবি বদল পরের
                 // আপডেটে আপনাআপনি আকাশের রংয়ে ফিরে যায়।)
                 views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_forbidden_shape)
+                // মূল ফিক্স (সূর্যোদয়ের নিষিদ্ধ সময়ে লাল না হওয়া): launcher প্রায়ই
+                // নতুন RemoteViews সম্পূর্ণ নতুন করে না বানিয়ে আগের view-র ওপরেই
+                // action গুলো reapply করে। তখন আগের আপডেটে বসানো আকাশ-রঙের
+                // setColorFilter (পুরো অস্বচ্ছ রং) ImageView-তে থেকেই যায় এবং
+                // নতুন লাল ছবির ওপর সম্পূর্ণ চেপে বসে — ফলে ছবি বদলালেও উইজেট
+                // বেগুনি/আকাশের রংই দেখায়। তাই এখানে ফিল্টার স্পষ্টভাবে মুছে
+                // (স্বচ্ছ রং = কোনো প্রভাব নেই) লাল গ্র্যাডিয়েন্ট দেখানো হয়।
+                views.setInt(R.id.widget_bg, "setColorFilter", android.graphics.Color.TRANSPARENT)
             } else {
+                // নিষিদ্ধ সময় শেষে লাল ছবি সরিয়ে আবার সাধারণ আকার ফেরানো —
+                // একই কারণে (reapply) আগের লাল ছবি আপনাআপনি ফিরে যায় না।
+                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_shape)
                 val bgColor = SkyColor.backgroundColor(
                     false, bgNowMs,
                     bgT("fajr"), bgT("sunrise"), bgT("dhuhr"), bgT("asr"), bgT("maghrib"), bgT("isha")

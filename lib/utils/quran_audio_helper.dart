@@ -585,10 +585,17 @@ class QuranAudioHelper {
   static Future<void> playCustomAudio({
     required String filePath,
     void Function()? onComplete,
+    String? title,
+    String? subtitle,
   }) async {
     final handler = await _ensureHandler();
     await handler.player.setSpeed(await QuranPrefs.getPlaybackSpeed());
-    await handler.playFile(filePath: filePath, onComplete: onComplete);
+    await handler.playFile(
+      filePath: filePath,
+      onComplete: onComplete,
+      title: title,
+      subtitle: subtitle,
+    );
   }
 
   static Future<void> playAya({

@@ -15,7 +15,7 @@ class NamesScreen extends StatefulWidget {
   State<NamesScreen> createState() => _NamesScreenState();
 }
 
-class _NamesScreenState extends State<NamesScreen> {
+class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
   // ফিক্স: আগে এখানে audioplayers-এর AudioPlayer সরাসরি ব্যবহার হতো।
   // সেটা কোনো Android foreground service ছাড়াই বাজে, তাই স্ক্রিন বন্ধ
   // হলে কিছুক্ষণ পর সিস্টেম (Doze/battery optimization) এটাকে মেরে
@@ -280,11 +280,31 @@ class _NamesScreenState extends State<NamesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // ফিক্স: আগে এখানে audioplayers-এর player.onPlayerComplete শোনা হতো।
     // এখন QuranPlaybackHandler-ভিত্তিক playback ব্যবহার হচ্ছে, যেখানে
     // "audio শেষ হলে কী হবে" সরাসরি প্রতিটা play কলের onComplete
     // প্যারামিটার দিয়ে দেওয়া হয় (নিচে _playGroup/_togglePlayAll/
     // _playNextAll দেখুন) — তাই এখানে আলাদা কোনো গ্লোবাল লিসেনার লাগে না।
+  }
+
+  // ফিক্স (ব্যাকগ্রাউন্ড থেকে ফিরলে হাইলাইট/স্ক্রল আটকে থাকা): অ্যাপ
+  // ব্যাকগ্রাউন্ডে থাকলে Flutter ফ্রেম আঁকে না, তাই স্ক্রল অ্যানিমেশন
+  // চলে না — অথচ অডিও এগিয়ে যায়। ফিরে এসে হাইলাইট করা কার্ডটা
+  // ListView.builder-এ তখন তৈরিই থাকে না (স্ক্রিনের অনেক নিচে), ফলে
+  // key.currentContext null হয়ে স্ক্রল চুপচাপ বাদ পড়ত। এখানে অ্যাপ
+  // আবার সামনে এলে বর্তমান কার্ডে নতুন করে স্ক্রল করা হয়।
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      final idx = _isPlayingAll ? _highlightGroupIndex : _playingGroupIndex;
+      setState(() {});
+      if (_isPlaying && idx != null && idx >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _scrollToGroup(idx);
+        });
+      }
+    }
   }
 
   // ══ Group repeat ══
@@ -311,6 +331,7 @@ class _NamesScreenState extends State<NamesScreen> {
     if (!mounted || _playingGroupIndex != groupIndex) return; // ইতিমধ্যে বদলে গেলে বাতিল
     await QuranAudioHelper.playCustomAudio(
       filePath: path,
+      title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
       onComplete: _repeatCurrentGroup,
     );
   }
@@ -323,6 +344,7 @@ class _NamesScreenState extends State<NamesScreen> {
     if (!mounted || _playingGroupIndex == null) return;
     await QuranAudioHelper.playCustomAudio(
       filePath: path,
+      title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
       onComplete: _repeatCurrentGroup,
     );
   }
@@ -358,6 +380,7 @@ class _NamesScreenState extends State<NamesScreen> {
     if (!mounted || !_isPlayingAll) return;
     await QuranAudioHelper.playCustomAudio(
       filePath: path,
+      title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
       onComplete: _playNextAll,
     );
   }
@@ -412,6 +435,7 @@ class _NamesScreenState extends State<NamesScreen> {
       if (!mounted || !_isPlayingAll) return;
       await QuranAudioHelper.playCustomAudio(
         filePath: path,
+        title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
         onComplete: _playNextAll,
       );
     } else {
@@ -450,6 +474,7 @@ class _NamesScreenState extends State<NamesScreen> {
       if (!mounted || !_isPlayingAll) return;
       await QuranAudioHelper.playCustomAudio(
         filePath: path,
+        title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
         onComplete: _playNextAll,
       );
     }
@@ -553,17 +578,28 @@ class _NamesScreenState extends State<NamesScreen> {
   }
 
   // Auto-scroll to current playing group
-  void _scrollToGroup(int groupIndex) {
+  void _scrollToGroup(int groupIndex, {int attempt = 0}) {
     if (groupIndex < 0 || groupIndex >= _groupKeys.length) return;
-    final key = _groupKeys[groupIndex];
-    final ctx = key.currentContext;
-    if (ctx == null) return;
-    Scrollable.ensureVisible(
-      ctx,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      alignment: 0.3,
-    );
+    final ctx = _groupKeys[groupIndex].currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.3,
+      );
+      return;
+    }
+    // কার্ডটা এখনো তৈরি হয়নি (ListView.builder লেজি) — আনুমানিক অফসেটে
+    // লাফ দিয়ে কার্ডটাকে বিল্ড করানো হয়, তারপর সঠিকভাবে ensureVisible।
+    if (attempt >= 4 || !_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final total = pos.maxScrollExtent + pos.viewportDimension;
+    final estimate = (total / _groups.length) * groupIndex;
+    _scrollController.jumpTo(estimate.clamp(0.0, pos.maxScrollExtent));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToGroup(groupIndex, attempt: attempt + 1);
+    });
   }
 
   @override
@@ -574,6 +610,7 @@ class _NamesScreenState extends State<NamesScreen> {
     // হয়ে গেলেও যদি ৯৯ নাম তখনও চলতে থাকে, সেটা চলতেই থাকবে
     // (ব্যাকগ্রাউন্ডে, ঠিক কুরআন তেলাওয়াতের মতোই), এখান থেকে বের
     // হওয়া মাত্র বন্ধ হয়ে যাবে না।
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
@@ -620,7 +657,10 @@ class _NamesScreenState extends State<NamesScreen> {
               });
               final path = await _resolveAssetAudioPath('part_0');
               if (!mounted || _playingGroupIndex != -1) return;
-              await QuranAudioHelper.playCustomAudio(filePath: path);
+              await QuranAudioHelper.playCustomAudio(
+                filePath: path,
+                title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
+              );
             },
             child: Container(
               width: double.infinity,

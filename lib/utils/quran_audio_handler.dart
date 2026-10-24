@@ -124,7 +124,10 @@ class QuranPlaybackHandler extends BaseAudioHandler {
       // duration লোড হওয়ার সাথে সাথে (audio source ready হলে) mediaItem
       // আপডেট করা হচ্ছে, নাহলে প্রথমবার _publishMediaItem কল হওয়ার সময়
       // player.duration এখনো null থাকতে পারে (audio তখনো buffering)।
-      if (_currentSuraNumber != null && player.duration != null) {
+      // ফিক্স: আগে শুধু কুরআন (_currentSuraNumber != null) হলে duration আপডেট
+      // হতো, তাই ৯৯ নাম/কাস্টম অডিওতে নোটিফিকেশনে সময় 00:00 দেখাত। এখন
+      // যেকোনো mediaItem-এর জন্যই duration জানা মাত্র আপডেট হয়।
+      if (player.duration != null) {
         final current = mediaItem.valueOrNull;
         if (current != null && current.duration != player.duration) {
           mediaItem.add(current.copyWith(duration: player.duration));
@@ -439,6 +442,8 @@ class QuranPlaybackHandler extends BaseAudioHandler {
   Future<void> playFile({
     required String filePath,
     void Function()? onComplete,
+    String? title,
+    String? subtitle,
   }) async {
     final myToken = ++_sequenceToken;
     await _positionSub?.cancel();
@@ -457,9 +462,23 @@ class QuranPlaybackHandler extends BaseAudioHandler {
     if (player.processingState == ProcessingState.completed) {
       await player.stop();
     }
-    await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
+    // কুরআনের সূরা-নাম পুরনো থাকলে নোটিফিকেশনে ভুল দেখাত — পরিষ্কার করা হলো।
+    _currentSuraNumber = null;
+    _currentSuraName = '';
+    final loadedDuration =
+        await player.setAudioSource(AudioSource.uri(Uri.file(filePath)));
+    if (myToken != _sequenceToken) return;
+    // ফিক্স: নোটিফিকেশনে টাইটেল ও মোট সময় (duration) দেখানোর জন্য
+    // mediaItem বসানো হচ্ছে — আগে কাস্টম অডিওতে কোনো mediaItem-ই ছিল না,
+    // তাই সময় 00:00/00:00 দেখাত আর টাইটেল ছিল "MONI PRAYER is running"।
+    mediaItem.add(MediaItem(
+      id: 'custom_${filePath.hashCode}',
+      title: title ?? filePath.split('/').last,
+      artist: subtitle,
+      album: 'Moni Prayer',
+      duration: loadedDuration ?? player.duration,
+    ));
     unawaited(player.play());
-    if (myToken != _sequenceToken) return; // stopped/superseded while loading
 
     _completionSub = player.playerStateStream.listen((state) {
       if (myToken != _sequenceToken) return;

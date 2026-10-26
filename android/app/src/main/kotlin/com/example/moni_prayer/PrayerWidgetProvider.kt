@@ -36,6 +36,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val key: String = ""
     )
 
+    // ফাঁকা দেখালে কারণ বোঝার জন্য (widget-এ ছোট কোড দেখায়)
+    @Volatile private var nullReason: String = ""
+
     private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
         val cal = Calendar.getInstance()
         cal.timeInMillis = ms
@@ -123,7 +126,8 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // কোনো ওয়াক্তের timestamp prefs-এ না থাকলে (Dart এখনো একবারও
         // চালু হয়নি) হিসাব করা সম্ভব না — null রিটার্ন, caller খালি
         // দেখাবে (crash না করে)।
-        if (!prefs.contains("widget_fajr_ms")) return null
+        nullReason = ""
+        if (!prefs.contains("widget_fajr_ms")) { nullReason = "E1"; return null }
 
         // আজকের তারিখের জন্য আগাম-সেভ করা সেট থাকলে (অ্যাপ কয়েকদিন না
         // খুললেও) সেটাই ব্যবহার হবে, নইলে আগের মতো মূল prefs।
@@ -167,7 +171,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             fajrCal.get(Calendar.YEAR) == tmr.get(Calendar.YEAR) &&
                     fajrCal.get(Calendar.DAY_OF_YEAR) == tmr.get(Calendar.DAY_OF_YEAR)
         }
-        if (!fajrIsToday && !fajrIsTomorrowFromNow) return null
+        if (!fajrIsToday && !fajrIsTomorrowFromNow) { nullReason = "E2"; return null }
 
         val isPastMidnightBeforeFajr = nowMs < fajr
         val hasYesterday = yMaghribStored > 0L && yIshaStored > 0L
@@ -180,7 +184,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // রিটার্ন করা হচ্ছে — caller তখন Dart-এর পাঠানো (হয়তো কিছুটা
         // বাসি কিন্তু অন্তত সঠিক দিনের) fallback স্ট্রিং দেখাবে, সম্পূর্ণ
         // ভুল দিনের হিসাব থেকে অনেক ভালো।
-        if (isPastMidnightBeforeFajr && !hasYesterday) return null
+        if (isPastMidnightBeforeFajr && !hasYesterday) { nullReason = "E3"; return null }
 
         val nightMaghrib = if (isPastMidnightBeforeFajr) yMaghribStored else maghrib
         val nightIsha = if (isPastMidnightBeforeFajr) yIshaStored else isha
@@ -283,7 +287,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr, stage)
             nowMs > nightIsha && nowMs < nextFajr ->
                 WaqtInfo(if (isBn) "রাত" else "Night", range(nightIsha, lastThird), lastThird, stage)
-            else -> null
+            else -> { nullReason = "E4"; null }
         }
     }
 
@@ -323,6 +327,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             }
         }
         try { scheduleNextUpdate(context) } catch (e: Exception) { }
+        try { scheduleWatchdog(context) } catch (e: Exception) { }
     }
 
     // ══ ফিক্স: উইজেটের মিনিট-অ্যালার্ম চেইন মরে গিয়ে উইজেট আটকে যাওয়া ══
@@ -426,6 +431,27 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         }
     }
 
+    // ══ ওয়াচডগ: মূল অ্যালার্ম মিস হলেও চেইন যেন না মরে ══
+    // মূল অ্যালার্মের (requestCode 0) সাথে আরেকটা আলাদা অ্যালার্ম (requestCode 2)
+    // ৫ মিনিট পরে বসে। দুটোই onUpdate চালায় এবং দুটোকেই আবার বসায়, তাই একটা
+    // OEM/Doze-এ হারিয়ে গেলেও অন্যটা চেইন বাঁচিয়ে রাখে।
+    private fun scheduleWatchdog(context: Context) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, PrayerWidgetProvider::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                AppWidgetManager.getInstance(context)
+                    .getAppWidgetIds(ComponentName(context, PrayerWidgetProvider::class.java))
+            )
+        }
+        val pi = PendingIntent.getBroadcast(
+            context, 2, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5L * 60_000L, pi)
+    }
+
     private fun cancelUpdate(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, PrayerWidgetProvider::class.java)
@@ -448,27 +474,14 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val isBn = prefs.getBoolean("widget_is_bn", true)
         val is24Hour = prefs.getBoolean("widget_24hr", false)
 
-        val timeStr: SpannableString
-        if (is24Hour) {
-            // ২৪ ঘণ্টা ফরম্যাটে am/pm লাগে না
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.US)
-            val timeDigits = timeFormat.format(now.time)
-            timeStr = SpannableString(timeDigits)
-        } else {
-            val timeFormat = SimpleDateFormat("h:mm", Locale.US)
-            val amPm = if (now.get(Calendar.AM_PM) == Calendar.AM) "AM" else "PM"
-            val timeDigits = timeFormat.format(now.time)
-            // am/pm অংশ ছোট ফন্টে দেখানোর জন্য SpannableString
-            timeStr = SpannableString(timeDigits + "\u2009" + amPm)
-            timeStr.setSpan(
-                RelativeSizeSpan(0.45f),
-                timeDigits.length,
-                timeStr.length,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
-
-        views.setTextViewText(R.id.widget_time, timeStr)
+        // ঘড়ি TextClock — সিস্টেম নিজেই প্রতি মিনিটে বদলায়। এখানে শুধু ফরম্যাট (১২/২৪)।
+        val clockFmt = if (is24Hour) "HH:mm" else "h:mm"
+        views.setCharSequence(R.id.widget_time, "setFormat12Hour", clockFmt)
+        views.setCharSequence(R.id.widget_time, "setFormat24Hour", clockFmt)
+        views.setViewVisibility(
+            R.id.widget_ampm,
+            if (is24Hour) android.view.View.GONE else android.view.View.VISIBLE
+        )
 
         // click করলে app open
         try {
@@ -478,6 +491,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     context, 1, launchIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
+                views.setOnClickPendingIntent(R.id.widget_root, pendingLaunch)
                 views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
             }
         } catch (e: Exception) { }
@@ -528,8 +542,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             // Dart এখনো একবারও চালু হয়ে prefs না লিখলে (একদম প্রথমবার
             // ইনস্টলের পর), fallback হিসেবে Dart-এর পাঠানো পুরনো স্ট্রিং
             // (যদি থাকে) দেখানো হচ্ছে — যাতে widget একদম খালি না থাকে।
-            views.setTextViewText(R.id.widget_waqt_name, prefs.getString("widget_waqt_name", "") ?: "")
-            views.setTextViewText(R.id.widget_waqt_range, prefs.getString("widget_waqt_range", "") ?: "")
+            val fbName = prefs.getString("widget_waqt_name", "") ?: ""
+            views.setTextViewText(R.id.widget_waqt_name,
+                if (fbName.isNotEmpty()) fbName else (if (isBn) "অ্যাপ একবার খুলুন" else "Open app once"))
+            views.setTextViewText(R.id.widget_waqt_range,
+                if (fbName.isNotEmpty()) (prefs.getString("widget_waqt_range", "") ?: "") else "($nullReason)")
             views.setTextViewText(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
             views.setTextViewText(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
         }

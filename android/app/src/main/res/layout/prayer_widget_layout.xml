@@ -44,21 +44,47 @@
         android:orientation="horizontal"
         android:gravity="top">
 
-        <TextView
-            android:id="@+id/widget_time"
+        <!-- ঘড়ি এখন TextClock: সিস্টেম নিজেই প্রতি মিনিটে আপডেট করে, AlarmManager/অ্যাপ
+             বেঁচে থাকা লাগে না — তাই ঘড়ি আর কখনো পিছিয়ে থাকবে না। -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="--:--"
-            android:textColor="#FFFFFF"
-            android:shadowColor="#B3000000"
-            android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="3"
-            android:textSize="38sp"
-            android:textStyle="bold"
-            android:includeFontPadding="false"
-            android:gravity="start|center_vertical" />
+            android:orientation="horizontal"
+            android:gravity="start|bottom">
+
+            <TextClock
+                android:id="@+id/widget_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="3"
+                android:textSize="38sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false" />
+
+            <TextClock
+                android:id="@+id/widget_ampm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_marginBottom="4dp"
+                android:format12Hour="a"
+                android:format24Hour="a"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="3"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"

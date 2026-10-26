@@ -580,40 +580,31 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // ফ্ল্যাগের উপর আর নির্ভর করে না) পুরো widget-এর ব্যাকগ্রাউন্ড
         // লাল করে দেওয়া হয়, অন্যথায় স্বাভাবিক (ডিফল্ট) ব্যাকগ্রাউন্ড থাকে।
         try {
-            val isForbidden = if (prefs.contains("widget_sunrise_ms"))
-                computeIsForbidden(prefs, now.timeInMillis)
-            else
-                prefs.getBoolean("widget_is_forbidden", false)
-            // ব্যাকগ্রাউন্ড রং — পুরো উইজেটে একটাই রং (গ্র্যাডিয়েন্ট নয়)।
-            //  • নিষিদ্ধ সময়: সঙ্গে সঙ্গে পুরো লাল (শুরু হওয়া মাত্র, শেষ হওয়া মাত্র চলে যায়)
-            //  • অন্য সময়: আসল ওয়াক্তের সময় ধরে আকাশের রং ধীরে ধীরে বদলায় (SkyColor.kt)
-            // রং বসে লেআউটের widget_bg ImageView-তে (গোল কোণ ঠিক থাকে)।
+            // ফিক্স: লাল রং এখন সরাসরি ওপরের লেখার (waqtInfo) সিদ্ধান্ত থেকে আসে।
+            // আগে দুটো আলাদা হিসাব ছিল (লেখা: computeWaqtInfo, রং: computeIsForbidden),
+            // তাই লেখায় "নিষিদ্ধ সময় (সূর্যোদয়)" দেখালেও রং না বদলানো সম্ভব ছিল।
+            // এখন লেখায় নিষিদ্ধ সময় দেখালেই রং লাল — এক হিসাব, দুই ফলাফল নেই।
+            val isForbidden = (waqtInfo?.key == "forbidden") ||
+                (if (prefs.contains("widget_sunrise_ms"))
+                    computeIsForbidden(prefs, now.timeInMillis)
+                else
+                    prefs.getBoolean("widget_is_forbidden", false))
             val bgNowMs = now.timeInMillis
             val bgOv = todayOverrides(prefs, bgNowMs)
             fun bgT(n: String): Long = bgOv?.get("widget_${n}_ms") ?: prefs.getLong("widget_${n}_ms", 0L)
-            if (isForbidden) {
-                // শুধু নিষিদ্ধ সময়ে (দিনে ৩ বার): উজ্জ্বল লাল গ্র্যাডিয়েন্ট — সঙ্গে সঙ্গে বসে।
-                // (RemoteViews প্রতি আপডেটে নতুন করে বানানো হয়, তাই এই ছবি বদল পরের
-                // আপডেটে আপনাআপনি আকাশের রংয়ে ফিরে যায়।)
-                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_forbidden_shape)
-                // মূল ফিক্স (সূর্যোদয়ের নিষিদ্ধ সময়ে লাল না হওয়া): launcher প্রায়ই
-                // নতুন RemoteViews সম্পূর্ণ নতুন করে না বানিয়ে আগের view-র ওপরেই
-                // action গুলো reapply করে। তখন আগের আপডেটে বসানো আকাশ-রঙের
-                // setColorFilter (পুরো অস্বচ্ছ রং) ImageView-তে থেকেই যায় এবং
-                // নতুন লাল ছবির ওপর সম্পূর্ণ চেপে বসে — ফলে ছবি বদলালেও উইজেট
-                // বেগুনি/আকাশের রংই দেখায়। তাই এখানে ফিল্টার স্পষ্টভাবে মুছে
-                // (স্বচ্ছ রং = কোনো প্রভাব নেই) লাল গ্র্যাডিয়েন্ট দেখানো হয়।
-                views.setInt(R.id.widget_bg, "setColorFilter", android.graphics.Color.TRANSPARENT)
-            } else {
-                // নিষিদ্ধ সময় শেষে লাল ছবি সরিয়ে আবার সাধারণ আকার ফেরানো —
-                // একই কারণে (reapply) আগের লাল ছবি আপনাআপনি ফিরে যায় না।
-                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_shape)
-                val bgColor = SkyColor.backgroundColor(
-                    false, bgNowMs,
-                    bgT("fajr"), bgT("sunrise"), bgT("dhuhr"), bgT("asr"), bgT("maghrib"), bgT("isha")
-                )
-                views.setInt(R.id.widget_bg, "setColorFilter", bgColor)
-            }
+            // আকাশের রং সবসময় নিচের স্তরে বসে (লাল স্তরের নিচে লুকিয়ে থাকলেও ক্ষতি নেই)।
+            val bgColor = SkyColor.backgroundColor(
+                false, bgNowMs,
+                bgT("fajr"), bgT("sunrise"), bgT("dhuhr"), bgT("asr"), bgT("maghrib"), bgT("isha")
+            )
+            views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_shape)
+            views.setInt(R.id.widget_bg, "setColorFilter", bgColor)
+            // নিষিদ্ধ সময়ে ওপরের লাল স্তর দেখানো, নইলে লুকানো — setViewVisibility
+            // RemoteViews-এর সবচেয়ে নির্ভরযোগ্য কাজ, launcher-এর reapply-এও ঠিক চলে।
+            views.setViewVisibility(
+                R.id.widget_bg_forbidden,
+                if (isForbidden) android.view.View.VISIBLE else android.view.View.GONE
+            )
         } catch (e: Exception) { }
 
         // rotating alert - crash safe

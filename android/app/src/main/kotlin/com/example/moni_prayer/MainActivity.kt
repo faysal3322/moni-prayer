@@ -88,6 +88,8 @@ class MainActivity: AudioServiceFragmentActivity() {
     override fun onStart() {
         super.onStart()
         registerReceiver(tickReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
+        // অ্যাপ খোলামাত্র উইজেট রিফ্রেশ + অ্যালার্ম চেইন পুনরুজ্জীবিত
+        tickReceiver.onReceive(this, Intent())
     }
 
     override fun onStop() {

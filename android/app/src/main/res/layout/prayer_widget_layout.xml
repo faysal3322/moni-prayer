@@ -16,6 +16,17 @@
     android:contentDescription="@null"
     android:src="@drawable/widget_bg_shape" />
 
+<!-- নিষিদ্ধ সময়ের লাল ব্যাকগ্রাউন্ড: আলাদা ImageView, সাধারণত লুকানো (gone)।
+     Kotlin শুধু visibility বদলায় — আকাশের রংয়ের ফিল্টারের সাথে কোনো জট নেই। -->
+<ImageView
+    android:id="@+id/widget_bg_forbidden"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scaleType="fitXY"
+    android:contentDescription="@null"
+    android:visibility="gone"
+    android:src="@drawable/widget_bg_forbidden_shape" />
+
 <LinearLayout
     android:id="@+id/widget_content"
     android:layout_width="match_parent"

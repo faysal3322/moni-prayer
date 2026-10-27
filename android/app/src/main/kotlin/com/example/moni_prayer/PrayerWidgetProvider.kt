@@ -492,12 +492,22 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        // ══ আসল কারণ (স্ক্রিনশটের রং মেপে প্রমাণ করা): আপনার ফোনের স্ক্রিন "ওয়াইড কালার"
+        // (Display-P3)। সাধারণ sRGB রং এতে ~২০% ফ্যাকাশে দেখায় (লাল কমে, সবুজ/নীল বাড়ে)।
+        // অন্য অ্যাপের উইজেটের রং সরাসরি P3-তে দেওয়া, তাই উজ্জ্বল। এখানে লক্ষ্য রংটা
+        // (E63623 → 7F1A12) P3 ধরে sRGB-তে রূপান্তর করে এঁকেছি, ফলে ফোনে ঠিক একই রং দেখাবে।
+        // ওয়াইড-গ্যামুট নয় এমন ফোনে আগের সাধারণ রংই ব্যবহার হয়।
+        val wide = context.resources.configuration.isScreenWideColorGamut
+        val colors = if (wide) intArrayOf(
+            0xFFFB1000.toInt(), 0xFFD81203.toInt(), 0xFFBD0C07.toInt(),
+            0xFFA20901.toInt(), 0xFF8B0605.toInt()
+        ) else intArrayOf(
+            0xFFE63623.toInt(), 0xFFC62F1E.toInt(), 0xFFAD271B.toInt(),
+            0xFF942013.toInt(), 0xFF7F1A12.toInt()
+        )
         paint.shader = LinearGradient(
             0f, 0f, 0f, h.toFloat(),
-            intArrayOf(
-                0xFFE63623.toInt(), 0xFFC62F1E.toInt(), 0xFFAD271B.toInt(),
-                0xFF942013.toInt(), 0xFF7F1A12.toInt()
-            ),
+            colors,
             floatArrayOf(0f, 0.30f, 0.52f, 0.75f, 1f),
             Shader.TileMode.CLAMP
         )

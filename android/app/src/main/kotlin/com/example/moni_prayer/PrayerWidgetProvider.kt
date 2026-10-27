@@ -614,14 +614,18 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 false, bgNowMs,
                 bgT("fajr"), bgT("sunrise"), bgT("dhuhr"), bgT("asr"), bgT("maghrib"), bgT("isha")
             )
-            views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_shape)
-            views.setInt(R.id.widget_bg, "setColorFilter", bgColor)
-            // নিষিদ্ধ সময়ে ওপরের লাল স্তর দেখানো, নইলে লুকানো — setViewVisibility
-            // RemoteViews-এর সবচেয়ে নির্ভরযোগ্য কাজ, launcher-এর reapply-এও ঠিক চলে।
-            views.setViewVisibility(
-                R.id.widget_bg_forbidden,
-                if (isForbidden) android.view.View.VISIBLE else android.view.View.GONE
-            )
+            // ঝাপসা লাল ঠিক করা: আগে আকাশের-রংয়ের স্তরের ওপর লাল স্তর বসত (দুটো
+            // স্তর মিশে রং ফ্যাকাশে/ঝাপসা দেখাত)। এখন নিষিদ্ধ সময়ে একটাই স্তর —
+            // সরাসরি উজ্জ্বল লাল গ্র্যাডিয়েন্ট, কোনো রং-ফিল্টার ছাড়া। অন্য সময়ে আগের মতো।
+            if (isForbidden) {
+                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_forbidden_shape)
+                views.setInt(R.id.widget_bg, "setColorFilter", 0)
+                views.setViewVisibility(R.id.widget_bg_forbidden, android.view.View.GONE)
+            } else {
+                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_shape)
+                views.setInt(R.id.widget_bg, "setColorFilter", bgColor)
+                views.setViewVisibility(R.id.widget_bg_forbidden, android.view.View.GONE)
+            }
         } catch (e: Exception) { }
 
         // rotating alert - crash safe

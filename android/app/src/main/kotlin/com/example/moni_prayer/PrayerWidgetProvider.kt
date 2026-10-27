@@ -7,6 +7,12 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.os.Build
 import android.text.SpannableString
 import android.text.Spanned
@@ -462,6 +468,44 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         alarmManager.cancel(pendingIntent)
     }
 
+    // ══ নিষিদ্ধ সময়ের লাল — কোডে আঁকা ছবি (Bitmap) ══
+    // কেন: XML গ্র্যাডিয়েন্ট ড্রয়েবলে ফোনের লঞ্চার/ডার্ক-মোড রংটা ফ্যাকাশে (ধূসর মিশিয়ে)
+    // দেখাচ্ছিল। ছবি (Bitmap) হিসেবে দিলে লঞ্চার রং বদলায় না — অন্য অ্যাপের উইজেটের
+    // লাল স্ক্রিনশট থেকে মেপে বসানো হয়েছে (ওপরে E63623 → নিচে 7F1A12)।
+    private fun redGradientBitmap(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        widgetId: Int
+    ): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val opts = try { appWidgetManager.getAppWidgetOptions(widgetId) } catch (e: Exception) { null }
+        val wDp = opts?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
+        val hDp = opts?.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0) ?: 0
+        var w = if (wDp > 0) (wDp * density).toInt() else 900
+        var h = if (hDp > 0) (hDp * density).toInt() else 700
+        // মেমরি সীমা (RemoteViews-এর জন্য ছোট রাখা): বড় হলে অনুপাত ঠিক রেখে ছোট করি
+        val maxSide = 720
+        val big = maxOf(w, h)
+        val scale = if (big > maxSide) maxSide.toFloat() / big else 1f
+        w = maxOf(64, (w * scale).toInt())
+        h = maxOf(64, (h * scale).toInt())
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.shader = LinearGradient(
+            0f, 0f, 0f, h.toFloat(),
+            intArrayOf(
+                0xFFE63623.toInt(), 0xFFC62F1E.toInt(), 0xFFAD271B.toInt(),
+                0xFF942013.toInt(), 0xFF7F1A12.toInt()
+            ),
+            floatArrayOf(0f, 0.30f, 0.52f, 0.75f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        val r = 20f * density * scale
+        canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, paint)
+        return bmp
+    }
+
     private fun updateWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -618,7 +662,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             // স্তর মিশে রং ফ্যাকাশে/ঝাপসা দেখাত)। এখন নিষিদ্ধ সময়ে একটাই স্তর —
             // সরাসরি উজ্জ্বল লাল গ্র্যাডিয়েন্ট, কোনো রং-ফিল্টার ছাড়া। অন্য সময়ে আগের মতো।
             if (isForbidden) {
-                views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_forbidden_shape)
+                try {
+                    views.setImageViewBitmap(R.id.widget_bg, redGradientBitmap(context, appWidgetManager, widgetId))
+                } catch (e: Exception) {
+                    views.setImageViewResource(R.id.widget_bg, R.drawable.widget_bg_forbidden_shape)
+                }
                 views.setInt(R.id.widget_bg, "setColorFilter", 0)
                 views.setViewVisibility(R.id.widget_bg_forbidden, android.view.View.GONE)
             } else {

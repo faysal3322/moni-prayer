@@ -498,17 +498,19 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // (E63623 → 7F1A12) P3 ধরে sRGB-তে রূপান্তর করে এঁকেছি, ফলে ফোনে ঠিক একই রং দেখাবে।
         // ওয়াইড-গ্যামুট নয় এমন ফোনে আগের সাধারণ রংই ব্যবহার হয়।
         val wide = context.resources.configuration.isScreenWideColorGamut
+        // গাঢ়/কালচে লাল: ওপরে উজ্জ্বল লাল, ২০% পর পর ধাপে ধাপে গাঢ় হয়ে নিচে প্রায় কালচে (গাঢ় মেরুন)।
+        // ধাপ: ০%, ২০%, ৪০%, ৬০%, ৮০%, ১০০%
         val colors = if (wide) intArrayOf(
-            0xFFFB1000.toInt(), 0xFFD81203.toInt(), 0xFFBD0C07.toInt(),
-            0xFFA20901.toInt(), 0xFF8B0605.toInt()
+            0xFFF60C00.toInt(), 0xFFD60D02.toInt(), 0xFFB70C07.toInt(),
+            0xFF990803.toInt(), 0xFF7B0705.toInt(), 0xFF5E0505.toInt()
         ) else intArrayOf(
-            0xFFE63623.toInt(), 0xFFC62F1E.toInt(), 0xFFAD271B.toInt(),
-            0xFF942013.toInt(), 0xFF7F1A12.toInt()
+            0xFFE23422.toInt(), 0xFFC42D1D.toInt(), 0xFFA8261A.toInt(),
+            0xFF8C1E13.toInt(), 0xFF70170F.toInt(), 0xFF56100B.toInt()
         )
         paint.shader = LinearGradient(
             0f, 0f, 0f, h.toFloat(),
             colors,
-            floatArrayOf(0f, 0.30f, 0.52f, 0.75f, 1f),
+            floatArrayOf(0f, 0.20f, 0.40f, 0.60f, 0.80f, 1f),
             Shader.TileMode.CLAMP
         )
         val r = 20f * density * scale

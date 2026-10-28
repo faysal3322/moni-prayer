@@ -41,6 +41,12 @@ class DatabaseHelper {
       conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  static Future<void> clearPrayerStatus(String date, String prayer) async {
+    final db = await database;
+    await db.delete('prayer_records',
+        where: 'date = ? AND prayer = ?', whereArgs: [date, prayer]);
+  }
+
   static Future<Map<String, String>> getDayPrayerStatuses(String date) async {
     final db = await database;
     final result = await db.query('prayer_records', where: 'date = ?', whereArgs: [date]);

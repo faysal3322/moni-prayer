@@ -976,6 +976,42 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     widget.onRefresh();
   }
 
+  // নামাজের সময়ের কার্ডের গোল বাটনে ট্যাপ করলে:
+  //  • ওয়াক্ত এখনও শুরু না হলে (ভবিষ্যতের আমল) ওয়ার্নিং দেখাবে
+  //  • আদায় হয়ে থাকলে আবার ট্যাপে টিক উঠে যাবে (ভুল সংশোধন)
+  //  • অন্যথায় (ফাঁকা বা অটো লাল ক্রস) টিক চিহ্ন বসবে
+  Future<void> _onPrayerCircleTap(String prayer, DateTime start) async {
+    final isBn = widget.lang.isBn;
+    if (DateTime.now().isBefore(start)) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          isBn ? 'ভবিষ্যতের আ\'মল ট্র্যাক করা সম্ভব নয়' : 'Future deeds cannot be tracked yet',
+          style: const TextStyle(color: Colors.black87, fontSize: 16),
+        ),
+        backgroundColor: const Color(0xFFE0E0DC),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ));
+      return;
+    }
+    final dateKey = DateHelper.dateKey(DateTime.now());
+    if (_todayPrayers[prayer] == 'prayed') {
+      setState(() {
+        final m = Map<String, String>.from(_todayPrayers);
+        m.remove(prayer);
+        _todayPrayers = m;
+      });
+      await DatabaseHelper.clearPrayerStatus(dateKey, prayer);
+      widget.onRefresh();
+      // সময় পার হয়ে গেলে অটো-কাযা আবার লাল ক্রস বসাবে
+      _checkAndAutoMarkQaza();
+    } else {
+      await _setPrayer(prayer, 'prayed');
+    }
+  }
+
   Future<void> _setRoza(String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
     setState(() => _todayRoza = status);
@@ -1899,7 +1935,10 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
             ]),
             const SizedBox(height: 12),
 
-            _PrayerTimesCard(lang: lang, prayerTimes: _prayerTimes, sunnahTimes: _sunnahTimes),
+            _PrayerTimesCard(
+              lang: lang, prayerTimes: _prayerTimes, sunnahTimes: _sunnahTimes,
+              todayPrayers: _todayPrayers, onCircleTap: _onPrayerCircleTap,
+            ),
             const SizedBox(height: 12),
 
             _TodaySection(
@@ -2596,9 +2635,12 @@ class _PrayerTimesCard extends StatelessWidget {
   final AppLanguage lang;
   final PrayerTimes? prayerTimes;
   final SunnahTimes? sunnahTimes;
+  final Map<String, String> todayPrayers;
+  final void Function(String prayer, DateTime start) onCircleTap;
 
   const _PrayerTimesCard({
     required this.lang, required this.prayerTimes, required this.sunnahTimes,
+    required this.todayPrayers, required this.onCircleTap,
   });
 
   String _fmt(DateTime t) => PrayerTimeHelper.formatTime(t);
@@ -2666,6 +2708,7 @@ class _PrayerTimesCard extends StatelessWidget {
             SizedBox(width: 85, child: Text(isBn ? 'শেষ' : 'End',
                 style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15),
                 textAlign: TextAlign.center)),
+            const SizedBox(width: 44),
           ]),
         ),
         ...prayers.map((p) {
@@ -2699,31 +2742,50 @@ class _PrayerTimesCard extends StatelessWidget {
                     fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
                   ),
                   textAlign: TextAlign.center)),
+              const SizedBox(width: 8),
+              _statusCircle(
+                todayPrayers[p['key'] as String],
+                () => onCircleTap(p['key'] as String, p['start'] as DateTime),
+              ),
             ]),
           );
         }),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(children: [
-            const Divider(color: Colors.white10),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              _chip('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(prayerTimes!.sunrise)),
-              _chip('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(prayerTimes!.maghrib)),
-              _chip('🍽️', isBn ? 'সেহরি' : 'Sehri', _fmt(prayerTimes!.fajr)),
-              _chip('🌙', isBn ? 'ইফতার' : 'Iftar', _fmt(prayerTimes!.maghrib)),
-            ]),
-          ]),
-        ),
+        const SizedBox(height: 4),
       ]),
     );
   }
 
-  Widget _chip(String icon, String label, String time) {
-    return Column(children: [
-      Text(icon, style: const TextStyle(fontSize: 18)),
-      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-      Text(time, style: const TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
-    ]);
+  Widget _statusCircle(String? status, VoidCallback onTap) {
+    final isPrayed = status == 'prayed';
+    final isMissed = status == 'missed';
+    final Color color = isPrayed
+        ? AppTheme.completed
+        : isMissed ? AppTheme.missed : AppTheme.textSecondary;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 36, height: 36,
+        child: Center(
+          child: Container(
+            width: 30, height: 30,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: (isPrayed || isMissed) ? color : Colors.transparent,
+              border: Border.all(
+                color: (isPrayed || isMissed) ? color : color.withOpacity(0.6),
+                width: 2,
+              ),
+            ),
+            child: isPrayed
+                ? const Icon(Icons.check, color: Colors.white, size: 19)
+                : isMissed
+                    ? const Icon(Icons.close, color: Colors.white, size: 19)
+                    : null,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -2766,7 +2828,6 @@ class _TodaySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
     final isBn = lang.isBn;
 
     return Container(
@@ -2780,18 +2841,10 @@ class _TodaySection extends StatelessWidget {
         Row(children: [
           const Icon(Icons.today, color: AppTheme.gold, size: 22),
           const SizedBox(width: 8),
-          Text(isBn ? 'আজকের নামাজ ও রোজা' : "Today's Prayer & Fasting",
+          Text(isBn ? 'আজকের রোজা' : "Today's Fasting",
               style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
         const SizedBox(height: 12),
-        ...prayers.map((prayer) => _TodayPrayerRow(
-          name: _prayerName(prayer), time: _prayerTime(prayer),
-          status: todayPrayers[prayer], lang: lang,
-          onAdai: () => onSetPrayer(prayer, 'prayed'),
-          onQaza: () => onSetPrayer(prayer, 'missed'),
-        )),
-        const Divider(color: Colors.white12),
-        const SizedBox(height: 4),
         _TodayPrayerRow(
           name: lang.roza, time: '', status: todayRoza, lang: lang,
           onAdai: () => onSetRoza('prayed'),

@@ -2720,74 +2720,43 @@ class _PrayerTimesCard extends StatelessWidget {
     ];
 
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-      ),
-      child: Column(children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.4),
-            borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-          ),
-          child: Row(children: [
-            Expanded(child: Text(isBn ? 'নামাজ' : 'Prayer',
-                style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15))),
-            SizedBox(width: 85, child: Text(isBn ? 'শুরু' : 'Start',
-                style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15),
-                textAlign: TextAlign.center)),
-            SizedBox(width: 85, child: Text(isBn ? 'শেষ' : 'End',
-                style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15),
-                textAlign: TextAlign.center)),
-            const SizedBox(width: 44),
-          ]),
+    final currentKey = _currentPrayerKey(prayerTimes!);
+    TextStyle headStyle() =>
+        TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15);
+
+    return Column(children: [
+      // হেডার (নামাজ / শুরু / শেষ)
+      Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(14),
         ),
-        ...prayers.map((p) {
-          final isCurrent = _currentPrayerKey(prayerTimes!) == p['key'];
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isCurrent ? AppTheme.primary.withOpacity(0.3) : Colors.transparent,
-              border: Border(bottom: BorderSide(color: AppTheme.divider10)),
-            ),
-            child: Row(children: [
-              Expanded(child: Row(children: [
-                if (isCurrent) const Icon(Icons.arrow_right, color: AppTheme.accent, size: 24),
-                Text(_prayerName(p['key'] as String), style: TextStyle(
-                  color: isCurrent ? AppTheme.gold : AppTheme.textPrimary,
-                  fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
-                  fontSize: isCurrent ? 19 : 16,
-                )),
-              ])),
-              SizedBox(width: 85, child: Text(_fmt(p['start'] as DateTime),
-                  style: TextStyle(
-                    color: isCurrent ? AppTheme.accent : AppTheme.textPrimary,
-                    fontSize: isCurrent ? 16 : 14,
-                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
-                  ),
-                  textAlign: TextAlign.center)),
-              SizedBox(width: 85, child: Text(_fmt(p['end'] as DateTime),
-                  style: TextStyle(
-                    color: isCurrent ? AppTheme.accent : AppTheme.textSecondary,
-                    fontSize: isCurrent ? 16 : 14,
-                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.normal,
-                  ),
-                  textAlign: TextAlign.center)),
-              const SizedBox(width: 8),
-              _statusCircle(
-                todayPrayers[p['key'] as String],
-                () => onCircleTap(p['key'] as String, p['start'] as DateTime),
-              ),
-            ]),
-          );
-        }),
-        const SizedBox(height: 4),
-      ]),
-    );
+        child: Row(children: [
+          Expanded(child: Text(isBn ? 'নামাজ' : 'Prayer', style: headStyle())),
+          SizedBox(width: 92, child: Text(isBn ? 'শুরু' : 'Start',
+              style: headStyle(), textAlign: TextAlign.center)),
+          SizedBox(width: 92, child: Text(isBn ? 'শেষ' : 'End',
+              style: headStyle(), textAlign: TextAlign.center)),
+          const SizedBox(width: 44),
+        ]),
+      ),
+      // প্রতিটি ওয়াক্ত আলাদা ঘরে — চলমান ওয়াক্ত glow করবে
+      ...prayers.map((p) {
+        final key = p['key'] as String;
+        return _GlowPrayerRow(
+          isCurrent: currentKey == key,
+          name: _prayerName(key),
+          start: _fmt(p['start'] as DateTime),
+          end: _fmt(p['end'] as DateTime),
+          trailing: _statusCircle(
+            todayPrayers[key],
+            () => onCircleTap(key, p['start'] as DateTime),
+          ),
+        );
+      }),
+    ]);
   }
 
   Widget _statusCircle(String? status, VoidCallback onTap) {
@@ -2820,6 +2789,136 @@ class _PrayerTimesCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// প্রতিটি নামাজের ওয়াক্তের আলাদা ঘর। চলমান ওয়াক্ত হলে ঘরটা ধীরে ধীরে
+// glow (জ্বলজ্বল) করে। নামের ফন্ট আর সময়ের ফন্ট একই সাইজ।
+class _GlowPrayerRow extends StatefulWidget {
+  final bool isCurrent;
+  final String name, start, end;
+  final Widget trailing;
+
+  const _GlowPrayerRow({
+    required this.isCurrent, required this.name,
+    required this.start, required this.end, required this.trailing,
+  });
+
+  @override
+  State<_GlowPrayerRow> createState() => _GlowPrayerRowState();
+}
+
+class _GlowPrayerRowState extends State<_GlowPrayerRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1800));
+    if (widget.isCurrent) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _GlowPrayerRow old) {
+    super.didUpdateWidget(old);
+    if (widget.isCurrent && !_ctrl.isAnimating) {
+      _ctrl.repeat(reverse: true);
+    } else if (!widget.isCurrent && _ctrl.isAnimating) {
+      _ctrl.stop();
+      _ctrl.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cur = widget.isCurrent;
+    // নাম ও সময় — একই সাইজ
+    final double fs = cur ? 19 : 16;
+
+    Widget timeCell(String text, Color color) => SizedBox(
+          width: 92,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(text,
+                maxLines: 1,
+                style: TextStyle(
+                  color: color,
+                  fontSize: fs,
+                  fontWeight: cur ? FontWeight.w900 : FontWeight.normal,
+                )),
+          ),
+        );
+
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final t = cur ? Curves.easeInOut.transform(_ctrl.value) : 0.0;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: cur
+                ? LinearGradient(
+                    colors: [
+                      AppTheme.primary.withOpacity(0.55),
+                      AppTheme.cardBg,
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  )
+                : null,
+            color: cur ? null : AppTheme.cardBg,
+            border: Border.all(
+              color: cur
+                  ? Color.lerp(AppTheme.accent.withOpacity(0.55),
+                      const Color(0xFF69F0AE), t)!
+                  : AppTheme.primary.withOpacity(0.3),
+              width: cur ? 1.8 : 1,
+            ),
+            boxShadow: cur
+                ? [
+                    BoxShadow(
+                      color: AppTheme.accent.withOpacity(0.20 + 0.40 * t),
+                      blurRadius: 8 + 16 * t,
+                      spreadRadius: 0.5 + 2.5 * t,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Row(children: [
+                if (cur)
+                  const Icon(Icons.arrow_right, color: AppTheme.accent, size: 24),
+                Flexible(
+                  child: Text(widget.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cur ? AppTheme.gold : AppTheme.textPrimary,
+                        fontWeight: cur ? FontWeight.w900 : FontWeight.normal,
+                        fontSize: fs,
+                      )),
+                ),
+              ]),
+            ),
+            timeCell(widget.start, cur ? AppTheme.accent : AppTheme.textPrimary),
+            timeCell(widget.end, cur ? AppTheme.accent : AppTheme.textSecondary),
+            const SizedBox(width: 8),
+            widget.trailing,
+          ]),
+        );
+      },
     );
   }
 }

@@ -18,6 +18,10 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final String lang = prefs.getString('language') ?? 'bn';
   final String userName = prefs.getString('user_name') ?? 'FAYSAL';
+  // থিম মোড: ডিফল্ট ডার্ক (আগের মতোই) — সেটিংস থেকে লাইট করা যায়।
+  final bool isDark = (prefs.getString('theme_mode') ?? 'dark') != 'light';
+  AppTheme.isDark = isDark;
+  _applySystemBars(isDark);
   await TimeFormatPrefs.load();
 
   // বাগ ফিক্স: আগে এখানে (main() এর ভেতরে, runApp()-এর আগে)
@@ -44,13 +48,29 @@ void main() async {
     await NotificationHelper.schedulePrayerNotifications();
   });
 
-  runApp(MoniPrayerApp(initialLang: lang, userName: userName));
+  runApp(MoniPrayerApp(initialLang: lang, userName: userName, initialDark: isDark));
+}
+
+/// স্ট্যাটাস বার/নেভিগেশন বারের আইকনের রঙ থিম অনুযায়ী ঠিক রাখে।
+void _applySystemBars(bool isDark) {
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    systemNavigationBarColor: isDark ? const Color(0xFF121212) : Colors.white,
+    systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+  ));
 }
 
 class MoniPrayerApp extends StatefulWidget {
   final String initialLang;
   final String userName;
-  const MoniPrayerApp({super.key, required this.initialLang, required this.userName});
+  final bool initialDark;
+  const MoniPrayerApp({
+    super.key,
+    required this.initialLang,
+    required this.userName,
+    this.initialDark = true,
+  });
 
   static _MoniPrayerAppState? of(BuildContext context) =>
       context.findAncestorStateOfType<_MoniPrayerAppState>();
@@ -92,6 +112,7 @@ class _QuranScreenRouteObserver extends RouteObserver<PageRoute<dynamic>> {
 class _MoniPrayerAppState extends State<MoniPrayerApp> {
   late String _lang;
   late String _userName;
+  late bool _isDark;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final _QuranScreenRouteObserver _routeObserver = _QuranScreenRouteObserver();
 
@@ -100,6 +121,7 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
     super.initState();
     _lang = widget.initialLang;
     _userName = widget.userName;
+    _isDark = widget.initialDark;
   }
 
   void setLanguage(String lang) async {
@@ -113,6 +135,24 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
     await prefs.setString('user_name', name);
     setState(() => _userName = name);
   }
+
+  /// ডার্ক/লাইট মোড বদলায় ও সেভ করে রাখে। অ্যাপের বেশিরভাগ রঙ AppTheme-এর
+  /// getter থেকে আসে, তাই ফ্ল্যাগ বদলে পুরো উইজেট-ট্রি আবার বিল্ড করানো হয়।
+  void setDarkMode(bool dark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme_mode', dark ? 'dark' : 'light');
+    AppTheme.isDark = dark;
+    _applySystemBars(dark);
+    setState(() => _isDark = dark);
+    void rebuild(Element el) {
+      el.markNeedsBuild();
+      el.visitChildren(rebuild);
+    }
+
+    (context as Element).visitChildren(rebuild);
+  }
+
+  bool get isDarkMode => _isDark;
 
   String get language => _lang;
   String get userName => _userName;
@@ -140,7 +180,7 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
       navigatorObservers: [_routeObserver],
       title: 'MONI PRAYER',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: _isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
       locale: Locale(_lang),
       supportedLocales: const [Locale('bn'), Locale('en')],
       localizationsDelegates: const [

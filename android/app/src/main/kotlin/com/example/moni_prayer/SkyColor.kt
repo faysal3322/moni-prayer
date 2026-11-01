@@ -37,7 +37,7 @@ object SkyColor {
     // নিষিদ্ধ সময়ের লাল (সঙ্গে সঙ্গে বসে, সঙ্গে সঙ্গে যায়)।
     // (উইজেটে আসল লালটা উজ্জ্বল গ্র্যাডিয়েন্ট — res/drawable/widget_bg_forbidden_shape.xml;
     //  এই রংটা শুধু ব্যাকআপ হিসেবে, গ্র্যাডিয়েন্টের মাঝের লালের সমান)
-    private val FORBIDDEN_RED = argb(0xB02D1D)
+    private val FORBIDDEN_RED = argb(0x8F1D10)
     // ওয়াক্তের ডেটা না থাকলে আগের মতো গাঢ় সবুজ
     private val DEFAULT = argb(0x1B2E1F)
 

@@ -499,14 +499,14 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // ওয়াইড-গ্যামুট নয় এমন ফোনে আগের সাধারণ রংই ব্যবহার হয়।
         val wide = context.resources.configuration.isScreenWideColorGamut
         // নিষিদ্ধ সময়ের লাল: অন্য অ্যাপের পছন্দের উইজেট থেকে মেপে নেওয়া রং —
-        // ওপরে গাঢ় লাল (C52E1C) থেকে নিচে কালচে লাল (7E1D0A) — চোখে আরামদায়ক।
+        // ওপরে গাঢ় লাল (A92415) থেকে নিচে আরও কালচে লাল (6C130A) — চোখে আরামদায়ক।
         // ধাপ: ০%, ২০%, ৪০%, ৬০%, ৮০%, ১০০%
         val colors = if (wide) intArrayOf(
-            0xFFD80B01.toInt(), 0xFFC70800.toInt(), 0xFFB70802.toInt(),
-            0xFFA70300.toInt(), 0xFF970402.toInt(), 0xFF8D0000.toInt()
+            0xFFBA0901.toInt(), 0xFFAA0700.toInt(), 0xFF9D0701.toInt(),
+            0xFF900300.toInt(), 0xFF830302.toInt(), 0xFF780000.toInt()
         ) else intArrayOf(
-            0xFFC52E1C.toInt(), 0xFFB52A18.toInt(), 0xFFA62616.toInt(),
-            0xFF982210.toInt(), 0xFF891E11.toInt(), 0xFF7E1D0A.toInt()
+            0xFFA92415.toInt(), 0xFF9C2112.toInt(), 0xFF8F1D10.toInt(),
+            0xFF82190E.toInt(), 0xFF77160C.toInt(), 0xFF6C130A.toInt()
         )
         paint.shader = LinearGradient(
             0f, 0f, 0f, h.toFloat(),

@@ -219,7 +219,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // widget-এর ধাঁচে।
         val forbidden1End = fajrForbiddenEnd(sunrise)
         val forbidden2Start = zawalStart
-        val forbidden2End = dhuhr + 5L * 60L * 1000L
+        val forbidden2End = dhuhr // যোহরের ওয়াক্ত শুরু হলেই নিষিদ্ধ সময় শেষ
         val forbidden3Start = maghrib - 15L * 60L * 1000L
 
         // ══ সারাদিনের রং-ধাপ: সূর্যের অবস্থান (ওয়াক্তের সময়) ধরে ১৪টা ধাপ ══
@@ -265,7 +265,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 WaqtInfo(if (isBn) "ইশরাক" else "Ishraq", range(forbidden1End, ishraqEnd), ishraqEnd, stage)
             nowMs > chashtStart && nowMs < forbidden2Start ->
                 WaqtInfo(if (isBn) "দুহা/চাশত" else "Duha/Chasht", range(chashtStart, forbidden2Start), forbidden2Start, stage)
-            // নিষিদ্ধ সময় ২: যাওয়াল — দুহুরের ৫ মিনিট আগে থেকে ৫ মিনিট পর পর্যন্ত
+            // নিষিদ্ধ সময় ২: যাওয়াল — যোহরের ৫ মিনিট আগে থেকে যোহরের ওয়াক্ত শুরু পর্যন্ত
             nowMs >= forbidden2Start && nowMs < forbidden2End ->
                 WaqtInfo(
                     if (isBn) "নিষিদ্ধ সময় (যাওয়াল)" else "Forbidden time (Zawal)",
@@ -308,7 +308,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
 
         val fajrForbiddenEnd = fajrForbiddenEnd(sunrise)
         val zawalStart = dhuhr - 5L * 60L * 1000L
-        val zawalEnd = dhuhr + 5L * 60L * 1000L
+        val zawalEnd = dhuhr
         val asrForbiddenStart = maghrib - 15L * 60L * 1000L
 
         return (nowMs > sunrise && nowMs < fajrForbiddenEnd) ||
@@ -385,7 +385,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val minMs = 60L * 1000L
         val edges = longArrayOf(
             sunrise, fajrForbiddenEnd(sunrise),
-            dhuhr - 5L * minMs, dhuhr + 5L * minMs,
+            dhuhr - 5L * minMs, dhuhr,
             maghrib - 15L * minMs, maghrib
         )
         var best = Long.MAX_VALUE

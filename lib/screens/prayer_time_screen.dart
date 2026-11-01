@@ -253,7 +253,7 @@ class _PrayerTimeScreenState extends State<PrayerTimeScreen> {
     final fajrEnd = _times!.sunrise;
     final fajrForbiddenEnd = fajrEnd.add(const Duration(minutes: 15));
     final zawalStart = _times!.dhuhr.subtract(const Duration(minutes: 5));
-    final zawalEnd = _times!.dhuhr.add(const Duration(minutes: 5));
+    final zawalEnd = _times!.dhuhr; // যোহরের ওয়াক্ত শুরু হলেই নিষিদ্ধ সময় শেষ
     final asrForbiddenStart = _times!.maghrib.subtract(const Duration(minutes: 15));
 
     return Container(

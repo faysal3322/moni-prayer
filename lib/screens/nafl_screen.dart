@@ -512,7 +512,7 @@ class _NaflScreenState extends State<NaflScreen> {
               child: Text(
                 category['category'] as String,
                 style: TextStyle(
-                    color: color, fontSize: 16, fontWeight: FontWeight.bold),
+                    color: AppTheme.readable(color), fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 8),
@@ -520,7 +520,7 @@ class _NaflScreenState extends State<NaflScreen> {
                   num: item['num'] as String,
                   title: item['title'] as String,
                   desc: item['desc'] as String,
-                  color: color,
+                  color: AppTheme.readable(color),
                 )),
             const SizedBox(height: 8),
           ],
@@ -559,7 +559,7 @@ class _NaflCard extends StatelessWidget {
           Text(icon, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(child: Text(name,
-              style: TextStyle(color: color, fontSize: 17, fontWeight: FontWeight.bold))),
+              style: TextStyle(color: AppTheme.readable(color), fontSize: 17, fontWeight: FontWeight.bold))),
         ]),
         const SizedBox(height: 8),
         Row(children: [
@@ -572,7 +572,7 @@ class _NaflCard extends StatelessWidget {
         Row(children: [
           Icon(Icons.format_list_numbered, size: 15, color: AppTheme.soft),
           const SizedBox(width: 6),
-          Text(rakaat, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(rakaat, style: TextStyle(color: AppTheme.readable(color), fontSize: 14, fontWeight: FontWeight.bold)),
         ]),
         const SizedBox(height: 8),
         Text(desc,
@@ -610,7 +610,7 @@ class _FastCard extends StatelessWidget {
           Text(icon, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(child: Text(title,
-              style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold))),
+              style: TextStyle(color: AppTheme.readable(color), fontSize: 16, fontWeight: FontWeight.bold))),
         ]),
         const SizedBox(height: 6),
         Row(children: [
@@ -631,7 +631,7 @@ class _FastCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(alert!,
-                style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: AppTheme.readable(color), fontSize: 14, fontWeight: FontWeight.bold)),
           ),
         ],
       ]),
@@ -745,11 +745,11 @@ class _AmalCardState extends State<_AmalCard> {
               Expanded(
                 child: Text(widget.title,
                     style: TextStyle(
-                        color: widget.color, fontSize: 14, fontWeight: FontWeight.bold)),
+                        color: AppTheme.readable(widget.color), fontSize: 14, fontWeight: FontWeight.bold)),
               ),
               Icon(
                 _expanded ? Icons.expand_less : Icons.expand_more,
-                color: widget.color,
+                color: AppTheme.readable(widget.color),
                 size: 20,
               ),
             ]),
@@ -774,6 +774,6 @@ Widget _sectionHeader(String icon, String title, Color color) {
     Expanded(
         child: Text(title,
             style: TextStyle(
-                color: color, fontSize: 17, fontWeight: FontWeight.bold))),
+                color: AppTheme.readable(color), fontSize: 17, fontWeight: FontWeight.bold))),
   ]);
 }

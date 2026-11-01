@@ -1955,7 +1955,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
               const SizedBox(width: 12),
               Expanded(child: _PendingCard(
                 label: lang.rozaBaki, count: widget.rozaPending,
-                suffix: '', color: AppTheme.pending,
+                suffix: '', color: AppTheme.pendingText,
                 icon: Icons.brightness_3, lang: lang,
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => MissedListScreen(lang: lang, type: 'roza'),
@@ -2004,7 +2004,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
                         Expanded(child: Text(
                           a['text'] as String,
                           style: TextStyle(
-                              color: a['color'] as Color,
+                              color: AppTheme.readable(a['color'] as Color),
                               fontSize: 14,
                               fontWeight: FontWeight.w600),
                         )),
@@ -2253,7 +2253,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           style: TextStyle(
                             fontSize: 44,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.heroText,
                             letterSpacing: 1,
                           ),
                         ),
@@ -2263,7 +2263,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.heroText,
                             ),
                           ),
                       ],
@@ -2311,7 +2311,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                             child: Text(
                               locParts[1],
                               style: TextStyle(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.heroText,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -2402,7 +2402,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         Text(
                           isBn ? 'ওয়াক্ত বাকি' : 'Time remaining',
                           style: TextStyle(
-                            color: AppTheme.gold,
+                            color: AppTheme.heroGold,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -2413,7 +2413,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                               ? '--:--:--'
                               : _countdown(waqt['end'] as DateTime, now),
                           style: TextStyle(
-                            color: AppTheme.gold,
+                            color: AppTheme.heroGold,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -2455,7 +2455,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         DateHelper.formatGregorian(now, bangla: isBn),
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.heroText,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -2468,7 +2468,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                             : widget.hijriDate,
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          color: AppTheme.gold,
+                          color: AppTheme.heroGold,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -2556,7 +2556,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           Text(
                             '${_buildMarqueeText()}          ✦          ${_buildMarqueeText()}',
                             style: TextStyle(
-                              color: AppTheme.gold,
+                              color: AppTheme.heroGold,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
@@ -2722,7 +2722,7 @@ class _PrayerTimesCard extends StatelessWidget {
 
     final currentKey = _currentPrayerKey(prayerTimes!);
     TextStyle headStyle() =>
-        TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 15);
+        TextStyle(color: AppTheme.heroGold, fontWeight: FontWeight.bold, fontSize: 15);
 
     return Column(children: [
       // হেডার (নামাজ / শুরু / শেষ)
@@ -2730,7 +2730,7 @@ class _PrayerTimesCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.primary.withOpacity(0.4),
+          color: AppTheme.tableHeaderBg,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(children: [

@@ -387,7 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Center(child: Text(
           label,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
         )),
       ),
     );

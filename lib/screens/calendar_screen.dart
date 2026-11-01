@@ -646,7 +646,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Expanded(child: _statItem(
               isBn ? 'মোট আদায়' : 'Prayed', prayed, AppTheme.completed)),
             Expanded(child: _statItem(
-              isBn ? 'বাকি' : 'Pending', pending, AppTheme.pending)),
+              isBn ? 'বাকি' : 'Pending', pending, AppTheme.pendingText)),
           ]),
         ],
       ),

@@ -158,7 +158,7 @@ class _StatsCard extends StatelessWidget {
           Row(children: [
             _StatItem(label: lang.totalMissed, value: lang.toLocalNum(missed), color: AppTheme.missed),
             _StatItem(label: lang.totalPrayed, value: lang.toLocalNum(prayed), color: AppTheme.completed),
-            _StatItem(label: lang.currentPending, value: lang.toLocalNum(pending), color: AppTheme.pending),
+            _StatItem(label: lang.currentPending, value: lang.toLocalNum(pending), color: AppTheme.pendingText),
           ]),
           if (missed > 0) ...[
             const SizedBox(height: 16),

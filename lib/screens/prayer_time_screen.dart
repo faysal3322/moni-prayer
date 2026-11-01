@@ -377,7 +377,7 @@ class _PrayerTimeScreenState extends State<PrayerTimeScreen> {
       child: Column(
         children: [
           _infoRow('🌅', isBn ? 'সূর্যোদয়' : 'Sunrise', _fmt(_times!.sunrise), AppTheme.gold),
-          _infoRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(_times!.maghrib), AppTheme.pending),
+          _infoRow('🌇', isBn ? 'সূর্যাস্ত' : 'Sunset', _fmt(_times!.maghrib), AppTheme.pendingText),
         ],
       ),
     );

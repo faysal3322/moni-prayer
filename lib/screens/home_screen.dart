@@ -399,14 +399,14 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
 
     try {
       // নামাজের নিষিদ্ধ সময় (দিনে ৩ বার): সূর্যোদয়-পরবর্তী ১৫ মিনিট,
-      // দ্বিপ্রহর/যাওয়াল (দুহুরের ৫ মিনিট আগে-পরে), আর সূর্যাস্তের ঠিক
+      // দ্বিপ্রহর/যাওয়াল (যোহরের ৫ মিনিট আগে থেকে যোহর শুরু পর্যন্ত), আর সূর্যাস্তের ঠিক
       // আগের ১৫ মিনিট — ঠিক একই হিসাব যা prayer_time_screen.dart-এর
       // "সালাতের নিষিদ্ধ সময়" কার্ডে দেখানো হয়। এই সময়গুলোতে widget-এর
       // ব্যাকগ্রাউন্ড সম্পূর্ণ লাল হয়ে যাবে (অন্য একটা ইসলামিক অ্যাপের
       // widget-এর মতো), যাতে এক নজরেই বোঝা যায় এখন নামাজ পড়া নিষিদ্ধ।
       final fajrForbiddenEnd = pt.sunrise.add(const Duration(minutes: 15));
       final zawalStart = pt.dhuhr.subtract(const Duration(minutes: 5));
-      final zawalEnd = pt.dhuhr.add(const Duration(minutes: 5));
+      final zawalEnd = pt.dhuhr; // যোহরের ওয়াক্ত শুরু হলেই নিষিদ্ধ সময় শেষ
       final asrForbiddenStart = pt.maghrib.subtract(const Duration(minutes: 15));
       final isForbidden =
           (now.isAfter(pt.sunrise) && now.isBefore(fajrForbiddenEnd)) ||

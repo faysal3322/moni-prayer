@@ -20,7 +20,17 @@ class AppTheme {
   static const Color pending = Color(0xFFFDD835);
   static const Color completed = Color(0xFF43A047);
 
+  // ── সবসময় গাঢ় ব্যাকগ্রাউন্ডের কার্ডের (যেমন হোমের ঘড়ি কার্ড) ভেতরের লেখার রঙ ──
+  // ঘড়ি কার্ডের ব্যাকগ্রাউন্ড লাইট মোডেও গাঢ় সবুজ-কালো থাকে, তাই এর ভেতরের
+  // লেখা দুই মোডেই উজ্জ্বল (সাদা/সোনালি) থাকতে হবে। এগুলো মোডের সাথে পাল্টায় না।
+  static const Color heroText = Color(0xFFEEEEEE);
+  static const Color heroGold = Color(0xFFFFD700);
+
   // ── মোড অনুযায়ী পাল্টায় ──
+  /// হলুদ (pending) রঙ — লাইট মোডে সাদা ব্যাকগ্রাউন্ডে পড়া যায় এমন গাঢ় সোনালি
+  static Color get pendingText => isDark ? pending : const Color(0xFF9A6B00);
+  /// সবুজ ডিফল্ট-মুক্ত টেবিল হেডারের ব্যাকগ্রাউন্ড (লাইট মোডে গাঢ় সবুজ, যাতে সোনালি লেখা ফোটে)
+  static Color get tableHeaderBg => isDark ? primary.withOpacity(0.4) : primary;
   static Color get gold => isDark ? const Color(0xFFFFD700) : const Color(0xFFB8860B);
   static Color get background => isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF2F5F2);
   static Color get surface => isDark ? const Color(0xFF121212) : const Color(0xFFFFFFFF);
@@ -44,6 +54,16 @@ class AppTheme {
 
   /// হালকা ওভারলে টিন্টের ভিত্তি রঙ (আগে Colors.white.withOpacity(..))
   static Color get overlay => isDark ? Colors.white : Colors.black;
+
+  /// লেখা/আইকনের রঙ লাইট মোডে সাদা ব্যাকগ্রাউন্ডে পড়ার উপযোগী করে দেয়।
+  /// ডার্ক মোডে রঙ অপরিবর্তিত থাকে। উজ্জ্বল রঙ (হলুদ, হালকা সবুজ ইত্যাদি) লাইট
+  /// মোডে একই হিউ রেখে গাঢ় করা হয়, যাতে কনট্রাস্ট ভালো থাকে।
+  static Color readable(Color c) {
+    if (isDark) return c;
+    if (c.computeLuminance() <= 0.22) return c;
+    final hsl = HSLColor.fromColor(c);
+    return hsl.withLightness((hsl.lightness * 0.62).clamp(0.0, 0.34)).withSaturation((hsl.saturation).clamp(0.0, 1.0)).toColor();
+  }
 
   static ThemeData get darkTheme => _build(Brightness.dark);
   static ThemeData get lightTheme => _build(Brightness.light);

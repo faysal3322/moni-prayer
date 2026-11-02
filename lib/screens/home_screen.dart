@@ -2305,7 +2305,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         border: Border.all(
           color: highlight
               ? _tGold.withOpacity(0.9)
-              : (_dk ? const Color(0x3DFFFFFF) : const Color(0x24000000)),
+              : (_dk ? const Color(0x26FFFFFF) : const Color(0x1A000000)),
           width: highlight ? 1.5 : 1,
         ),
       ),
@@ -2313,27 +2313,20 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _dateLine(IconData icon, String text, Color color, double size) {
+  Widget _dateLine(String text, Color color, double size) {
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerRight,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: size + 1, color: _tGold),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            maxLines: 1,
-            style: TextStyle(
-              fontSize: size,
-              fontWeight: FontWeight.w700,
-              color: color,
-              height: 1.25,
-              shadows: _shadow,
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: size,
+          fontWeight: FontWeight.w800,
+          color: color,
+          height: 1.25,
+          shadows: _shadow,
+        ),
       ),
     );
   }
@@ -2574,76 +2567,93 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
 
     // ══ ২) মাঝের সারি: [ওয়াক্তের নাম + সময় + ওয়াক্ত বাকি] | তারিখ ══
-    final waqtBox = _box(
-      highlight: true,
-      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final waqtName = waqt != null ? (waqt['name'] as String) : '—';
+
+    // ── বাম কলাম: সময়ের রেঞ্জ + ওয়াক্ত বাকি + কাউন্টডাউন ──
+    final leftCol = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (waqt != null)
           _fit(
-            waqt != null ? (waqt['name'] as String) : '—',
+            _bn(_fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime)),
             21,
-            _tGold,
+            _tPrimary,
             weight: FontWeight.w800,
             align: Alignment.centerLeft,
           ),
-          const SizedBox(height: 6),
-          if (waqt != null)
-            _fit(
-              _bn(_fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime)),
-              19,
-              _tPrimary,
-              weight: FontWeight.w800,
-              align: Alignment.centerLeft,
-            ),
-          const SizedBox(height: 10),
-          _fit(isBn ? 'ওয়াক্ত বাকি' : 'Time remaining', 14, _tSilver,
-              weight: FontWeight.w700, align: Alignment.centerLeft),
-          const SizedBox(height: 2),
-          _fit(countdownText, 25, _tTimer,
-              weight: FontWeight.w800, align: Alignment.centerLeft, spacing: 0.5),
-        ],
-      ),
+        const SizedBox(height: 12),
+        _fit(isBn ? 'ওয়াক্ত বাকি' : 'Time remaining', 18, _tSilver,
+            weight: FontWeight.w800, align: Alignment.centerLeft),
+        const SizedBox(height: 3),
+        _fit(countdownText, 28, _tTimer,
+            weight: FontWeight.w800, align: Alignment.centerLeft, spacing: 0.5),
+      ],
     );
 
-    final dateBox = _box(
-      padding: const EdgeInsets.fromLTRB(10, 12, 12, 12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          _fit(
+    // ── ডান কলাম: তিন ধরনের তারিখ (বড় অক্ষরে, আইকন ছাড়া) ──
+    final rightCol = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _dateLine(DateHelper.formatGregorian(now, bangla: isBn), _tPrimary, 20),
+        const SizedBox(height: 10),
+        _dateLine(
+          widget.hijriDate.isEmpty
+              ? DateHelper.toHijri(now, bangla: isBn)
+              : widget.hijriDate,
+          _tTimer,
+          20,
+        ),
+        const SizedBox(height: 10),
+        _dateLine(DateHelper.toBanglaWithSeason(now), _tCyan, 20),
+      ],
+    );
+
+    // ওয়াক্তের নাম (বামে) ও বারের নাম (ডানে) একই লাইনে, বড় অক্ষরে
+    final headerRow = Row(
+      children: [
+        Expanded(
+          flex: 9,
+          child: _fit(waqtName, 30, _tGold,
+              weight: FontWeight.w800, align: Alignment.centerLeft),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 13,
+          child: _fit(
             widget.lang.dayName(now.weekday),
-            25,
+            30,
             isFriday ? _tMint : _tGold,
             weight: FontWeight.w800,
             align: Alignment.centerRight,
           ),
-          const SizedBox(height: 9),
-          _dateLine(Icons.calendar_month, DateHelper.formatGregorian(now, bangla: isBn), _tPrimary, 16),
-          const SizedBox(height: 8),
-          _dateLine(
-            Icons.nightlight_round,
-            widget.hijriDate.isEmpty
-                ? DateHelper.toHijri(now, bangla: isBn)
-                : widget.hijriDate,
-            _tTimer,
-            16,
-          ),
-          const SizedBox(height: 8),
-          _dateLine(Icons.local_florist, DateHelper.toBanglaWithSeason(now), _tCyan, 16),
-        ],
-      ),
+        ),
+      ],
     );
 
-    final middleRow = IntrinsicHeight(
-      child: Row(
+    // একটাই ঘর, মাঝে পাতলা ভাগ-রেখা (আগের ডিজাইনের মতো); বাম কলাম সরু, ডান কলাম চওড়া
+    final middleRow = _box(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(flex: 10, child: waqtBox),
-          const SizedBox(width: 8),
-          Expanded(flex: 11, child: dateBox),
+          headerRow,
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            color: _tLine,
+          ),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: 9, child: leftCol),
+                Container(width: 1, margin: const EdgeInsets.symmetric(horizontal: 8), color: _tLine),
+                Expanded(flex: 13, child: rightCol),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -2688,7 +2698,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       decoration: BoxDecoration(
         color: _dk ? const Color(0xFF1B1B1D) : const Color(0xFFF1F1F1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _dk ? const Color(0x3DFFFFFF) : const Color(0x24000000)),
+        border: Border.all(color: _dk ? const Color(0x26FFFFFF) : const Color(0x1A000000)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -2739,7 +2749,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: _dk ? const Color(0x4DFFFFFF) : const Color(0x2E000000),
+          color: _dk ? const Color(0x2EFFFFFF) : const Color(0x1F000000),
           width: 1.2,
         ),
         boxShadow: [

@@ -2539,14 +2539,14 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.location_on, size: 18, color: _tSilver),
+                            Icon(Icons.location_on, size: 21, color: _tSilver),
                             const SizedBox(width: 4),
                             Text(
                               locParts[0],
                               maxLines: 1,
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
                                 color: _tSilver,
                                 height: 1.25,
                               ),
@@ -2556,7 +2556,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       ),
                       if (locParts[1].isNotEmpty) ...[
                         const SizedBox(height: 3),
-                        _fit(locParts[1], 20, _tGold,
+                        _fit(locParts[1], 17.5, _tGold,
                             weight: FontWeight.w800, align: Alignment.centerRight),
                       ],
                     ],

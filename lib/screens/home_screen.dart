@@ -3065,6 +3065,12 @@ class _PrayerTimesCard extends StatelessWidget {
   String? _currentPrayerKey(PrayerTimes t) {
     final now = DateTime.now();
     if (now.isAfter(t.fajr) && now.isBefore(t.sunrise)) return 'fajr';
+    // নফল: ইশরাক (সূর্যোদয়ের ১৫–৪৫ মিনিট পর), দুহা/চাশত (৪৫ মিনিট পর থেকে যোহরের ১০ মিনিট আগ পর্যন্ত)
+    final ishraqStart = t.sunrise.add(const Duration(minutes: 15));
+    final duhaStart = t.sunrise.add(const Duration(minutes: 45));
+    final duhaEnd = t.dhuhr.subtract(const Duration(minutes: 10));
+    if (!now.isBefore(ishraqStart) && now.isBefore(duhaStart)) return 'ishraq';
+    if (!now.isBefore(duhaStart) && now.isBefore(duhaEnd)) return 'duha';
     if (now.isAfter(t.dhuhr) && now.isBefore(t.asr)) return 'dhuhr';
     if (now.isAfter(t.asr) && now.isBefore(t.maghrib)) return 'asr';
     if (now.isAfter(t.maghrib) && now.isBefore(t.isha)) return 'maghrib';
@@ -3075,6 +3081,8 @@ class _PrayerTimesCard extends StatelessWidget {
   String _prayerName(String key) {
     switch (key) {
       case 'fajr': return lang.fajr;
+      case 'ishraq': return lang.isBn ? 'ইশরাক' : 'Ishraq';
+      case 'duha': return lang.isBn ? 'দুহা / চাশত' : 'Duha / Chasht';
       case 'dhuhr': return lang.dhuhr;
       case 'asr': return lang.asr;
       case 'maghrib': return lang.maghrib;
@@ -3092,6 +3100,13 @@ class _PrayerTimesCard extends StatelessWidget {
 
     final prayers = [
       {'key': 'fajr', 'start': prayerTimes!.fajr, 'end': prayerTimes!.sunrise},
+      // নফল নামাজ — ফজর ও যোহরের মাঝের ফাঁকা সময় পূরণ করে (সময় নফল স্ক্রিনের সাথে মিলানো)
+      {'key': 'ishraq', 'nafl': true,
+        'start': prayerTimes!.sunrise.add(const Duration(minutes: 15)),
+        'end': prayerTimes!.sunrise.add(const Duration(minutes: 45))},
+      {'key': 'duha', 'nafl': true,
+        'start': prayerTimes!.sunrise.add(const Duration(minutes: 45)),
+        'end': prayerTimes!.dhuhr.subtract(const Duration(minutes: 10))},
       {'key': 'dhuhr', 'start': prayerTimes!.dhuhr, 'end': prayerTimes!.asr},
       {'key': 'asr', 'start': prayerTimes!.asr, 'end': prayerTimes!.maghrib},
       {'key': 'maghrib', 'start': prayerTimes!.maghrib, 'end': prayerTimes!.isha},
@@ -3130,10 +3145,24 @@ class _PrayerTimesCard extends StatelessWidget {
           name: _prayerName(key),
           start: _fmt(p['start'] as DateTime),
           end: _fmt(p['end'] as DateTime),
-          trailing: _statusCircle(
-            todayPrayers[key],
-            () => onCircleTap(key, p['start'] as DateTime),
-          ),
+          trailing: p['nafl'] == true
+              ? SizedBox(
+                  width: 36, height: 32,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(isBn ? 'নফল' : 'Nafl',
+                          style: TextStyle(
+                              color: AppTheme.gold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                )
+              : _statusCircle(
+                  todayPrayers[key],
+                  () => onCircleTap(key, p['start'] as DateTime),
+                ),
         );
       }),
     ]);
@@ -3149,10 +3178,10 @@ class _PrayerTimesCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 36, height: 36,
+        width: 36, height: 32,
         child: Center(
           child: Container(
-            width: 30, height: 30,
+            width: 26, height: 26,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: (isPrayed || isMissed) ? color : Colors.transparent,
@@ -3162,9 +3191,9 @@ class _PrayerTimesCard extends StatelessWidget {
               ),
             ),
             child: isPrayed
-                ? const Icon(Icons.check, color: Colors.white, size: 19)
+                ? const Icon(Icons.check, color: Colors.white, size: 17)
                 : isMissed
-                    ? const Icon(Icons.close, color: Colors.white, size: 19)
+                    ? const Icon(Icons.close, color: Colors.white, size: 17)
                     : null,
           ),
         ),
@@ -3223,7 +3252,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
   Widget build(BuildContext context) {
     final cur = widget.isCurrent;
     // নাম ও সময় — একই সাইজ
-    final double fs = cur ? 19 : 16;
+    final double fs = cur ? 20 : 18;
 
     Widget timeCell(String text, Color color) => SizedBox(
           width: 92,
@@ -3244,10 +3273,10 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
       builder: (context, _) {
         final t = cur ? Curves.easeInOut.transform(_ctrl.value) : 0.0;
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             gradient: cur
                 ? LinearGradient(
                     colors: [
@@ -3293,7 +3322,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
               ]),
             ),
             timeCell(widget.start, cur ? AppTheme.accent : AppTheme.textPrimary),
-            timeCell(widget.end, cur ? AppTheme.accent : AppTheme.textSecondary),
+            timeCell(widget.end, cur ? AppTheme.accent : AppTheme.textPrimary),
             const SizedBox(width: 8),
             widget.trailing,
           ]),

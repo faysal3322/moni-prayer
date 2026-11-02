@@ -85,7 +85,9 @@ class AppTheme {
       colorScheme: dark
           ? ColorScheme.dark(primary: primary, secondary: accent, surface: sf, background: bg)
           : ColorScheme.light(primary: primary, secondary: accent, surface: sf, background: bg),
-      textTheme: GoogleFonts.notoSansTextTheme(base.textTheme),
+      // বাংলা অংক (০-৯) আসবে BanglaNum (Atma) ফন্ট থেকে; বাকি সব লেখা আগের মতোই।
+      textTheme: GoogleFonts.notoSansTextTheme(base.textTheme)
+          .apply(fontFamilyFallback: const ['BanglaNum']),
       appBarTheme: AppBarTheme(
         backgroundColor: sf,
         foregroundColor: dark ? Colors.white : const Color(0xFF1B1B1B),

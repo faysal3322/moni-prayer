@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import 'nafl_amal_tab.dart';
 
 class DuaScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -33,7 +34,8 @@ class _DuaScreenState extends State<DuaScreen> {
               _tabBtn(1, '⏰', isBn ? 'দোয়ার সময়' : 'Times', isBn),
               _tabBtn(2, '📍', isBn ? 'দোয়ার স্থান' : 'Places', isBn),
               _tabBtn(3, '🌅', isBn ? 'সকাল-সন্ধ্যা' : 'Morning', isBn),
-              _tabBtn(4, '⚠️', isBn ? 'কবিরা গুনাহ' : 'Major Sins', isBn),
+              _tabBtn(4, '📿', isBn ? 'নফল আমল' : 'Nafl Amal', isBn),
+              _tabBtn(5, '⚠️', isBn ? 'কবিরা গুনাহ' : 'Major Sins', isBn),
             ]),
           ),
           Expanded(
@@ -45,6 +47,8 @@ class _DuaScreenState extends State<DuaScreen> {
                     ? _DuaPlaceTab(isBn: isBn)
                 : _tabIndex == 3
                     ? const SokalSondhaScreen()
+                : _tabIndex == 4
+                    ? NaflAmalTab(isBn: isBn)
                 : _KabiraGunahTab(isBn: isBn),
           ),
         ],

@@ -18,6 +18,7 @@ import 'settings_screen.dart';
 import 'missed_list_screen.dart';
 import 'names_screen.dart';
 import 'nafl_screen.dart';
+import 'roza_screen.dart';
 import 'dua_screen.dart';
 import 'quran_screen.dart';
 import 'zakat_screen.dart';
@@ -1928,6 +1929,12 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         icon: Icons.volunteer_activism,
         gradient: const [Color(0xFFEC407A), Color(0xFFAD1457)],
         onTap: () => _openPage(ZakatScreen(lang: lang)),
+      ),
+      CategoryItem(
+        label: isBn ? 'রোজা' : 'Fasting',
+        icon: Icons.nights_stay,
+        gradient: const [Color(0xFF5C6BC0), Color(0xFF283593)],
+        onTap: () => _openPage(RozaScreen(lang: lang)),
       ),
     ];
   }

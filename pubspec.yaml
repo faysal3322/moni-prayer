@@ -45,3 +45,14 @@ flutter:
     - family: ScheherazadeNew
       fonts:
         - asset: assets/fonts/ScheherazadeNew-Regular.ttf
+    # শুধু বাংলা অংক (০-৯) এর জন্য — সময়, তারিখ, তাপমাত্রা ইত্যাদি
+    - family: BanglaNum
+      fonts:
+        - asset: assets/fonts/BanglaNum-400.ttf
+          weight: 400
+        - asset: assets/fonts/BanglaNum-500.ttf
+          weight: 500
+        - asset: assets/fonts/BanglaNum-600.ttf
+          weight: 600
+        - asset: assets/fonts/BanglaNum-700.ttf
+          weight: 700

@@ -283,30 +283,62 @@ class _PrayerRow extends StatelessWidget {
               ],
             ),
           ),
-          if (!disabled) ...[
-            // আদায় button — বড় গোলাকার
-            _CircleButton(
-              label: lang.isBn ? 'আদায়' : 'Prayed',
-              icon: Icons.check,
-              color: AppTheme.completed,
-              selected: isPrayed,
-              onTap: onPrayed,
-            ),
-            const SizedBox(width: 10),
-            // কাযা button — বড় গোলাকার
-            _CircleButton(
-              label: lang.isBn ? 'কাযা' : 'Qaza',
-              icon: Icons.close,
-              color: AppTheme.missed,
-              selected: isMissed,
-              onTap: onMissed,
-            ),
-          ] else
+          if (!disabled)
+            // একটাই গোল বোতাম: সবুজ টিক = আদায়, লাল ক্রস = কাযা
+            // লাল থাকলে চাপ দিলে সবুজ হবে, সবুজ থাকলে চাপ দিলে লাল হবে
+            _StatusCircle(
+              isPrayed: isPrayed,
+              isMissed: isMissed,
+              onTap: isPrayed ? onMissed : onPrayed,
+            )
+          else
             Text(
               lang.isBn ? 'ভবিষ্যৎ' : 'Future',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+class _StatusCircle extends StatelessWidget {
+  final bool isPrayed;
+  final bool isMissed;
+  final VoidCallback onTap;
+
+  const _StatusCircle({
+    required this.isPrayed,
+    required this.isMissed,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = isPrayed
+        ? AppTheme.completed
+        : isMissed
+            ? AppTheme.missed
+            : AppTheme.textSecondary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: (isPrayed || isMissed) ? color : Colors.transparent,
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 2),
+          boxShadow: (isPrayed || isMissed)
+              ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)]
+              : [],
+        ),
+        child: (isPrayed || isMissed)
+            ? Icon(isPrayed ? Icons.check : Icons.close, color: Colors.white, size: 26)
+            : null,
       ),
     );
   }

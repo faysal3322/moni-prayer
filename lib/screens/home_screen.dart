@@ -2338,31 +2338,28 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _vLine(double h) =>
-      Container(width: 1, height: h, margin: const EdgeInsets.symmetric(horizontal: 10), color: _tLine);
-
-  /// আবহাওয়ার ছোট তথ্য-ঘর (আইকন + লেবেল + মান)
+  /// আবহাওয়ার তথ্য-ঘর (বড় আইকন + লেবেল + মান)
   Widget _weatherItem(IconData icon, String label, String value, Color accent) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: accent.withOpacity(0.6), width: 1.2),
-            color: accent.withOpacity(0.12),
+            border: Border.all(color: accent.withOpacity(0.7), width: 1.4),
+            color: accent.withOpacity(0.14),
           ),
-          child: Icon(icon, size: 18, color: accent),
+          child: Icon(icon, size: 24, color: accent),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: 10),
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accent, height: 1.2)),
-            Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.2)),
+            Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: accent, height: 1.2)),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.2)),
           ],
         ),
       ],
@@ -2377,55 +2374,72 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
         widget.weatherText.isEmpty
             ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
             : '${widget.weatherIcon} ${_bn(widget.weatherText)}',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _tSilver),
+        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _tSilver),
       );
     } else {
       final feels = widget.weatherFeels ?? temp;
-      content = Row(
+      final windText = widget.windKmh == null
+          ? '--'
+          : (isBn ? '${_bn('${widget.windKmh}')} কিমি/ঘণ্টা' : '${widget.windKmh} km/h');
+      final humText = widget.humidity == null ? '--' : _bn('${widget.humidity}%');
+      content = Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.weatherIcon, style: const TextStyle(fontSize: 34)),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // সারি ১: আইকন + তাপমাত্রা | আবহাওয়ার বর্ণনা
+          Row(
             children: [
-              Text(_bn('$temp°C'),
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.1)),
-              Text(isBn ? '(অনুভূত ${_bn('$feels')}°C)' : '(feels $feels°C)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _tSilver, height: 1.2)),
+              Text(widget.weatherIcon, style: const TextStyle(fontSize: 42)),
+              const SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_bn('$temp°C'),
+                      style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.1)),
+                  Text(isBn ? '(অনুভূত ${_bn('$feels')}°C)' : '(feels $feels°C)',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _tSilver, height: 1.2)),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _fit(widget.weatherDesc, 20, _tPrimary,
+                    weight: FontWeight.w800, align: Alignment.centerRight),
+              ),
             ],
           ),
-          _vLine(38),
-          Text(widget.weatherDesc,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _tPrimary)),
-          _vLine(38),
-          _weatherItem(
-            Icons.air,
-            isBn ? 'বাতাস' : 'Wind',
-            widget.windKmh == null
-                ? '--'
-                : (isBn ? '${_bn('${widget.windKmh}')} কিমি/ঘণ্টা' : '${widget.windKmh} km/h'),
-            _tMint,
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            color: _tLine,
           ),
-          _vLine(38),
-          _weatherItem(
-            Icons.water_drop_outlined,
-            isBn ? 'আর্দ্রতা' : 'Humidity',
-            widget.humidity == null ? '--' : _bn('${widget.humidity}%'),
-            _tCyan,
+          // সারি ২: বাতাস | আর্দ্রতা
+          Row(
+            children: [
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _weatherItem(Icons.air, isBn ? 'বাতাস' : 'Wind', windText, _tMint),
+                ),
+              ),
+              Container(width: 1, height: 42, margin: const EdgeInsets.symmetric(horizontal: 8), color: _tLine),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _weatherItem(Icons.water_drop_outlined, isBn ? 'আর্দ্রতা' : 'Humidity', humText, _tCyan),
+                ),
+              ),
+            ],
           ),
         ],
       );
     }
     return _box(
       radius: 16,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: SizedBox(
-        width: double.infinity,
-        child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: content),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: SizedBox(width: double.infinity, child: content),
     );
   }
 

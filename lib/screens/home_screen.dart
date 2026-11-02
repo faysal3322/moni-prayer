@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -242,6 +241,11 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   String _locationName = '';
   String _weatherText = '';
   String _weatherIcon = '🌤️';
+  int? _weatherTemp;
+  int? _weatherFeels;
+  String _weatherDesc = '';
+  int? _windKmh;
+  int? _humidity;
   double? _lat;
   double? _lng;
 
@@ -773,7 +777,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       // আবহাওয়া: Open-Meteo (free, no API key, caiyunapp এর মতো ডাটা)
       final wUrl = Uri.parse(
         'https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}'
-        '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m'
+        '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,relative_humidity_2m'
         '&timezone=auto',
       );
       final wRes = await http.get(wUrl);
@@ -783,12 +787,19 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         final temp = (current['temperature_2m'] ?? 0).round();
         final feelsLike = (current['apparent_temperature'] ?? 0).round();
         final wcode = current['weathercode'] ?? 0;
+        final windNum = current['windspeed_10m'];
+        final humNum = current['relative_humidity_2m'];
         final isBn = widget.lang.isBn;
         final icon = _weatherCodeIcon(wcode);
         final desc = _weatherCodeDesc(wcode, isBn);
         if (mounted) {
           setState(() {
             _weatherIcon = icon;
+            _weatherTemp = temp;
+            _weatherFeels = feelsLike;
+            _weatherDesc = desc;
+            _windKmh = windNum is num ? windNum.round() : null;
+            _humidity = humNum is num ? humNum.round() : null;
             _weatherText = isBn
                 ? '$temp°C (অনুভব ${feelsLike}°C) $desc'
                 : '${temp}°C (feels ${feelsLike}°C) $desc';
@@ -1941,7 +1952,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             const SizedBox(height: 12),
 
-            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, yesterdayPrayerTimes: _yesterdayPrayerTimes, sunnahTimes: _sunnahTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon),
+            _ClockCard(now: now, lang: lang, prayerTimes: _prayerTimes, yesterdayPrayerTimes: _yesterdayPrayerTimes, sunnahTimes: _sunnahTimes, hijriDate: _hijriDate, liveAlerts: _getLiveAlerts(lang), locationName: _locationName, weatherText: _weatherText, weatherIcon: _weatherIcon, weatherTemp: _weatherTemp, weatherFeels: _weatherFeels, weatherDesc: _weatherDesc, windKmh: _windKmh, humidity: _humidity),
             const SizedBox(height: 12),
 
             Row(children: [
@@ -2036,6 +2047,11 @@ class _ClockCard extends StatefulWidget {
   final String locationName;
   final String weatherText;
   final String weatherIcon;
+  final int? weatherTemp;
+  final int? weatherFeels;
+  final String weatherDesc;
+  final int? windKmh;
+  final int? humidity;
 
   const _ClockCard({
     required this.now,
@@ -2048,6 +2064,11 @@ class _ClockCard extends StatefulWidget {
     required this.locationName,
     required this.weatherText,
     required this.weatherIcon,
+    this.weatherTemp,
+    this.weatherFeels,
+    this.weatherDesc = '',
+    this.windKmh,
+    this.humidity,
   });
 
   @override
@@ -2207,18 +2228,24 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
   }
 
   // ════════════════════════════════════════════════════════════
-  //  Premium ডিজাইন — ম্যালাকাইট (সবুজ পাথর) + ব্রোঞ্জ/কপার ফ্রেম
+  //  Premium ডিজাইন — গ্লাস-কার্ড স্টাইল (ডার্ক ও লাইট দুই মোডেই পড়ার উপযোগী)
   //  সব সময় ও সংখ্যা ভাষা অনুযায়ী (বাংলা হলে বাংলা অংকে) দেখানো হয়।
+  //  ব্যাকগ্রাউন্ড সাদামাটা রাখা হয়েছে, যাতে লেখা/তথ্য সবার আগে চোখে পড়ে।
   // ════════════════════════════════════════════════════════════
-  static const Color _cuLight = Color(0xFFF6D3AE);
-  static const Color _cu = Color(0xFFD99B6A);
-  static const Color _cuDark = Color(0xFF8E5A33);
-  static const Color _cream = Color(0xFFFFEBD3);
-  static const Color _gold = Color(0xFFFFD27A);
-  static const Color _mint = Color(0xFF9BFFCB);
-  static const List<Shadow> _shadow = [
-    Shadow(color: Color(0xAA000000), blurRadius: 3, offset: Offset(0, 1)),
-  ];
+  bool get _dk => AppTheme.isDark;
+
+  Color get _tPrimary => _dk ? const Color(0xFFF5F5F5) : const Color(0xFF1B1B1B);
+  Color get _tSilver => _dk ? const Color(0xFFC4C4C8) : const Color(0xFF5A5A5A);
+  Color get _tGold => _dk ? const Color(0xFFE9C97A) : const Color(0xFF8A6508);
+  Color get _tTime => _dk ? const Color(0xFFF3DDA6) : const Color(0xFF6B4E00);
+  Color get _tTimer => _dk ? const Color(0xFFFFE04A) : const Color(0xFF9A6B00);
+  Color get _tMint => _dk ? const Color(0xFF7BE3A4) : const Color(0xFF1B7A3A);
+  Color get _tCyan => _dk ? const Color(0xFF8FD8E6) : const Color(0xFF00697A);
+  Color get _tLine => _dk ? const Color(0x33FFFFFF) : const Color(0x26000000);
+
+  List<Shadow> get _shadow => _dk
+      ? const [Shadow(color: Color(0x88000000), blurRadius: 2, offset: Offset(0, 1))]
+      : const <Shadow>[];
 
   /// ইংরেজি অংককে বাংলা অংকে বদলায় (শুধু বাংলা ভাষায়)
   String _bn(String s) {
@@ -2257,70 +2284,32 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
   }
 
-  /// কপার রঙের গ্রেডিয়েন্ট ফ্রেম
-  Widget _frame({required Widget child, double radius = 16}) {
+  /// সাদামাটা গ্লাস-কার্ড বক্স (হালকা গ্রেডিয়েন্ট + সূক্ষ্ম বর্ডার)
+  Widget _box({
+    required Widget child,
+    EdgeInsets padding = const EdgeInsets.all(12),
+    double radius = 16,
+    bool highlight = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(1.4),
+      padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [_cuLight, _cuDark, _cu, _cuDark],
+        gradient: LinearGradient(
+          colors: _dk
+              ? const [Color(0xFF353538), Color(0xFF28282B)]
+              : const [Color(0xFFFAFAFA), Color(0xFFEDEDED)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: const [
-          BoxShadow(color: Color(0x66000000), blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 1.4),
-        child: child,
-      ),
-    );
-  }
-
-  /// সবুজ ম্যালাকাইট পাথরের বক্স
-  Widget _marbleBox({
-    required Widget child,
-    required int seed,
-    EdgeInsets padding = const EdgeInsets.all(10),
-    double radius = 16,
-  }) {
-    return _frame(
-      radius: radius,
-      child: Stack(
-        fit: StackFit.passthrough,
-        children: [
-          Positioned.fill(
-            child: RepaintBoundary(
-              child: CustomPaint(painter: _MalachitePainter(seed)),
-            ),
-          ),
-          Padding(padding: padding, child: child),
-        ],
-      ),
-    );
-  }
-
-  /// গাঢ় ব্রোঞ্জ বক্স (লোকেশন, ওয়াক্ত বাকি, মার্কুয়ে)
-  Widget _bronzeBox({
-    required Widget child,
-    EdgeInsets padding = const EdgeInsets.all(10),
-    double radius = 16,
-  }) {
-    return _frame(
-      radius: radius,
-      child: Container(
-        padding: padding,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF3B302A), Color(0xFF1C1613)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        border: Border.all(
+          color: highlight
+              ? _tGold.withOpacity(0.9)
+              : (_dk ? const Color(0x3DFFFFFF) : const Color(0x24000000)),
+          width: highlight ? 1.5 : 1,
         ),
-        child: child,
       ),
+      child: child,
     );
   }
 
@@ -2331,7 +2320,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: size + 1, color: _cu),
+          Icon(icon, size: size + 1, color: _tGold),
           const SizedBox(width: 6),
           Text(
             text,
@@ -2349,26 +2338,110 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _bottomCell(IconData icon, String label, String time) {
+  Widget _vLine(double h) =>
+      Container(width: 1, height: h, margin: const EdgeInsets.symmetric(horizontal: 10), color: _tLine);
+
+  /// আবহাওয়ার ছোট তথ্য-ঘর (আইকন + লেবেল + মান)
+  Widget _weatherItem(IconData icon, String label, String value, Color accent) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: accent.withOpacity(0.6), width: 1.2),
+            color: accent.withOpacity(0.12),
+          ),
+          child: Icon(icon, size: 18, color: accent),
+        ),
+        const SizedBox(width: 7),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accent, height: 1.2)),
+            Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.2)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _weatherBox(bool isBn) {
+    final temp = widget.weatherTemp;
+    Widget content;
+    if (temp == null) {
+      content = Text(
+        widget.weatherText.isEmpty
+            ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
+            : '${widget.weatherIcon} ${_bn(widget.weatherText)}',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _tSilver),
+      );
+    } else {
+      final feels = widget.weatherFeels ?? temp;
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(widget.weatherIcon, style: const TextStyle(fontSize: 34)),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_bn('$temp°C'),
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: _tPrimary, height: 1.1)),
+              Text(isBn ? '(অনুভূত ${_bn('$feels')}°C)' : '(feels $feels°C)',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _tSilver, height: 1.2)),
+            ],
+          ),
+          _vLine(38),
+          Text(widget.weatherDesc,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _tPrimary)),
+          _vLine(38),
+          _weatherItem(
+            Icons.air,
+            isBn ? 'বাতাস' : 'Wind',
+            widget.windKmh == null
+                ? '--'
+                : (isBn ? '${_bn('${widget.windKmh}')} কিমি/ঘণ্টা' : '${widget.windKmh} km/h'),
+            _tMint,
+          ),
+          _vLine(38),
+          _weatherItem(
+            Icons.water_drop_outlined,
+            isBn ? 'আর্দ্রতা' : 'Humidity',
+            widget.humidity == null ? '--' : _bn('${widget.humidity}%'),
+            _tCyan,
+          ),
+        ],
+      );
+    }
+    return _box(
+      radius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: content),
+      ),
+    );
+  }
+
+  Widget _bottomCell(String label, String time) {
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(2, 7, 2, 5),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 16, color: _cu),
-                const SizedBox(height: 2),
-                _fit(label, 12.5, _cuLight),
-              ],
-            ),
+            padding: const EdgeInsets.fromLTRB(2, 9, 2, 7),
+            child: _fit(label, 13, _tGold, weight: FontWeight.w800),
           ),
-          Container(height: 1, color: const Color(0x99D99B6A)),
+          Container(height: 1, color: _tLine),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
-            child: _fit(time, 15, _cream, weight: FontWeight.w800),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 9),
+            child: _fit(time, 16.5, _tPrimary, weight: FontWeight.w800),
           ),
         ],
       ),
@@ -2393,240 +2466,159 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     final mainPart = match?.group(1) ?? timeStr;
     final periodPart = match?.group(3) ?? '';
 
-    // ── ওয়াক্তের বাকি সময়ের রিং-এর অংশ ──
-    double remainFrac = 0;
-    if (waqt != null) {
-      final s = waqt['start'] as DateTime;
-      final e = waqt['end'] as DateTime;
-      final total = e.difference(s).inSeconds;
-      if (total > 0) {
-        remainFrac = (e.difference(now).inSeconds / total).clamp(0.0, 1.0).toDouble();
-      }
-    }
     final countdownText = waqt == null
         ? '--:--:--'
         : (_countdown(waqt['end'] as DateTime, now).isEmpty
             ? '--:--:--'
             : _bn(_countdown(waqt['end'] as DateTime, now)));
 
-    // ══ ১) উপরের সারি: সময় + আবহাওয়া | লোকেশন ══
-    final topRow = IntrinsicHeight(
+    // ══ ১) উপরের ঘর: সময় (বামে, বড়) | লোকেশন (ডানে) ══
+    final topBox = _box(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             flex: 11,
-            child: _marbleBox(
-              seed: 3,
-              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(children: [
-                        TextSpan(
-                          text: mainPart,
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w800,
-                            color: _cream,
-                            height: 1.05,
-                            shadows: _shadow,
-                          ),
-                        ),
-                        if (periodPart.isNotEmpty)
-                          TextSpan(
-                            text: ' $periodPart',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: _cuLight,
-                              shadows: _shadow,
-                            ),
-                          ),
-                      ]),
-                      maxLines: 1,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                    text: mainPart,
+                    style: TextStyle(
+                      fontSize: isBn ? 58 : 48,
+                      fontWeight: FontWeight.w800,
+                      color: _tTime,
+                      height: 1.1,
+                      shadows: _shadow,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(widget.weatherIcon, style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          widget.weatherText.isEmpty
-                              ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
-                              : _bn(widget.weatherText),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: _cuLight,
-                            height: 1.25,
-                            shadows: _shadow,
-                          ),
-                        ),
+                  if (periodPart.isNotEmpty)
+                    TextSpan(
+                      text: ' $periodPart',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: _tGold,
+                        shadows: _shadow,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                ]),
+                maxLines: 1,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             flex: 10,
-            child: _bronzeBox(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on, size: 22, color: _cu),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: widget.locationName.isEmpty
-                        ? Text(
-                            isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: _cuLight,
-                            ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                locParts[0],
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _cuLight,
-                                  height: 1.25,
-                                ),
+            child: widget.locationName.isEmpty
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      isBn ? 'লোকেশন খোঁজা হচ্ছে...' : 'Getting location...',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _tSilver),
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.location_on, size: 18, color: _tSilver),
+                            const SizedBox(width: 4),
+                            Text(
+                              locParts[0],
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: _tSilver,
+                                height: 1.25,
                               ),
-                              if (locParts[1].isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  locParts[1],
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: _cream,
-                                    height: 1.25,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (locParts[1].isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        _fit(locParts[1], 20, _tGold,
+                            weight: FontWeight.w800, align: Alignment.centerRight),
+                      ],
+                    ],
                   ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
     );
 
-    // ══ ২) মাঝের সারি: [ওয়াক্তের নাম + সূর্যের ছবি + সময় / ওয়াক্ত বাকি] | তারিখ ══
-    final waqtBox = _marbleBox(
-      seed: 5,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    // ══ ২) মাঝের সারি: [ওয়াক্তের নাম + সময় + ওয়াক্ত বাকি] | তারিখ ══
+    final waqtBox = _box(
+      highlight: true,
+      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _fit(
             waqt != null ? (waqt['name'] as String) : '—',
-            19,
-            _gold,
+            21,
+            _tGold,
             weight: FontWeight.w800,
+            align: Alignment.centerLeft,
           ),
-          SizedBox(
-            height: 40,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _WaqtSkyPainter(
-                waqt != null ? (waqt['key'] as String? ?? 'other') : 'other',
-              ),
-            ),
-          ),
+          const SizedBox(height: 6),
           if (waqt != null)
             _fit(
               _bn(_fmtRange(waqt['start'] as DateTime, waqt['end'] as DateTime)),
-              16.5,
-              _cream,
+              19,
+              _tPrimary,
               weight: FontWeight.w800,
+              align: Alignment.centerLeft,
             ),
+          const SizedBox(height: 10),
+          _fit(isBn ? 'ওয়াক্ত বাকি' : 'Time remaining', 14, _tSilver,
+              weight: FontWeight.w700, align: Alignment.centerLeft),
+          const SizedBox(height: 2),
+          _fit(countdownText, 25, _tTimer,
+              weight: FontWeight.w800, align: Alignment.centerLeft, spacing: 0.5),
         ],
       ),
     );
 
-    final remainBox = _bronzeBox(
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _fit(isBn ? 'ওয়াক্ত বাকি' : 'Time remaining', 13.5, _cuLight,
-                    align: Alignment.centerLeft),
-                const SizedBox(height: 2),
-                _fit(countdownText, 21, _gold,
-                    weight: FontWeight.w800,
-                    align: Alignment.centerLeft,
-                    spacing: 0.5),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: CustomPaint(painter: _RingPainter(remainFrac)),
-          ),
-        ],
-      ),
-    );
-
-    final dateBox = _marbleBox(
-      seed: 11,
-      padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+    final dateBox = _box(
+      padding: const EdgeInsets.fromLTRB(10, 12, 12, 12),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _fit(
             widget.lang.dayName(now.weekday),
-            23,
-            isFriday ? _mint : _cream,
+            25,
+            isFriday ? _tMint : _tGold,
             weight: FontWeight.w800,
             align: Alignment.centerRight,
           ),
+          const SizedBox(height: 9),
+          _dateLine(Icons.calendar_month, DateHelper.formatGregorian(now, bangla: isBn), _tPrimary, 16),
           const SizedBox(height: 8),
-          _dateLine(Icons.calendar_month, DateHelper.formatGregorian(now, bangla: isBn), _cream, 15.5),
-          const SizedBox(height: 7),
           _dateLine(
             Icons.nightlight_round,
             widget.hijriDate.isEmpty
                 ? DateHelper.toHijri(now, bangla: isBn)
                 : widget.hijriDate,
-            _gold,
-            15.5,
+            _tTimer,
+            16,
           ),
-          const SizedBox(height: 7),
-          _dateLine(Icons.local_florist, DateHelper.toBanglaWithSeason(now), const Color(0xFF9FE8F0), 15.5),
+          const SizedBox(height: 8),
+          _dateLine(Icons.local_florist, DateHelper.toBanglaWithSeason(now), _tCyan, 16),
         ],
       ),
     );
@@ -2635,51 +2627,36 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 10,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: waqtBox),
-                const SizedBox(height: 8),
-                remainBox,
-              ],
-            ),
-          ),
+          Expanded(flex: 10, child: waqtBox),
           const SizedBox(width: 8),
           Expanded(flex: 11, child: dateBox),
         ],
       ),
     );
 
-    // ══ ৩) নিচের টেবিল: সাহরি, সূর্যোদয়, সূর্যাস্ত, ইফতার, দিন, রাত ══
+    // ══ ৩) নিচের টেবিল: সাহরি, সূর্যোদয়, সূর্যাস্ত, ইফতার, দিন, রাত (আইকন ছাড়া, শুধু তথ্য) ══
     final dayLen = (fajr != null && maghrib != null)
         ? _bn(_fmtDuration(maghrib.difference(fajr)))
         : '--';
     final nightLen = (fajr != null && maghrib != null)
         ? _bn(_fmtDuration(const Duration(hours: 24) - maghrib.difference(fajr)))
         : '--';
-    final cells = <List<dynamic>>[
-      [Icons.bedtime, isBn ? 'সাহরি' : 'Sehri', fajr != null ? _bn(_fmtNoPeriod(fajr)) : '--'],
-      [Icons.wb_twilight, isBn ? 'সূর্যোদয়' : 'Sunrise', sunrise != null ? _bn(_fmtNoPeriod(sunrise)) : '--'],
-      [Icons.brightness_4, isBn ? 'সূর্যাস্ত' : 'Sunset', maghrib != null ? _bn(_fmtNoPeriod(maghrib)) : '--'],
-      [Icons.restaurant, isBn ? 'ইফতার' : 'Iftar', maghrib != null ? _bn(_fmtNoPeriod(maghrib)) : '--'],
-      [Icons.wb_sunny, isBn ? 'দিন' : 'Day', dayLen],
-      [Icons.nights_stay, isBn ? 'রাত' : 'Night', nightLen],
+    final cells = <List<String>>[
+      [isBn ? 'সাহরি' : 'Sehri', fajr != null ? _bn(_fmtNoPeriod(fajr)) : '--'],
+      [isBn ? 'সূর্যোদয়' : 'Sunrise', sunrise != null ? _bn(_fmtNoPeriod(sunrise)) : '--'],
+      [isBn ? 'সূর্যাস্ত' : 'Sunset', maghrib != null ? _bn(_fmtNoPeriod(maghrib)) : '--'],
+      [isBn ? 'ইফতার' : 'Iftar', maghrib != null ? _bn(_fmtNoPeriod(maghrib)) : '--'],
+      [isBn ? 'দিন' : 'Day', dayLen],
+      [isBn ? 'রাত' : 'Night', nightLen],
     ];
     final gridChildren = <Widget>[];
     for (int i = 0; i < cells.length; i++) {
       if (i > 0) {
-        gridChildren.add(Container(width: 1, color: const Color(0x99D99B6A)));
+        gridChildren.add(Container(width: 1, color: _tLine));
       }
-      gridChildren.add(_bottomCell(
-        cells[i][0] as IconData,
-        cells[i][1] as String,
-        cells[i][2] as String,
-      ));
+      gridChildren.add(_bottomCell(cells[i][0], cells[i][1]));
     }
-    final grid = _marbleBox(
-      seed: 21,
+    final grid = _box(
       radius: 14,
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
@@ -2691,17 +2668,21 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
     );
 
     // ══ ৪) একদম নিচে: স্ক্রলিং মার্কুয়ে ══
-    final marquee = _frame(
-      radius: 12,
-      child: Container(
-        width: double.infinity,
-        color: const Color(0xFF16110E),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+    final marquee = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: BoxDecoration(
+        color: _dk ? const Color(0xFF1B1B1D) : const Color(0xFFF1F1F1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _dk ? const Color(0x3DFFFFFF) : const Color(0x24000000)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
         child: widget.liveAlerts.isEmpty
             ? Center(
                 child: Text(
                   isBn ? '⏳ তথ্য লোড হচ্ছে...' : '⏳ Loading...',
-                  style: const TextStyle(color: _cuLight, fontSize: 12),
+                  style: TextStyle(color: _tSilver, fontSize: 12),
                 ),
               )
             : SizedBox(
@@ -2716,10 +2697,10 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       // দুইবার text রাখলে loop seamless হয়
                       Text(
                         '${_buildMarqueeText()}          ✦          ${_buildMarqueeText()}',
-                        style: const TextStyle(
-                          color: _gold,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                        style: TextStyle(
+                          color: _tGold,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -2735,20 +2716,31 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2B2420), Color(0xFF15110F)],
+        gradient: LinearGradient(
+          colors: _dk
+              ? const [Color(0xFF222224), Color(0xFF141415)]
+              : const [Color(0xFFFFFFFF), Color(0xFFF0F0F0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _cuDark.withOpacity(0.7), width: 1.2),
-        boxShadow: const [
-          BoxShadow(color: Color(0x55000000), blurRadius: 12, offset: Offset(0, 6)),
+        border: Border.all(
+          color: _dk ? const Color(0x4DFFFFFF) : const Color(0x2E000000),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _dk ? const Color(0x55000000) : const Color(0x22000000),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
         children: [
-          topRow,
+          topBox,
+          const SizedBox(height: 8),
+          _weatherBox(isBn),
           const SizedBox(height: 8),
           middleRow,
           const SizedBox(height: 8),
@@ -2759,247 +2751,6 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       ),
     );
   }
-}
-
-// ═══════════════════════════════════════════
-// ম্যালাকাইট (সবুজ পাথর) এর মতো আঁকা টেক্সচার — একবার আঁকা হয়, RepaintBoundary
-// দিয়ে ক্যাশ থাকে, তাই প্রতি সেকেন্ডে আবার আঁকতে হয় না।
-class _MalachitePainter extends CustomPainter {
-  final int seed;
-  const _MalachitePainter(this.seed);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF05241B), Color(0xFF0A3B2C), Color(0xFF062A20)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
-    );
-
-    final rnd = math.Random(seed);
-    for (int c = 0; c < 3; c++) {
-      final cx = size.width * (0.1 + 0.8 * rnd.nextDouble());
-      final cy = size.height * (0.1 + 0.8 * rnd.nextDouble());
-      final phase = rnd.nextDouble() * 6.28;
-      final maxR = size.longestSide * (0.65 + 0.35 * rnd.nextDouble());
-      const rings = 14;
-      for (int i = 0; i < rings; i++) {
-        final r = maxR * (1 - i / rings);
-        final path = Path();
-        const steps = 72;
-        for (int s = 0; s <= steps; s++) {
-          final a = 2 * math.pi * s / steps;
-          final wob = 1 +
-              0.07 * math.sin(3 * a + phase + i * 0.35) +
-              0.04 * math.sin(5 * a + phase * 1.7 - i * 0.2);
-          final x = cx + r * wob * math.cos(a);
-          final y = cy + r * wob * 0.8 * math.sin(a);
-          if (s == 0) {
-            path.moveTo(x, y);
-          } else {
-            path.lineTo(x, y);
-          }
-        }
-        path.close();
-        final light = i.isEven;
-        canvas.drawPath(
-          path,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = (light ? 3.0 : 6.0) * (0.6 + 0.8 * rnd.nextDouble())
-            ..color = (light ? const Color(0xFF2FB58B) : const Color(0xFF0E5C44))
-                .withOpacity(light ? 0.28 : 0.35),
-        );
-      }
-    }
-
-    // কিনারা একটু গাঢ় করে গভীরতা আনা
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const RadialGradient(
-          colors: [Color(0x00000000), Color(0x59000000)],
-          radius: 0.95,
-        ).createShader(rect),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _MalachitePainter old) => old.seed != seed;
-}
-
-// ═══════════════════════════════════════════
-// ওয়াক্ত অনুযায়ী আকাশের ছবি: সূর্য আকাশে কোথায় আছে, বা রাতের চাঁদ-তারা
-class _WaqtSkyPainter extends CustomPainter {
-  final String keyName;
-  const _WaqtSkyPainter(this.keyName);
-
-  static const Map<String, double> _sunT = {
-    'fajr': -0.08,
-    'sunrise': 0.0,
-    'ishraq': 0.07,
-    'duha': 0.3,
-    'zawal': 0.5,
-    'dhuhr': 0.62,
-    'asr': 0.84,
-    'maghrib': 1.0,
-  };
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final horizon = h * 0.84;
-
-    // দিগন্তরেখা
-    canvas.drawLine(
-      Offset(w * 0.08, horizon),
-      Offset(w * 0.92, horizon),
-      Paint()
-        ..color = const Color(0x66F6D3AE)
-        ..strokeWidth = 1.2
-        ..strokeCap = StrokeCap.round,
-    );
-
-    final isNight =
-        keyName == 'isha' || keyName == 'tahajjud' || keyName == 'night';
-
-    if (isNight) {
-      _paintNight(canvas, size, many: keyName != 'isha');
-    } else {
-      _paintSun(canvas, size, horizon);
-    }
-  }
-
-  void _paintSun(Canvas canvas, Size size, double horizon) {
-    final w = size.width;
-    final t = _sunT[keyName] ?? 0.5;
-    final r = math.min(size.height * 0.18, 9.0);
-    final cx = w * (0.18 + 0.64 * t.clamp(0.0, 1.0));
-    final cy = t < 0
-        ? horizon + r * 0.55
-        : horizon - math.sin(math.pi * t.clamp(0.0, 1.0)) * (horizon - r - 4);
-    final nearHorizon = t < 0.12 || t > 0.9;
-    final core = keyName == 'zawal'
-        ? const Color(0xFFFFF1A8)
-        : (nearHorizon ? const Color(0xFFFF9A3C) : const Color(0xFFFFD54A));
-
-    canvas.save();
-    canvas.clipRect(Rect.fromLTWH(0, 0, w, horizon + 0.5));
-
-    // আভা
-    final glowRect = Rect.fromCircle(center: Offset(cx, cy), radius: r * 3.2);
-    canvas.drawCircle(
-      Offset(cx, cy),
-      r * 3.2,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [core.withOpacity(0.45), core.withOpacity(0.0)],
-        ).createShader(glowRect),
-    );
-
-    // রশ্মি
-    final ray = Paint()
-      ..color = core.withOpacity(0.85)
-      ..strokeWidth = 1.4
-      ..strokeCap = StrokeCap.round;
-    for (int i = 0; i < 12; i++) {
-      final a = 2 * math.pi * i / 12;
-      canvas.drawLine(
-        Offset(cx + (r + 2.5) * math.cos(a), cy + (r + 2.5) * math.sin(a)),
-        Offset(cx + (r + 6) * math.cos(a), cy + (r + 6) * math.sin(a)),
-        ray,
-      );
-    }
-
-    // সূর্য
-    canvas.drawCircle(Offset(cx, cy), r, Paint()..color = core);
-    canvas.restore();
-  }
-
-  void _paintNight(Canvas canvas, Size size, {required bool many}) {
-    final w = size.width;
-    final h = size.height;
-    final c = Offset(w * 0.5, h * 0.42);
-    final r = math.min(h * 0.22, 10.0);
-
-    // চাঁদের আভা
-    final glowRect = Rect.fromCircle(center: c, radius: r * 3);
-    canvas.drawCircle(
-      c,
-      r * 3,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [const Color(0x55FFF3D6), const Color(0x00FFF3D6)],
-        ).createShader(glowRect),
-    );
-
-    // অর্ধচন্দ্র
-    final moon = Path.combine(
-      PathOperation.difference,
-      Path()..addOval(Rect.fromCircle(center: c, radius: r)),
-      Path()
-        ..addOval(Rect.fromCircle(
-            center: c.translate(r * 0.55, -r * 0.25), radius: r * 0.85)),
-    );
-    canvas.drawPath(moon, Paint()..color = const Color(0xFFFFF3D6));
-
-    // তারা
-    final star = Paint()..color = const Color(0xFFFFF3D6);
-    final pts = <List<double>>[
-      [0.2, 0.28], [0.78, 0.22], [0.66, 0.55], [0.32, 0.58], [0.88, 0.5],
-      if (many) ...[
-        [0.12, 0.5], [0.42, 0.18], [0.58, 0.2], [0.72, 0.4], [0.28, 0.4],
-      ],
-    ];
-    for (final p in pts) {
-      canvas.drawCircle(Offset(w * p[0], h * p[1]), 1.2, star);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WaqtSkyPainter old) => old.keyName != keyName;
-}
-
-// ═══════════════════════════════════════════
-// ওয়াক্ত বাকির গোল রিং — যত সময় বাকি, তত বড় আর্ক
-class _RingPainter extends CustomPainter {
-  final double remaining; // 0..1
-  const _RingPainter(this.remaining);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = math.min(size.width, size.height) / 2 - 3;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..color = const Color(0x33F6D3AE),
-    );
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      2 * math.pi * remaining,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..strokeCap = StrokeCap.round
-        ..color = const Color(0xFFFFD27A),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RingPainter old) => old.remaining != remaining;
 }
 
 // ═══════════════════════════════════════════

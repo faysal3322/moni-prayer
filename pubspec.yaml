@@ -45,7 +45,8 @@ flutter:
     - family: ScheherazadeNew
       fonts:
         - asset: assets/fonts/ScheherazadeNew-Regular.ttf
-    # শুধু বাংলা অংক (০-৯) এর জন্য — সময়, তারিখ, তাপমাত্রা ইত্যাদি
+    # বাংলা অংক (০-৯) — এবং বাংলা মোডে ইংরেজি অংক 0-9 ও ':' '-' ও এই ফন্টে দেখায়
+    # (Atma, স্যাম্পলের মতো হালকা-মাঝারি ওজন)
     - family: BanglaNum
       fonts:
         - asset: assets/fonts/BanglaNum-400.ttf
@@ -56,3 +57,7 @@ flutter:
           weight: 600
         - asset: assets/fonts/BanglaNum-700.ttf
           weight: 700
+        - asset: assets/fonts/BanglaNum-800.ttf
+          weight: 800
+        - asset: assets/fonts/BanglaNum-900.ttf
+          weight: 900

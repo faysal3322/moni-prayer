@@ -68,11 +68,11 @@ class AppTheme {
   static ThemeData get darkTheme => _build(Brightness.dark);
   static ThemeData get lightTheme => _build(Brightness.light);
 
-  /// ভাষা অনুযায়ী থিম। [bn] true হলে সব অংক (০-৯ এবং 0-9) BanglaNum (Atma) ফন্টে আসে।
+  /// ভাষা অনুযায়ী থিম। [bn] true হলে সব বাংলা লেখা ও অংক (০-৯ এবং 0-9) BanglaNum (Kalpurush) ফন্টে আসে।
   static ThemeData themeFor(Brightness b, {required bool bn}) => _build(b, bn: bn);
 
-  // BanglaNum কে প্রথম ফন্ট বানানো হয়েছে; ওতে শুধু অংক আর ':' '-' আছে, তাই
-  // বাকি সব লেখা পরের ফন্ট (Noto Sans) থেকেই আসে — আগের মতোই।
+  // BanglaNum কে প্রথম ফন্ট বানানো হয়েছে; ওতে বাংলা অক্ষর, অংক আর ':' '-' আছে।
+  // ইংরেজি অক্ষর ওতে নেই, তাই সেগুলো পরের ফন্ট (Noto Sans) থেকেই আসে।
   static TextStyle? _bnStyle(TextStyle? s) => s == null
       ? null
       : s.copyWith(

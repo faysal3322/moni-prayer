@@ -103,10 +103,10 @@ class NotificationHelper {
     final prayers = isBn
         ? {
             'ফজর': times.fajr,
-            'যোহর': times.dhuhr,
+            'যুহর': times.dhuhr,
             'আসর': times.asr,
             'মাগরিব': times.maghrib,
-            'এশা': times.isha,
+            'ইশা': times.isha,
           }
         : {
             'Fajr': times.fajr,

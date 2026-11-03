@@ -21,10 +21,10 @@ class AppLanguage {
   String get namazBaki => isBn ? 'নামাজ বাকি' : 'Prayers Pending';
   String get rozaBaki => isBn ? 'রোজা বাকি' : 'Fasts Pending';
   String get fajr => isBn ? 'ফজর' : 'Fajr';
-  String get dhuhr => isBn ? 'যোহর' : 'Dhuhr';
+  String get dhuhr => isBn ? 'যুহর' : 'Dhuhr';
   String get asr => isBn ? 'আসর' : 'Asr';
   String get maghrib => isBn ? 'মাগরিব' : 'Maghrib';
-  String get isha => isBn ? 'এশা' : 'Isha';
+  String get isha => isBn ? 'ইশা' : 'Isha';
   String get roza => isBn ? 'রোজা' : 'Roza/Sawm';
   String get prayed => isBn ? 'আদায়' : 'Prayed';
   String get missed => isBn ? 'মিস' : 'Missed';

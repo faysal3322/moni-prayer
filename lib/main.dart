@@ -180,7 +180,7 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
       navigatorObservers: [_routeObserver],
       title: 'MONI PRAYER',
       debugShowCheckedModeBanner: false,
-      theme: _isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+      theme: AppTheme.themeFor(_isDark ? Brightness.dark : Brightness.light, bn: _lang == 'bn'),
       locale: Locale(_lang),
       supportedLocales: const [Locale('bn'), Locale('en')],
       localizationsDelegates: const [

@@ -68,7 +68,37 @@ class AppTheme {
   static ThemeData get darkTheme => _build(Brightness.dark);
   static ThemeData get lightTheme => _build(Brightness.light);
 
-  static ThemeData _build(Brightness b) {
+  /// ভাষা অনুযায়ী থিম। [bn] true হলে সব অংক (০-৯ এবং 0-9) BanglaNum (Atma) ফন্টে আসে।
+  static ThemeData themeFor(Brightness b, {required bool bn}) => _build(b, bn: bn);
+
+  // BanglaNum কে প্রথম ফন্ট বানানো হয়েছে; ওতে শুধু অংক আর ':' '-' আছে, তাই
+  // বাকি সব লেখা পরের ফন্ট (Noto Sans) থেকেই আসে — আগের মতোই।
+  static TextStyle? _bnStyle(TextStyle? s) => s == null
+      ? null
+      : s.copyWith(
+          fontFamily: 'BanglaNum',
+          fontFamilyFallback: [if (s.fontFamily != null) s.fontFamily!],
+        );
+
+  static TextTheme _bnTextTheme(TextTheme t) => TextTheme(
+        displayLarge: _bnStyle(t.displayLarge),
+        displayMedium: _bnStyle(t.displayMedium),
+        displaySmall: _bnStyle(t.displaySmall),
+        headlineLarge: _bnStyle(t.headlineLarge),
+        headlineMedium: _bnStyle(t.headlineMedium),
+        headlineSmall: _bnStyle(t.headlineSmall),
+        titleLarge: _bnStyle(t.titleLarge),
+        titleMedium: _bnStyle(t.titleMedium),
+        titleSmall: _bnStyle(t.titleSmall),
+        bodyLarge: _bnStyle(t.bodyLarge),
+        bodyMedium: _bnStyle(t.bodyMedium),
+        bodySmall: _bnStyle(t.bodySmall),
+        labelLarge: _bnStyle(t.labelLarge),
+        labelMedium: _bnStyle(t.labelMedium),
+        labelSmall: _bnStyle(t.labelSmall),
+      );
+
+  static ThemeData _build(Brightness b, {bool bn = false}) {
     final dark = b == Brightness.dark;
     final bg = dark ? const Color(0xFF0A0A0A) : const Color(0xFFF2F5F2);
     final sf = dark ? const Color(0xFF121212) : const Color(0xFFFFFFFF);
@@ -85,9 +115,9 @@ class AppTheme {
       colorScheme: dark
           ? ColorScheme.dark(primary: primary, secondary: accent, surface: sf, background: bg)
           : ColorScheme.light(primary: primary, secondary: accent, surface: sf, background: bg),
-      // বাংলা অংক (০-৯) আসবে BanglaNum (Atma) ফন্ট থেকে; বাকি সব লেখা আগের মতোই।
-      textTheme: GoogleFonts.notoSansTextTheme(base.textTheme)
-          .apply(fontFamilyFallback: const ['BanglaNum']),
+      textTheme: bn
+          ? _bnTextTheme(GoogleFonts.notoSansTextTheme(base.textTheme))
+          : GoogleFonts.notoSansTextTheme(base.textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: sf,
         foregroundColor: dark ? Colors.white : const Color(0xFF1B1B1B),

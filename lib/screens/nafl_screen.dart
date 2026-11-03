@@ -4,6 +4,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/prayer_time_helper.dart';
 import '../widgets/nafl_cards.dart';
+import 'prayer_schedule_tab.dart';
 
 class NaflScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -17,6 +18,7 @@ class _NaflScreenState extends State<NaflScreen> {
   PrayerTimes? _prayerTimes;
   SunnahTimes? _sunnahTimes;
   bool _loading = true;
+  int _tabIndex = 0; // ০ = নামাজের সময়সূচী (ডিফল্ট), ১ = নফল নামাজ
 
   @override
   void initState() {
@@ -57,8 +59,55 @@ class _NaflScreenState extends State<NaflScreen> {
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppTheme.accent))
-          : _buildPrayerTab(isBn, pt, ishraqStart, ishraqEnd,
-              chashtStart, chashtEnd, tahaqqudStart, tahaqqudEnd),
+          : Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(children: [
+                    _tabBtn(0, '🕒', isBn ? 'নামাজের সময়সূচী' : 'Prayer Times'),
+                    _tabBtn(1, '⭐', isBn ? 'নফল নামাজ' : 'Nafl Prayer'),
+                  ]),
+                ),
+                Expanded(
+                  child: _tabIndex == 0 && pt != null
+                      ? PrayerScheduleTab(lang: widget.lang, times: pt)
+                      : _buildPrayerTab(isBn, pt, ishraqStart, ishraqEnd,
+                          chashtStart, chashtEnd, tahaqqudStart, tahaqqudEnd),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _tabBtn(int index, String icon, String label) {
+    final isSelected = _tabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _tabIndex = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(children: [
+            Text(icon, style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTheme.textSecondary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center),
+          ]),
+        ),
+      ),
     );
   }
 

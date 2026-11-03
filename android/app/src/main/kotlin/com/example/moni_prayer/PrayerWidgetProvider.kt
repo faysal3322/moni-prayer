@@ -274,7 +274,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             nowMs >= forbidden2End && nowMs < asr ->
                 WaqtInfo(
                     if (isFriday) (if (isBn) "জুম'আ" else "Jumu'ah")
-                    else (if (isBn) "যোহর" else "Dhuhr"),
+                    else (if (isBn) "যুহর" else "Dhuhr"),
                     range(forbidden2End, asr), asr, stage
                 )
             // নিষিদ্ধ সময় ৩: মাগরিবের ঠিক ১৫ মিনিট আগে থেকে মাগরিব পর্যন্ত
@@ -288,7 +288,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             nowMs > maghrib && nowMs < isha ->
                 WaqtInfo(if (isBn) "মাগরিব" else "Maghrib", range(maghrib, isha), isha, stage)
             nowMs > isha && nowMs < ishaaEnd ->
-                WaqtInfo(if (isBn) "এশা" else "Isha", range(isha, ishaaEnd), ishaaEnd, stage)
+                WaqtInfo(if (isBn) "ইশা" else "Isha", range(isha, ishaaEnd), ishaaEnd, stage)
             nowMs > nightIsha && nowMs >= lastThird && nowMs < nextFajr ->
                 WaqtInfo(if (isBn) "তাহাজ্জুদ" else "Tahajjud", range(lastThird, fajr), nextFajr, stage)
             nowMs > nightIsha && nowMs < nextFajr ->

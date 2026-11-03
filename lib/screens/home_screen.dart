@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -324,7 +325,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       return {'name': isBn ? 'যাওয়াল' : 'Zawal', 'range': range(zawalStart, zawalEnd), 'end': zawalEnd};
     }
     if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যোহর' : 'Dhuhr'), 'range': range(pt.dhuhr, pt.asr), 'end': pt.asr};
+      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যুহর' : 'Dhuhr'), 'range': range(pt.dhuhr, pt.asr), 'end': pt.asr};
     }
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
       return {'name': isBn ? 'আসর' : 'Asr', 'range': range(pt.asr, pt.maghrib), 'end': pt.maghrib};
@@ -333,7 +334,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       return {'name': isBn ? 'মাগরিব' : 'Maghrib', 'range': range(pt.maghrib, pt.isha), 'end': pt.isha};
     }
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
-      return {'name': isBn ? 'এশা' : 'Isha', 'range': range(pt.isha, ishaaEnd), 'end': ishaaEnd};
+      return {'name': isBn ? 'ইশা' : 'Isha', 'range': range(pt.isha, ishaaEnd), 'end': ishaaEnd};
     }
     if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(nextFajr)) {
       // ফিক্স: ClockCard-এর _currentWaqt-এর মতোই এখানেও pt.fajr upper
@@ -426,12 +427,12 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       // সঠিক ওয়াক্ত/বাকি-সময়/নিষিদ্ধ-সময় দেখাতে পারার জন্য ══
       //
       // আগে widget_waqt_name ইত্যাদি "মুহূর্তের হিসাব করা ফলাফল" (যেমন
-      // "এশা", "০১:২০") হিসেবে সেভ হতো — Dart-এই (_currentWidgetWaqt)
+      // "ইশা", "০১:২০") হিসেবে সেভ হতো — Dart-এই (_currentWidgetWaqt)
       // হিসাব করে স্ট্রিং বানিয়ে পাঠানো হতো। সমস্যা হলো, এই হিসাব শুধু
       // তখনই আপডেট হতো যখন Flutter অ্যাপের UI/isolate সচল থাকত (প্রতি
       // ৩০ সেকেন্ডে _autoQazaTimer দিয়ে)। অ্যাপ বন্ধ করে দিলে Android
       // এই Dart isolate-কে kill করে দেয়, এই টাইমার আর চলে না, ফলে
-      // prefs-এ পুরনো ("এশা") স্ট্রিংই আটকে থাকত — অথচ নেটিভ
+      // prefs-এ পুরনো ("ইশা") স্ট্রিংই আটকে থাকত — অথচ নেটিভ
       // PrayerWidgetProvider.kt প্রতি মিনিটে (AlarmManager দিয়ে, Android
       // নিজেই জাগায়, Dart প্রয়োজন হয় না) ঠিকই জেগে উঠত এবং widget
       // রিফ্রেশ করত, কিন্তু prefs থেকে সেই বাসি স্ট্রিংটাই আবার দেখাত।
@@ -1222,7 +1223,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     final next = PrayerTimeHelper.getNextPrayer(pt);
     final remaining = PrayerTimeHelper.getTimeToNextPrayer(pt);
     if (next != null && remaining != null && remaining.inMinutes <= 15) {
-      final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
+      final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যুহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'ইশা' : 'Isha'};
       final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
       final cd = nextTime != null ? _countdown(nextTime) : '';
       alerts.add({'icon': '🕌', 'text': isBn ? '${names[next]} নামাজের সময় হতে বাকি $cd ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""}' : '${names[next]} in $cd', 'color': AppTheme.accent});
@@ -1362,7 +1363,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     // ══ Default: পরবর্তী নামাজ ══
     if (alerts.isEmpty) {
       if (next != null && remaining != null) {
-        final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যোহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'এশা' : 'Isha'};
+        final names = {'fajr': isBn ? 'ফজর' : 'Fajr', 'dhuhr': isBn ? 'যুহর' : 'Dhuhr', 'asr': isBn ? 'আসর' : 'Asr', 'maghrib': isBn ? 'মাগরিব' : 'Maghrib', 'isha': isBn ? 'ইশা' : 'Isha'};
         final nextTime = PrayerTimeHelper.getPrayerTimesMap(pt)[next];
         final cd = nextTime != null ? _countdown(nextTime) : '';
         alerts.add({'icon': '🕌', 'text': isBn ? 'পরবর্তী নামাজ: ${names[next]} ${nextTime != null ? "(${_fmtTime(nextTime)})" : ""} — বাকি $cd' : 'Next: ${names[next]} — in $cd', 'color': AppTheme.accent});
@@ -2190,7 +2191,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       return {'name': isBn ? 'যাওয়াল (নিষিদ্ধ সময়)' : 'Zawal (Forbidden)', 'start': zawalStart, 'end': zawalEnd};
     }
     if (now.isAfter(pt.dhuhr) && now.isBefore(pt.asr)) {
-      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যোহর' : 'Dhuhr'), 'start': pt.dhuhr, 'end': pt.asr};
+      return {'name': now.weekday == DateTime.friday ? (isBn ? "জুম'আ" : "Jumu'ah") : (isBn ? 'যুহর' : 'Dhuhr'), 'start': pt.dhuhr, 'end': pt.asr};
     }
     if (now.isAfter(pt.asr) && now.isBefore(pt.maghrib)) {
       return {'name': isBn ? 'আসর' : 'Asr', 'start': pt.asr, 'end': pt.maghrib};
@@ -2199,7 +2200,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
       return {'name': isBn ? 'মাগরিব / আওয়াবিন' : 'Maghrib / Awwabin', 'start': pt.maghrib, 'end': pt.isha};
     }
     if (now.isAfter(pt.isha) && now.isBefore(ishaaEnd)) {
-      return {'name': isBn ? 'এশা' : 'Isha', 'start': pt.isha, 'end': ishaaEnd};
+      return {'name': isBn ? 'ইশা' : 'Isha', 'start': pt.isha, 'end': ishaaEnd};
     }
     if (now.isAfter(nightIsha) && !now.isBefore(lastThird) && now.isBefore(pt.fajr)) {
       // তাহাজ্জুদের সময় চলছে (রাতের শেষ ১/৩ অংশ, ফজরের আগ পর্যন্ত)
@@ -2697,19 +2698,20 @@ class _PrayerTimesCard extends StatelessWidget {
     required this.todayPrayers, required this.onCircleTap,
   });
 
-  String _fmt(DateTime t) => PrayerTimeHelper.formatTime(t);
+  // সময় দেখানোর নিয়ম: am/pm নেই, বাংলা অংক, ঘণ্টা দুই অংকের (০৪:৪০)
+  String _fmt(DateTime t) {
+    final is24 = TimeFormatPrefs.use24Hour;
+    final h = is24 ? t.hour : (t.hour % 12 == 0 ? 12 : t.hour % 12);
+    final s = '${h.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    if (!lang.isBn) return s;
+    const bn = '০১২৩৪৫৬৭৮৯';
+    return s.replaceAllMapped(RegExp(r'\d'), (m) => bn[int.parse(m[0]!)]);
+  }
 
-  // ফিক্স: আগে nextPrayer (পরবর্তী ওয়াক্ত) হাইলাইট হতো — এখন যোহর চললেও
-  // আসর হাইলাইট দেখাত। এখন বর্তমানে চলমান ওয়াক্তই হাইলাইট হবে।
+  // শুধু ফরজ ওয়াক্ত — চলমান ওয়াক্তের কী; বাকি সময় (সূর্যোদয় থেকে যোহর) কোনোটাই নয়
   String? _currentPrayerKey(PrayerTimes t) {
     final now = DateTime.now();
     if (now.isAfter(t.fajr) && now.isBefore(t.sunrise)) return 'fajr';
-    // নফল: ইশরাক (সূর্যোদয়ের ১৫–৪৫ মিনিট পর), দুহা/চাশত (৪৫ মিনিট পর থেকে যোহরের ১০ মিনিট আগ পর্যন্ত)
-    final ishraqStart = t.sunrise.add(const Duration(minutes: 15));
-    final duhaStart = t.sunrise.add(const Duration(minutes: 45));
-    final duhaEnd = t.dhuhr.subtract(const Duration(minutes: 10));
-    if (!now.isBefore(ishraqStart) && now.isBefore(duhaStart)) return 'ishraq';
-    if (!now.isBefore(duhaStart) && now.isBefore(duhaEnd)) return 'duha';
     if (now.isAfter(t.dhuhr) && now.isBefore(t.asr)) return 'dhuhr';
     if (now.isAfter(t.asr) && now.isBefore(t.maghrib)) return 'asr';
     if (now.isAfter(t.maghrib) && now.isBefore(t.isha)) return 'maghrib';
@@ -2720,8 +2722,6 @@ class _PrayerTimesCard extends StatelessWidget {
   String _prayerName(String key) {
     switch (key) {
       case 'fajr': return lang.fajr;
-      case 'ishraq': return lang.isBn ? 'ইশরাক' : 'Ishraq';
-      case 'duha': return lang.isBn ? 'দুহা / চাশত' : 'Duha / Chasht';
       case 'dhuhr': return lang.dhuhr;
       case 'asr': return lang.asr;
       case 'maghrib': return lang.maghrib;
@@ -2730,81 +2730,48 @@ class _PrayerTimesCard extends StatelessWidget {
     }
   }
 
+  String _prayerIcon(String key) {
+    switch (key) {
+      case 'fajr': return '🌅';
+      case 'dhuhr': return '☀️';
+      case 'asr': return '🌤️';
+      case 'maghrib': return '🌇';
+      case 'isha': return '🌙';
+      default: return '🕌';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isBn = lang.isBn;
     if (prayerTimes == null) {
       return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
     }
+    final pt = prayerTimes!;
 
     final prayers = [
-      {'key': 'fajr', 'start': prayerTimes!.fajr, 'end': prayerTimes!.sunrise},
-      // নফল নামাজ — ফজর ও যোহরের মাঝের ফাঁকা সময় পূরণ করে (সময় নফল স্ক্রিনের সাথে মিলানো)
-      {'key': 'ishraq', 'nafl': true,
-        'start': prayerTimes!.sunrise.add(const Duration(minutes: 15)),
-        'end': prayerTimes!.sunrise.add(const Duration(minutes: 45))},
-      {'key': 'duha', 'nafl': true,
-        'start': prayerTimes!.sunrise.add(const Duration(minutes: 45)),
-        'end': prayerTimes!.dhuhr.subtract(const Duration(minutes: 10))},
-      {'key': 'dhuhr', 'start': prayerTimes!.dhuhr, 'end': prayerTimes!.asr},
-      {'key': 'asr', 'start': prayerTimes!.asr, 'end': prayerTimes!.maghrib},
-      {'key': 'maghrib', 'start': prayerTimes!.maghrib, 'end': prayerTimes!.isha},
-      {'key': 'isha', 'start': prayerTimes!.isha,
-        'end': sunnahTimes?.lastThirdOfTheNight ?? prayerTimes!.fajr},
+      {'key': 'fajr', 'start': pt.fajr, 'end': pt.sunrise},
+      {'key': 'dhuhr', 'start': pt.dhuhr, 'end': pt.asr},
+      {'key': 'asr', 'start': pt.asr, 'end': pt.maghrib},
+      {'key': 'maghrib', 'start': pt.maghrib, 'end': pt.isha},
+      {'key': 'isha', 'start': pt.isha,
+        'end': sunnahTimes?.lastThirdOfTheNight ?? pt.fajr},
     ];
 
+    final currentKey = _currentPrayerKey(pt);
 
-    final currentKey = _currentPrayerKey(prayerTimes!);
-    TextStyle headStyle() =>
-        TextStyle(color: AppTheme.heroGold, fontWeight: FontWeight.bold, fontSize: 15);
-
-    return Column(children: [
-      // হেডার (নামাজ / শুরু / শেষ)
-      Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.tableHeaderBg,
-          borderRadius: BorderRadius.circular(14),
+    return Column(children: prayers.map((p) {
+      final key = p['key'] as String;
+      return _GlowPrayerRow(
+        isCurrent: currentKey == key,
+        icon: _prayerIcon(key),
+        name: _prayerName(key),
+        range: '${_fmt(p['start'] as DateTime)} - ${_fmt(p['end'] as DateTime)}',
+        trailing: _statusCircle(
+          todayPrayers[key],
+          () => onCircleTap(key, p['start'] as DateTime),
         ),
-        child: Row(children: [
-          Expanded(child: Text(isBn ? 'নামাজ' : 'Prayer', style: headStyle())),
-          SizedBox(width: 92, child: Text(isBn ? 'শুরু' : 'Start',
-              style: headStyle(), textAlign: TextAlign.center)),
-          SizedBox(width: 92, child: Text(isBn ? 'শেষ' : 'End',
-              style: headStyle(), textAlign: TextAlign.center)),
-          const SizedBox(width: 44),
-        ]),
-      ),
-      // প্রতিটি ওয়াক্ত আলাদা ঘরে — চলমান ওয়াক্ত glow করবে
-      ...prayers.map((p) {
-        final key = p['key'] as String;
-        return _GlowPrayerRow(
-          isCurrent: currentKey == key,
-          name: _prayerName(key),
-          start: _fmt(p['start'] as DateTime),
-          end: _fmt(p['end'] as DateTime),
-          trailing: p['nafl'] == true
-              ? SizedBox(
-                  width: 36, height: 32,
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(isBn ? 'নফল' : 'Nafl',
-                          style: TextStyle(
-                              color: AppTheme.gold,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                )
-              : _statusCircle(
-                  todayPrayers[key],
-                  () => onCircleTap(key, p['start'] as DateTime),
-                ),
-        );
-      }),
-    ]);
+      );
+    }).toList());
   }
 
   Widget _statusCircle(String? status, VoidCallback onTap) {
@@ -2842,16 +2809,17 @@ class _PrayerTimesCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════
-// প্রতিটি নামাজের ওয়াক্তের আলাদা ঘর। চলমান ওয়াক্ত হলে ঘরটা ধীরে ধীরে
-// glow (জ্বলজ্বল) করে। নামের ফন্ট আর সময়ের ফন্ট একই সাইজ।
+// ওয়াক্তের একটি সারি। চলমান ওয়াক্তে: নাম ও সময় হলুদ + মোটা, আর বর্ডারের
+// চারদিকে ঘুরে ঘুরে চমকানো নিয়ন glow (উজ্জ্বল আলোর ঝলক বর্ডার ঘেঁষে ঘোরে,
+// সাথে বাইরের আভা ধীরে ধীরে জ্বলে-নেভে)।
 class _GlowPrayerRow extends StatefulWidget {
   final bool isCurrent;
-  final String name, start, end;
+  final String icon, name, range;
   final Widget trailing;
 
   const _GlowPrayerRow({
-    required this.isCurrent, required this.name,
-    required this.start, required this.end, required this.trailing,
+    required this.isCurrent, required this.icon, required this.name,
+    required this.range, required this.trailing,
   });
 
   @override
@@ -2862,19 +2830,21 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
 
+  static const Color _neon = Color(0xFF3DFF8F);
+
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1800));
-    if (widget.isCurrent) _ctrl.repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 3200));
+    if (widget.isCurrent) _ctrl.repeat();
   }
 
   @override
   void didUpdateWidget(covariant _GlowPrayerRow old) {
     super.didUpdateWidget(old);
     if (widget.isCurrent && !_ctrl.isAnimating) {
-      _ctrl.repeat(reverse: true);
+      _ctrl.repeat();
     } else if (!widget.isCurrent && _ctrl.isAnimating) {
       _ctrl.stop();
       _ctrl.value = 0;
@@ -2887,86 +2857,108 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
     super.dispose();
   }
 
+  Widget _content(bool cur) {
+    final yellow = AppTheme.pendingText;
+    final nameColor = cur ? yellow : AppTheme.textPrimary;
+    return Row(children: [
+      Text(widget.icon, style: const TextStyle(fontSize: 24)),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(widget.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: nameColor,
+              fontWeight: cur ? FontWeight.w900 : FontWeight.w500,
+              fontSize: cur ? 21 : 18,
+            )),
+      ),
+      SizedBox(
+        width: 150,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(widget.range,
+              maxLines: 1,
+              style: TextStyle(
+                color: cur ? yellow : AppTheme.textPrimary,
+                fontWeight: cur ? FontWeight.w900 : FontWeight.w600,
+                fontSize: cur ? 21 : 18,
+              )),
+        ),
+      ),
+      const SizedBox(width: 6),
+      widget.trailing,
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final cur = widget.isCurrent;
-    // নাম ও সময় — একই সাইজ
-    final double fs = cur ? 20 : 18;
 
-    Widget timeCell(String text, Color color) => SizedBox(
-          width: 92,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(text,
-                maxLines: 1,
-                style: TextStyle(
-                  color: color,
-                  fontSize: fs,
-                  fontWeight: cur ? FontWeight.w900 : FontWeight.normal,
-                )),
-          ),
-        );
+    if (!cur) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: AppTheme.cardBg,
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+        ),
+        child: _content(false),
+      );
+    }
 
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        final t = cur ? Curves.easeInOut.transform(_ctrl.value) : 0.0;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: cur
-                ? LinearGradient(
-                    colors: [
-                      AppTheme.primary.withOpacity(0.55),
-                      AppTheme.cardBg,
-                    ],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  )
-                : null,
-            color: cur ? null : AppTheme.cardBg,
-            border: Border.all(
-              color: cur
-                  ? Color.lerp(AppTheme.accent.withOpacity(0.55),
-                      const Color(0xFF69F0AE), t)!
-                  : AppTheme.primary.withOpacity(0.3),
-              width: cur ? 1.8 : 1,
-            ),
-            boxShadow: cur
-                ? [
-                    BoxShadow(
-                      color: AppTheme.accent.withOpacity(0.20 + 0.40 * t),
-                      blurRadius: 8 + 16 * t,
-                      spreadRadius: 0.5 + 2.5 * t,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(children: [
-            Expanded(
-              child: Row(children: [
-                if (cur)
-                  const Icon(Icons.arrow_right, color: AppTheme.accent, size: 24),
-                Flexible(
-                  child: Text(widget.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cur ? AppTheme.gold : AppTheme.textPrimary,
-                        fontWeight: cur ? FontWeight.w900 : FontWeight.normal,
-                        fontSize: fs,
-                      )),
+    final fill = Color.lerp(AppTheme.cardBg, AppTheme.primary, 0.45)!;
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          final v = _ctrl.value;
+          // আভা: প্রতি ঘূর্ণনে দুইবার জ্বলে-নেভে
+          final pulse = 0.5 + 0.5 * math.sin(v * 2 * math.pi * 2);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(2.4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              // বর্ডার = ঘূর্ণায়মান আলোর ঝলক (সাদা-গরম মাথা, নিয়ন লেজ)
+              gradient: SweepGradient(
+                transform: GradientRotation(v * 2 * math.pi),
+                colors: [
+                  _neon.withOpacity(0.35),
+                  _neon.withOpacity(0.35),
+                  _neon,
+                  Colors.white,
+                  _neon,
+                  _neon.withOpacity(0.35),
+                ],
+                stops: const [0.0, 0.45, 0.72, 0.8, 0.88, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _neon.withOpacity(0.30 + 0.35 * pulse),
+                  blurRadius: 10 + 14 * pulse,
+                  spreadRadius: 1 + 2.5 * pulse,
                 ),
-              ]),
+                BoxShadow(
+                  color: _neon.withOpacity(0.10 + 0.15 * pulse),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            timeCell(widget.start, cur ? AppTheme.accent : AppTheme.textPrimary),
-            timeCell(widget.end, cur ? AppTheme.accent : AppTheme.textPrimary),
-            const SizedBox(width: 8),
-            widget.trailing,
-          ]),
-        );
-      },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: fill,
+              ),
+              child: _content(true),
+            ),
+          );
+        },
+      ),
     );
   }
 }

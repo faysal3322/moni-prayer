@@ -45,19 +45,9 @@ flutter:
     - family: ScheherazadeNew
       fonts:
         - asset: assets/fonts/ScheherazadeNew-Regular.ttf
-    # বাংলা অংক (০-৯) — এবং বাংলা মোডে ইংরেজি অংক 0-9 ও ':' '-' ও এই ফন্টে দেখায়
-    # (Atma, স্যাম্পলের মতো হালকা-মাঝারি ওজন)
+    # বাংলা ফন্ট (Kalpurush, SIL OFL) — সব বাংলা লেখা ও অংক (০-৯) এই ফন্টে আসে।
+    # বাংলা মোডে ইংরেজি অংক 0-9 ও ':' '-' ও এই ফন্টে বাংলা অংক হয়ে দেখায়।
+    # ইংরেজি অক্ষর এতে নেই, তাই সেগুলো আগের মতো Noto Sans থেকেই আসে।
     - family: BanglaNum
       fonts:
-        - asset: assets/fonts/BanglaNum-400.ttf
-          weight: 400
-        - asset: assets/fonts/BanglaNum-500.ttf
-          weight: 500
-        - asset: assets/fonts/BanglaNum-600.ttf
-          weight: 600
-        - asset: assets/fonts/BanglaNum-700.ttf
-          weight: 700
-        - asset: assets/fonts/BanglaNum-800.ttf
-          weight: 800
-        - asset: assets/fonts/BanglaNum-900.ttf
-          weight: 900
+        - asset: assets/fonts/BanglaNum.ttf

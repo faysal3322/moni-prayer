@@ -2869,7 +2869,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: nameColor,
-              fontWeight: cur ? FontWeight.w900 : FontWeight.w500,
+              fontWeight: cur ? FontWeight.w900 : FontWeight.w400,
               fontSize: cur ? 21 : 18,
             )),
       ),
@@ -2882,7 +2882,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
               maxLines: 1,
               style: TextStyle(
                 color: cur ? yellow : AppTheme.textPrimary,
-                fontWeight: cur ? FontWeight.w900 : FontWeight.w600,
+                fontWeight: cur ? FontWeight.w900 : FontWeight.w400,
                 fontSize: cur ? 21 : 18,
               )),
         ),

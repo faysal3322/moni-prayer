@@ -64,24 +64,42 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="38sp"
+                android:textSize="44sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:includeFontPadding="false" />
 
             <TextClock
-                android:id="@+id/widget_ampm"
+                android:id="@+id/widget_time_bn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="3dp"
-                android:layout_marginBottom="4dp"
-                android:format12Hour="a"
-                android:format24Hour="a"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
                 android:textColor="#FFFFFF"
                 android:shadowColor="#B3000000"
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="44sp"
+                android:fontFamily="@font/bangla_num"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_ampm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_marginBottom="4dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="3"
+                android:textSize="20sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:includeFontPadding="false" />
         </LinearLayout>
@@ -102,12 +120,13 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
                 android:singleLine="true"
                 android:ellipsize="end"
-                android:maxWidth="180dp" />
+                android:maxWidth="210dp" />
 
             <TextView
                 android:id="@+id/widget_weather"
@@ -120,12 +139,13 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="13sp"
+                android:textSize="15sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
                 android:singleLine="true"
                 android:ellipsize="end"
-                android:maxWidth="180dp" />
+                android:maxWidth="210dp" />
 
         </LinearLayout>
 
@@ -163,7 +183,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="20sp"
+                android:textSize="23sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -177,7 +198,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="18sp"
+                android:textSize="21sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -191,7 +213,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -205,7 +228,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="18sp"
+                android:textSize="21sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -227,7 +251,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="20sp"
+                android:textSize="23sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:singleLine="true"
                 android:ellipsize="end"
@@ -244,7 +269,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -259,7 +285,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
                 android:singleLine="true"
@@ -276,7 +303,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
 
@@ -319,7 +347,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -332,7 +361,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -354,7 +384,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -367,7 +398,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -389,7 +421,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -402,7 +435,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -424,7 +458,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -437,7 +472,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -465,7 +501,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -478,7 +515,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -500,7 +538,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
@@ -513,7 +552,8 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
+                android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -537,7 +577,8 @@
         android:shadowDx="0"
         android:shadowDy="1"
         android:shadowRadius="3"
-        android:textSize="13sp"
+        android:textSize="15sp"
+        android:fontFamily="@font/bangla_widget"
         android:textStyle="bold"
         android:gravity="start"
         android:maxLines="10"

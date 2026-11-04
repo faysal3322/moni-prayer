@@ -46,14 +46,12 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     @Volatile private var nullReason: String = ""
 
     // ── বাংলা মোডে উইজেটের সব লেখা বাংলায় ──
-    // অংক (0-9 → ০-৯), am/pm → এএম/পিএম, °C → °সে। ইংরেজি মোডে কিছুই বদলায় না।
+    // অংক (0-9 → ০-৯), °C → °সে। (am/pm ইংরেজিতেই থাকে) ইংরেজি মোডে কিছুই বদলায় না।
     private var bnMode: Boolean = true
 
     private fun bnify(input: String): String {
         if (!bnMode) return input
         var t = input
-        t = Regex("(?i)\\bam\\b").replace(t, "এএম")
-        t = Regex("(?i)\\bpm\\b").replace(t, "পিএম")
         t = t.replace("°C", "°সে").replace("°c", "°সে")
         return toBanglaDigits(t)
     }
@@ -562,11 +560,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             R.id.widget_ampm,
             if (is24Hour) android.view.View.GONE else android.view.View.VISIBLE
         )
-        // AM/PM এখন TextView — প্রতি মিনিটের আপডেটে বাংলায় বসে (এএম/পিএম)।
+        // AM/PM এখন TextView — প্রতি মিনিটের আপডেটে ইংরেজিতে (AM/PM) বসে।
         val isMorning = now.get(Calendar.HOUR_OF_DAY) < 12
         views.setTextViewText(
             R.id.widget_ampm,
-            if (isBn) (if (isMorning) "এএম" else "পিএম") else (if (isMorning) "AM" else "PM")
+            if (isMorning) "AM" else "PM"
         )
 
         // click করলে app open

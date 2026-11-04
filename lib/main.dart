@@ -11,6 +11,10 @@ import 'utils/time_format_prefs.dart';
 import 'utils/quran_audio_helper.dart';
 import 'utils/notification_helper.dart';
 
+/// পুরো অ্যাপের লেখার সাইজ কত গুণ বড় হবে। ১.০ = আগের সাইজ।
+/// আরও বড়/ছোট চাইলে শুধু এই সংখ্যাটা বদলান (যেমন ১.২ বা ১.১)।
+const double kAppTextBoost = 1.15;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -204,7 +208,13 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
       // বসে যায়)। এখন নিচে একটা fixed padding দিয়ে ব্যানারটাকে
       // bottom nav bar-এর উচ্চতার (কমপক্ষে) উপরে তুলে দেওয়া হচ্ছে।
       builder: (context, child) {
-        return Stack(
+        // সারা অ্যাপের লেখার সাইজ একসাথে বড় করা হয়েছে (kAppTextBoost)।
+        // ফোনের নিজস্ব ফন্ট-সাইজ সেটিংও আগের মতো কাজ করবে (সর্বোচ্চ ১.৩ গুণ ধরে)।
+        final mq = MediaQuery.of(context);
+        final sysScale = mq.textScaler.scale(1.0).clamp(1.0, 1.3).toDouble();
+        return MediaQuery(
+          data: mq.copyWith(textScaler: TextScaler.linear(sysScale * kAppTextBoost)),
+          child: Stack(
           children: [
             if (child != null) child,
             ValueListenableBuilder<bool>(
@@ -236,6 +246,7 @@ class _MoniPrayerAppState extends State<MoniPrayerApp> {
               },
             ),
           ],
+        ),
         );
       },
       home: const SplashScreen(),

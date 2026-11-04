@@ -45,6 +45,23 @@ class PrayerWidgetProvider : AppWidgetProvider() {
     // ফাঁকা দেখালে কারণ বোঝার জন্য (widget-এ ছোট কোড দেখায়)
     @Volatile private var nullReason: String = ""
 
+    // ── বাংলা মোডে উইজেটের সব লেখা বাংলায় ──
+    // অংক (0-9 → ০-৯), am/pm → এএম/পিএম, °C → °সে। ইংরেজি মোডে কিছুই বদলায় না।
+    private var bnMode: Boolean = true
+
+    private fun bnify(input: String): String {
+        if (!bnMode) return input
+        var t = input
+        t = Regex("(?i)\\bam\\b").replace(t, "এএম")
+        t = Regex("(?i)\\bpm\\b").replace(t, "পিএম")
+        t = t.replace("°C", "°সে").replace("°c", "°সে")
+        return toBanglaDigits(t)
+    }
+
+    private fun RemoteViews.setTextBn(id: Int, text: CharSequence?) {
+        this.setTextViewText(id, bnify(text?.toString() ?: ""))
+    }
+
     private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
         val cal = Calendar.getInstance()
         cal.timeInMillis = ms
@@ -327,7 +344,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             } catch (e: Exception) {
                 try {
                     val views = RemoteViews(context.packageName, R.layout.prayer_widget_layout)
-                    views.setTextViewText(R.id.widget_time, "--:--")
+                    views.setTextBn(R.id.widget_time, "--:--")
                     appWidgetManager.updateAppWidget(widgetId, views)
                 } catch (e2: Exception) { }
             }
@@ -530,14 +547,26 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         val now = Calendar.getInstance()
         val isBn = prefs.getBoolean("widget_is_bn", true)
         val is24Hour = prefs.getBoolean("widget_24hr", false)
+        bnMode = isBn
 
         // ঘড়ি TextClock — সিস্টেম নিজেই প্রতি মিনিটে বদলায়। এখানে শুধু ফরম্যাট (১২/২৪)।
         val clockFmt = if (is24Hour) "HH:mm" else "h:mm"
         views.setCharSequence(R.id.widget_time, "setFormat12Hour", clockFmt)
         views.setCharSequence(R.id.widget_time, "setFormat24Hour", clockFmt)
+        // বাংলা মোডে বাংলা-অংকের ফন্টওয়ালা ঘড়ি (widget_time_bn) দেখায়, ইংরেজিতে সাধারণটা।
+        views.setCharSequence(R.id.widget_time_bn, "setFormat12Hour", clockFmt)
+        views.setCharSequence(R.id.widget_time_bn, "setFormat24Hour", clockFmt)
+        views.setViewVisibility(R.id.widget_time, if (isBn) android.view.View.GONE else android.view.View.VISIBLE)
+        views.setViewVisibility(R.id.widget_time_bn, if (isBn) android.view.View.VISIBLE else android.view.View.GONE)
         views.setViewVisibility(
             R.id.widget_ampm,
             if (is24Hour) android.view.View.GONE else android.view.View.VISIBLE
+        )
+        // AM/PM এখন TextView — প্রতি মিনিটের আপডেটে বাংলায় বসে (এএম/পিএম)।
+        val isMorning = now.get(Calendar.HOUR_OF_DAY) < 12
+        views.setTextViewText(
+            R.id.widget_ampm,
+            if (isBn) (if (isMorning) "এএম" else "পিএম") else (if (isMorning) "AM" else "PM")
         )
 
         // click করলে app open
@@ -550,6 +579,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(R.id.widget_root, pendingLaunch)
                 views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
+                views.setOnClickPendingIntent(R.id.widget_time_bn, pendingLaunch)
             }
         } catch (e: Exception) { }
 
@@ -565,12 +595,12 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             }
             return prefs.getString(fallbackKey, "") ?: ""
         }
-        views.setTextViewText(R.id.widget_day, dateText("day", "widget_day"))
-        views.setTextViewText(R.id.widget_weather, prefs.getString("widget_weather", "") ?: "")
-        views.setTextViewText(R.id.widget_location, prefs.getString("widget_location", "") ?: "")
-        views.setTextViewText(R.id.widget_gregorian, dateText("gregorian", "widget_gregorian"))
-        views.setTextViewText(R.id.widget_hijri, dateText("hijri", "widget_hijri"))
-        views.setTextViewText(R.id.widget_bangla_date, dateText("bangla_date", "widget_bangla_date"))
+        views.setTextBn(R.id.widget_day, dateText("day", "widget_day"))
+        views.setTextBn(R.id.widget_weather, prefs.getString("widget_weather", "") ?: "")
+        views.setTextBn(R.id.widget_location, prefs.getString("widget_location", "") ?: "")
+        views.setTextBn(R.id.widget_gregorian, dateText("gregorian", "widget_gregorian"))
+        views.setTextBn(R.id.widget_hijri, dateText("hijri", "widget_hijri"))
+        views.setTextBn(R.id.widget_bangla_date, dateText("bangla_date", "widget_bangla_date"))
 
         // ══ মূল ফিক্স ══
         // আগে widget_waqt_name/range/remaining সরাসরি prefs থেকে
@@ -584,9 +614,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // — উপরে ঘোষিত isBn/is24Hour ব্যবহার করে।
         val waqtInfo = computeWaqtInfo(prefs, now.timeInMillis, isBn, is24Hour)
         if (waqtInfo != null) {
-            views.setTextViewText(R.id.widget_waqt_name, waqtInfo.name)
-            views.setTextViewText(R.id.widget_waqt_range, waqtInfo.range)
-            views.setTextViewText(R.id.widget_waqt_remaining_label, if (isBn) "ওয়াক্ত বাকি" else "Time left")
+            views.setTextBn(R.id.widget_waqt_name, waqtInfo.name)
+            views.setTextBn(R.id.widget_waqt_range, waqtInfo.range)
+            views.setTextBn(R.id.widget_waqt_remaining_label, if (isBn) "ওয়াক্ত বাকি" else "Time left")
             val diffMs = waqtInfo.endMs - now.timeInMillis
             val remaining = if (diffMs < 0) "" else {
                 val totalMinutes = diffMs / 60000L
@@ -594,18 +624,18 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                 val mm = (totalMinutes % 60).toString().padStart(2, '0')
                 "$hh:$mm"
             }
-            views.setTextViewText(R.id.widget_waqt_remaining_value, remaining)
+            views.setTextBn(R.id.widget_waqt_remaining_value, remaining)
         } else {
             // Dart এখনো একবারও চালু হয়ে prefs না লিখলে (একদম প্রথমবার
             // ইনস্টলের পর), fallback হিসেবে Dart-এর পাঠানো পুরনো স্ট্রিং
             // (যদি থাকে) দেখানো হচ্ছে — যাতে widget একদম খালি না থাকে।
             val fbName = prefs.getString("widget_waqt_name", "") ?: ""
-            views.setTextViewText(R.id.widget_waqt_name,
+            views.setTextBn(R.id.widget_waqt_name,
                 if (fbName.isNotEmpty()) fbName else (if (isBn) "অ্যাপ একবার খুলুন" else "Open app once"))
-            views.setTextViewText(R.id.widget_waqt_range,
+            views.setTextBn(R.id.widget_waqt_range,
                 if (fbName.isNotEmpty()) (prefs.getString("widget_waqt_range", "") ?: "") else "($nullReason)")
-            views.setTextViewText(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
-            views.setTextViewText(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
+            views.setTextBn(R.id.widget_waqt_remaining_label, prefs.getString("widget_waqt_remaining_label", "") ?: "")
+            views.setTextBn(R.id.widget_waqt_remaining_value, prefs.getString("widget_waqt_remaining_value", "") ?: "")
         }
         // ফিক্স: এই চারটা সময় আগে Dart-এর সেভ করা স্ট্রিং থেকে সরাসরি আসত,
         // যা অ্যাপ না খুললে গতকালের সময়ই দেখাত। এখন আজকের তারিখের আগাম-সেভ
@@ -617,10 +647,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             return if (ms != null && ms > 0L) fmtNoAmPm(ms, is24Hour)
             else (prefs.getString(fallbackKey, "") ?: "")
         }
-        views.setTextViewText(R.id.widget_sunrise, timeText("widget_sunrise_ms", "widget_sunrise"))
-        views.setTextViewText(R.id.widget_sunset, timeText("widget_maghrib_ms", "widget_sunset"))
-        views.setTextViewText(R.id.widget_sehri, timeText("widget_fajr_ms", "widget_sehri"))
-        views.setTextViewText(R.id.widget_iftar, timeText("widget_maghrib_ms", "widget_iftar"))
+        views.setTextBn(R.id.widget_sunrise, timeText("widget_sunrise_ms", "widget_sunrise"))
+        views.setTextBn(R.id.widget_sunset, timeText("widget_maghrib_ms", "widget_sunset"))
+        views.setTextBn(R.id.widget_sehri, timeText("widget_fajr_ms", "widget_sehri"))
+        views.setTextBn(R.id.widget_iftar, timeText("widget_maghrib_ms", "widget_iftar"))
 
         // ══ দিন / রাত — মূল অ্যাপের ClockCard-এর _bottomTimeCol-এর সাথে
         // অভিন্ন সূত্র: দিন = সাহরি (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত
@@ -641,11 +671,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     val mm = (totalMinutes % 60).toString().padStart(2, '0')
                     return "$hh:$mm"
                 }
-                views.setTextViewText(R.id.widget_day_duration, fmtDuration(dayMs))
-                views.setTextViewText(R.id.widget_night_duration, fmtDuration(nightMs))
+                views.setTextBn(R.id.widget_day_duration, fmtDuration(dayMs))
+                views.setTextBn(R.id.widget_night_duration, fmtDuration(nightMs))
             } else {
-                views.setTextViewText(R.id.widget_day_duration, "")
-                views.setTextViewText(R.id.widget_night_duration, "")
+                views.setTextBn(R.id.widget_day_duration, "")
+                views.setTextBn(R.id.widget_night_duration, "")
             }
         } catch (e: Exception) { }
 
@@ -699,15 +729,15 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     // সেকেন্ড কাউন্টডাউন (HH:MM:SS) সরিয়ে শুধু HH:MM দেখাও
                     val alertText = parts[idx].trim()
                         .replace(Regex("(\\d{2}):(\\d{2}):\\d{2}"), "$1:$2")
-                    views.setTextViewText(R.id.widget_alert, alertText)
+                    views.setTextBn(R.id.widget_alert, alertText)
                 } else {
-                    views.setTextViewText(R.id.widget_alert, "")
+                    views.setTextBn(R.id.widget_alert, "")
                 }
             } else {
-                views.setTextViewText(R.id.widget_alert, "")
+                views.setTextBn(R.id.widget_alert, "")
             }
         } catch (e: Exception) {
-            views.setTextViewText(R.id.widget_alert, "")
+            views.setTextBn(R.id.widget_alert, "")
         }
 
         appWidgetManager.updateAppWidget(widgetId, views)

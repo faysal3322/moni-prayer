@@ -60,6 +60,17 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         this.setTextViewText(id, bnify(text?.toString() ?: ""))
     }
 
+    // লোকেশন ছোট করা: "রামু উপজেলা, কক্সবাজার জেলা" → "রামু, কক্সবাজার"
+    private fun shortLocation(s: String): String {
+        return s
+            .replace(" সদর উপজেলা", " সদর")
+            .replace(" উপজেলা", "")
+            .replace(" জেলা", "")
+            .replace(" Upazila", "")
+            .replace(" District", "")
+            .trim()
+    }
+
     private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
         val cal = Calendar.getInstance()
         cal.timeInMillis = ms
@@ -595,7 +606,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         }
         views.setTextBn(R.id.widget_day, dateText("day", "widget_day"))
         views.setTextBn(R.id.widget_weather, prefs.getString("widget_weather", "") ?: "")
-        views.setTextBn(R.id.widget_location, prefs.getString("widget_location", "") ?: "")
+        views.setTextBn(R.id.widget_location, shortLocation(prefs.getString("widget_location", "") ?: ""))
         views.setTextBn(R.id.widget_gregorian, dateText("gregorian", "widget_gregorian"))
         views.setTextBn(R.id.widget_hijri, dateText("hijri", "widget_hijri"))
         views.setTextBn(R.id.widget_bangla_date, dateText("bangla_date", "widget_bangla_date"))

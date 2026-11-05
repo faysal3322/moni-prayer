@@ -121,7 +121,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="17sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"

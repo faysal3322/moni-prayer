@@ -71,6 +71,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             .trim()
     }
 
+    // ঋতুর নামে "কাল" বাদ: "হেমন্তকাল, ২১ কার্তিক ১৪৩৩" → "হেমন্ত, ২১ কার্তিক ১৪৩৩"
+    private fun shortSeason(s: String): String {
+        return Regex("(গ্রীষ্ম|বর্ষা|শরৎ|হেমন্ত|শীত|বসন্ত)কাল").replace(s, "$1")
+    }
+
     private fun fmtNoAmPm(ms: Long, is24Hour: Boolean): String {
         val cal = Calendar.getInstance()
         cal.timeInMillis = ms
@@ -609,7 +614,7 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextBn(R.id.widget_location, shortLocation(prefs.getString("widget_location", "") ?: ""))
         views.setTextBn(R.id.widget_gregorian, dateText("gregorian", "widget_gregorian"))
         views.setTextBn(R.id.widget_hijri, dateText("hijri", "widget_hijri"))
-        views.setTextBn(R.id.widget_bangla_date, dateText("bangla_date", "widget_bangla_date"))
+        views.setTextBn(R.id.widget_bangla_date, shortSeason(dateText("bangla_date", "widget_bangla_date")))
 
         // ══ মূল ফিক্স ══
         // আগে widget_waqt_name/range/remaining সরাসরি prefs থেকে

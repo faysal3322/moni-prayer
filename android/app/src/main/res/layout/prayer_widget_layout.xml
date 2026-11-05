@@ -127,7 +127,7 @@
                 android:gravity="end"
                 android:singleLine="true"
                 android:ellipsize="end"
-                android:maxWidth="165dp" />
+                android:maxWidth="200dp" />
 
             <TextView
                 android:id="@+id/widget_weather"
@@ -144,9 +144,9 @@
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
-                android:singleLine="true"
+                android:maxLines="2"
                 android:ellipsize="end"
-                android:maxWidth="165dp" />
+                android:maxWidth="200dp" />
 
         </LinearLayout>
 
@@ -171,7 +171,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0.65"
+            android:layout_weight="0.8"
             android:orientation="vertical">
 
             <TextView
@@ -240,7 +240,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1.35"
+            android:layout_weight="1.2"
             android:orientation="vertical">
 
             <TextView
@@ -305,7 +305,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />

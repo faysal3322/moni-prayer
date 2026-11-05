@@ -121,7 +121,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
@@ -140,7 +140,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
@@ -184,7 +184,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="25sp"
+                android:textSize="30sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -199,7 +199,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="19sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:singleLine="true" />
@@ -215,7 +215,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -253,7 +253,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="25sp"
+                android:textSize="30sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:singleLine="true"
@@ -271,7 +271,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
@@ -287,7 +287,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end"
@@ -305,7 +305,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
@@ -349,7 +349,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -363,7 +363,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -386,7 +386,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -400,7 +400,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -423,7 +423,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -437,7 +437,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -460,7 +460,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -474,7 +474,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -503,7 +503,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -517,7 +517,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -540,7 +540,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="14sp"
+                android:textSize="16sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -554,7 +554,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -579,7 +579,7 @@
         android:shadowDx="0"
         android:shadowDy="1"
         android:shadowRadius="3"
-        android:textSize="13sp"
+        android:textSize="14sp"
         android:fontFamily="@font/bangla_widget"
         android:textStyle="bold"
         android:gravity="start"

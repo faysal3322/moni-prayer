@@ -305,7 +305,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />

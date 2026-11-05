@@ -199,7 +199,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="18sp"
+                android:textSize="19sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:singleLine="true" />
@@ -305,7 +305,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
@@ -386,7 +386,7 @@
                 android:shadowDx="0"
                 android:shadowDy="1"
                 android:shadowRadius="3"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 

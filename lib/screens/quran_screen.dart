@@ -4,6 +4,7 @@ import '../utils/app_language.dart';
 import '../utils/quran_database_helper.dart';
 import '../utils/quran_collections_helper.dart';
 import '../utils/quran_prefs.dart';
+import '../utils/collection_quick_player.dart';
 import 'surah_detail_screen.dart';
 import 'juz_detail_screen.dart';
 import 'collection_detail_screen.dart';
@@ -580,30 +581,42 @@ class _MyQuranTabState extends State<_MyQuranTab> {
     }
   }
 
-  Future<void> _deleteCollection(int id) async {
+  Future<void> _deleteCollection(int id, String name) async {
     final isBn = widget.lang.isBn;
     final confirm = await showDialog<bool>(
       context: context,
+      barrierDismissible: false, // বাইরে ট্যাপ করলে বন্ধ হবে না — স্পষ্ট বাটনে চাপতে হবে
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.cardBg,
-        title: Text(isBn ? 'কালেকশন মুছবেন?' : 'Delete collection?', style: TextStyle(color: AppTheme.textPrimary)),
-        content: Text(
-          isBn ? 'এই কালেকশনের সব আয়াত মুছে যাবে।' : 'All verses in this collection will be removed.',
-          style: TextStyle(color: AppTheme.textSecondary),
+        icon: const Icon(Icons.warning_amber_rounded, color: AppTheme.missed, size: 40),
+        title: Text(
+          isBn ? 'সতর্কতা!' : 'Warning!',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppTheme.missed, fontWeight: FontWeight.bold),
         ),
+        content: Text(
+          isBn
+              ? '"$name" কালেকশনটি এবং এর ভেতরের সব আয়াত/দোয়া স্থায়ীভাবে মুছে যাবে। এটি আর ফিরিয়ে আনা যাবে না।\n\nআপনি কি নিশ্চিত?'
+              : 'The collection "$name" and everything inside it will be permanently deleted. This cannot be undone.\n\nAre you sure?',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppTheme.textPrimary, height: 1.4),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(isBn ? 'বাতিল' : 'Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text(isBn ? 'না, বাতিল' : 'No, cancel', style: TextStyle(color: AppTheme.textSecondary)),
           ),
           TextButton(
+            style: TextButton.styleFrom(backgroundColor: AppTheme.missed.withOpacity(0.15)),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(isBn ? 'মুছুন' : 'Delete', style: const TextStyle(color: AppTheme.missed)),
+            child: Text(isBn ? 'হ্যাঁ, মুছুন' : 'Yes, delete', style: const TextStyle(color: AppTheme.missed, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
     if (confirm == true) {
+      await CollectionQuickPlayer.stopIfPlaying(id);
       await QuranCollectionsHelper.deleteCollection(id);
       _load();
     }
@@ -661,9 +674,47 @@ class _MyQuranTabState extends State<_MyQuranTab> {
                           name,
                           style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 15),
                         ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete_outline, color: AppTheme.textSecondary, size: 20),
-                          onPressed: () => _deleteCollection(id),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // প্লে/পজ বাটন — কালেকশনে না ঢুকেই সরাসরি শোনার জন্য
+                            ValueListenableBuilder<QuickPlayState>(
+                              valueListenable: CollectionQuickPlayer.state,
+                              builder: (context, st, _) {
+                                final mine = st.collectionId == id;
+                                final status = mine ? st.status : QuickPlayStatus.idle;
+                                if (status == QuickPlayStatus.loading) {
+                                  return const SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(strokeWidth: 2.5, color: AppTheme.gold),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final playing = status == QuickPlayStatus.playing;
+                                return IconButton(
+                                  tooltip: playing
+                                      ? (isBn ? 'থামান' : 'Pause')
+                                      : (isBn ? 'শুনুন' : 'Play'),
+                                  icon: Icon(
+                                    playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                                    color: AppTheme.gold,
+                                    size: 34,
+                                  ),
+                                  onPressed: () => CollectionQuickPlayer.toggle(id),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete_outline, color: AppTheme.textSecondary, size: 20),
+                              onPressed: () => _deleteCollection(id, name),
+                            ),
+                          ],
                         ),
                         onTap: () async {
                           await Navigator.push(context, MaterialPageRoute(

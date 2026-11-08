@@ -65,6 +65,7 @@ class _ZakatYearlyRecordTabState extends State<ZakatYearlyRecordTab> {
       context: context,
       backgroundColor: AppTheme.cardBg,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -74,7 +75,13 @@ class _ZakatYearlyRecordTabState extends State<ZakatYearlyRecordTab> {
                 left: 18,
                 right: 18,
                 top: 18,
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18,
+                // ফিক্স: নিচের সিস্টেম নেভিগেশন বার (৩ বাটন/জেসচার বার) যেন
+                // "সংরক্ষণ করুন" বাটনকে ঢেকে না ফেলে — কীবোর্ড বন্ধ থাকলে সিস্টেম
+                // বারের উচ্চতা, খোলা থাকলে কীবোর্ডের উচ্চতা বাদ দেওয়া হয়।
+                bottom: (MediaQuery.of(sheetContext).viewInsets.bottom > 0
+                        ? MediaQuery.of(sheetContext).viewInsets.bottom
+                        : MediaQuery.of(sheetContext).viewPadding.bottom) +
+                    18,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -171,6 +178,132 @@ class _ZakatYearlyRecordTabState extends State<ZakatYearlyRecordTab> {
         );
       },
     );
+  }
+
+  // বাংলা অঙ্ক/কমা সামলে সংখ্যা পড়ে
+  double? _parseAmount(String raw) {
+    const bn = '০১২৩৪৫৬৭৮৯';
+    final buf = StringBuffer();
+    for (final ch in raw.trim().split('')) {
+      final i = bn.indexOf(ch);
+      if (i >= 0) {
+        buf.write(i);
+      } else if (ch != ',' && ch != ' ') {
+        buf.write(ch);
+      }
+    }
+    return double.tryParse(buf.toString());
+  }
+
+  // "যাকাত দিলাম" — নতুন যে পরিমাণ দেওয়া হলো তা আগের "প্রদান করা হয়েছে"-র
+  // সাথে নিজে নিজে যোগ হয়ে যায়; আগের হিসাব যেমন ছিল তেমনই থাকে।
+  Future<void> _showAddPaymentDialog(ZakatRecord r) async {
+    final isBn = widget.lang.isBn;
+    final controller = TextEditingController();
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dCtx) {
+        return StatefulBuilder(
+          builder: (dCtx, setDialogState) {
+            final add = _parseAmount(controller.text) ?? 0;
+            final newPaid = r.paid + (add > 0 ? add : 0);
+            final newDue = (r.payable - newPaid).clamp(0.0, double.infinity);
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBg,
+              title: Text(
+                isBn ? '${r.year} সালে যাকাত প্রদান' : 'Pay Zakat — ${r.year}',
+                style: TextStyle(color: AppTheme.gold, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isBn
+                          ? 'এখন পর্যন্ত দেওয়া: ${_fmtAmount(r.paid)}'
+                          : 'Paid so far: ${_fmtAmount(r.paid)}',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(color: AppTheme.textPrimary),
+                      onChanged: (_) => setDialogState(() => errorText = null),
+                      decoration: InputDecoration(
+                        labelText: isBn ? 'আজ কত টাকা দিলেন?' : 'Amount paid today',
+                        labelStyle: TextStyle(color: AppTheme.textSecondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isBn ? 'মোট প্রদান হবে: ${_fmtAmount(newPaid)}' : 'New total paid: ${_fmtAmount(newPaid)}',
+                            style: const TextStyle(color: AppTheme.completed, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isBn ? 'বাকি থাকবে: ${_fmtAmount(newDue)}' : 'Remaining: ${_fmtAmount(newDue)}',
+                            style: TextStyle(
+                              color: newDue > 0 ? AppTheme.missed : AppTheme.completed,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 8),
+                      Text(errorText!, style: const TextStyle(color: AppTheme.missed, fontSize: 12.5)),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dCtx),
+                  child: Text(isBn ? 'বাতিল' : 'Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final amount = _parseAmount(controller.text);
+                    if (amount == null || amount <= 0) {
+                      setDialogState(() => errorText = isBn ? 'সঠিক পরিমাণ লিখুন' : 'Enter a valid amount');
+                      return;
+                    }
+                    await ZakatHelper.upsertRecord(ZakatRecord(
+                      year: r.year,
+                      payable: r.payable,
+                      paid: r.paid + amount,
+                      note: r.note,
+                      dateAdded: r.dateAdded,
+                    ));
+                    if (dCtx.mounted) Navigator.pop(dCtx);
+                    _load();
+                  },
+                  child: Text(isBn ? 'যোগ করুন' : 'Add', style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
   }
 
   String _plainNum(double d) => d == d.roundToDouble() ? d.toInt().toString() : d.toString();
@@ -287,6 +420,35 @@ class _ZakatYearlyRecordTabState extends State<ZakatYearlyRecordTab> {
                             ),
                           ),
                         ],
+                      ),
+                      if (r.payable > 0) ...[
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: (r.paid / r.payable).clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: AppTheme.missed.withOpacity(0.25),
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.completed),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showAddPaymentDialog(r),
+                          icon: Icon(Icons.add_circle_outline, size: 18, color: AppTheme.gold),
+                          label: Text(
+                            isBn ? 'যাকাত দিলাম (যোগ করুন)' : 'Add Payment',
+                            style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppTheme.gold.withOpacity(0.6)),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
                       ),
                       if (r.note.isNotEmpty) ...[
                         const SizedBox(height: 8),

@@ -2879,7 +2879,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3200));
+        vsync: this, duration: const Duration(milliseconds: 6000));
     if (widget.isCurrent) _ctrl.repeat();
   }
 
@@ -2951,44 +2951,14 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
     }
 
     final fill = Color.lerp(AppTheme.cardBg, AppTheme.primary, 0.45)!;
+    // বর্ডার ঘেঁষে ধীরে ঘোরা একটা ছোট আলোর ধূমকেতু — কোনো বড় আভা নেই।
     return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, _) {
-          final v = _ctrl.value;
-          // আভা: প্রতি ঘূর্ণনে দুইবার জ্বলে-নেভে
-          final pulse = 0.5 + 0.5 * math.sin(v * 2 * math.pi * 2);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        child: CustomPaint(
+          painter: _CometBorderPainter(_ctrl, _neon),
+          child: Padding(
             padding: const EdgeInsets.all(2.4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              // বর্ডার = ঘূর্ণায়মান আলোর ঝলক (সাদা-গরম মাথা, নিয়ন লেজ)
-              gradient: SweepGradient(
-                transform: GradientRotation(v * 2 * math.pi),
-                colors: [
-                  _neon.withOpacity(0.35),
-                  _neon.withOpacity(0.35),
-                  _neon,
-                  Colors.white,
-                  _neon,
-                  _neon.withOpacity(0.35),
-                ],
-                stops: const [0.0, 0.45, 0.72, 0.8, 0.88, 1.0],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _neon.withOpacity(0.30 + 0.35 * pulse),
-                  blurRadius: 10 + 14 * pulse,
-                  spreadRadius: 1 + 2.5 * pulse,
-                ),
-                BoxShadow(
-                  color: _neon.withOpacity(0.10 + 0.15 * pulse),
-                  blurRadius: 32,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               decoration: BoxDecoration(
@@ -2997,11 +2967,92 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
               ),
               child: _content(true),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
+}
+
+/// ওয়াক্তের বর্ডারে সমান গতিতে ঘোরা আলোর রেখা: ক্ষীণ স্থির বর্ডার + একটা লেজওয়ালা
+/// উজ্জ্বল অংশ। আলো শুধু বর্ডারের গায়েই থাকে (খুব সামান্য নরম আভা), চারদিকে ছড়ায় না।
+class _CometBorderPainter extends CustomPainter {
+  final Animation<double> anim;
+  final Color color;
+
+  _CometBorderPainter(this.anim, this.color) : super(repaint: anim);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 2.2;
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final path = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(15)));
+    final metric = path.computeMetrics().first;
+    final total = metric.length;
+
+    // ১) ক্ষীণ স্থির বর্ডার
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = color.withOpacity(0.30),
+    );
+
+    // ২) ঘূর্ণায়মান লেজ: ছোট ছোট টুকরো, মাথার দিকে ক্রমশ উজ্জ্বল
+    const tailFraction = 0.24; // বর্ডারের ২৪% জুড়ে লেজ
+    const slices = 28;
+    final head = anim.value * total;
+    final tail = total * tailFraction;
+    final sliceLen = tail / slices;
+
+    void seg(double from, double to, Paint paint) {
+      // বর্ডারের শুরু/শেষ ছাড়িয়ে গেলে ঘুরে অন্য প্রান্ত থেকে আঁকা
+      var f = from, t = to;
+      if (t <= 0) {
+        f += total;
+        t += total;
+      }
+      if (f < 0) {
+        canvas.drawPath(metric.extractPath(f + total, total), paint);
+        f = 0;
+      }
+      if (t > total) {
+        canvas.drawPath(metric.extractPath(0, t - total), paint);
+        t = total;
+      }
+      if (t > f) canvas.drawPath(metric.extractPath(f, t), paint);
+    }
+
+    for (var i = 0; i < slices; i++) {
+      final k = (i + 1) / slices; // ০ → ১ (লেজ থেকে মাথা)
+      final from = head - tail + i * sliceLen;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = stroke
+        ..color = Color.lerp(color.withOpacity(0.0), color, k * k)!;
+      seg(from, from + sliceLen + 0.6, paint);
+    }
+
+    // ৩) মাথায় ছোট উজ্জ্বল বিন্দু + সামান্য নরম আভা (সর্বোচ্চ ~৪px)
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = stroke + 1.5
+      ..color = color.withOpacity(0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
+    final tip = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = stroke
+      ..color = Colors.white.withOpacity(0.95);
+    seg(head - total * 0.05, head, glow);
+    seg(head - total * 0.012, head, tip);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CometBorderPainter old) => old.color != color;
 }
 
 // ═══════════════════════════════════════════

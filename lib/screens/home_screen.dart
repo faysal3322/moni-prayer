@@ -2359,7 +2359,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                                 locParts[0],
                                 style: const TextStyle(
                                   color: Color(0xFF80DEEA),
-                                  fontSize: 13,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -2375,7 +2375,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                               locParts[1],
                               style: TextStyle(
                                 color: AppTheme.heroText,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -2414,7 +2414,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           : widget.weatherText,
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -2446,7 +2446,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         waqt != null ? (waqt['name'] as String) : (isBn ? '—' : '—'),
                         style: const TextStyle(
                           color: fastColor,
-                          fontSize: 20,
+                          fontSize: 25,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -2506,7 +2506,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         widget.lang.dayName(now.weekday),
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 25,
                           color: isFriday ? AppTheme.accent : fastColor,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
@@ -2519,7 +2519,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           color: AppTheme.heroText,
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

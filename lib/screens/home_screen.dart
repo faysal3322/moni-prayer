@@ -982,6 +982,25 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
       changed = true;
     }
 
+    // ── রমজানের রোজা: দিন শেষে (মাগরিবের পর) চাপা না হলে অটো লাল ক্রস ──
+    // এবং গতকাল রমজান ছিল ও কিছু চাপা হয়নি এমন হলেও ক্রস। এতে "রোজা বাকি"
+    // নিজে নিজে বাড়ে। রমজানের বাইরে কিছুই অটো বদলায় না।
+    try {
+      final todayMd = await DateHelper.getHijriMonthDayWithUserAdjust(now);
+      if (todayMd['month'] == 9 && DateHelper.dateKey(pt.maghrib) == dateKey &&
+          now.isAfter(pt.maghrib) &&
+          await DatabaseHelper.getRozaStatus(dateKey) == null) {
+        await DatabaseHelper.setRozaStatus(dateKey, 'missed');
+        changed = true;
+      }
+      final yMd = await DateHelper.getHijriMonthDayWithUserAdjust(yesterday);
+      if (yMd['month'] == 9 &&
+          await DatabaseHelper.getRozaStatus(yesterdayKey) == null) {
+        await DatabaseHelper.setRozaStatus(yesterdayKey, 'missed');
+        changed = true;
+      }
+    } catch (_) {}
+
     if (changed) {
       await _refreshStatusOnly();
       widget.onRefresh();
@@ -1033,6 +1052,15 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
 
   Future<void> _setRoza(String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
+    if (status == 'clear') {
+      // টিক তুলে ফেলা (ভুল সংশোধন) — রেকর্ড মুছে ফাঁকা করা হয়।
+      setState(() => _todayRoza = null);
+      await DatabaseHelper.clearRozaStatus(dateKey);
+      widget.onRefresh();
+      // রমজান হলে ও দিন শেষ হয়ে থাকলে অটো-ক্রস আবার বসবে
+      _checkAndAutoMarkQaza();
+      return;
+    }
     setState(() => _todayRoza = status);
     await DatabaseHelper.setRozaStatus(dateKey, status);
     widget.onRefresh();
@@ -2799,7 +2827,7 @@ class _PrayerTimesCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 36, height: 32,
+        width: 36, height: 28,
         child: Center(
           child: Container(
             width: 26, height: 26,
@@ -2876,8 +2904,6 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
     final yellow = AppTheme.pendingText;
     final nameColor = cur ? yellow : AppTheme.textPrimary;
     return Row(children: [
-      Text(widget.icon, style: const TextStyle(fontSize: 24)),
-      const SizedBox(width: 10),
       Expanded(
         child: Text(widget.name,
             maxLines: 1,
@@ -2913,8 +2939,8 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
 
     if (!cur) {
       return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: AppTheme.cardBg,
@@ -2933,7 +2959,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
           // আভা: প্রতি ঘূর্ণনে দুইবার জ্বলে-নেভে
           final pulse = 0.5 + 0.5 * math.sin(v * 2 * math.pi * 2);
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.all(2.4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -2964,7 +2990,7 @@ class _GlowPrayerRowState extends State<_GlowPrayerRow>
               ],
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 color: fill,
@@ -3033,13 +3059,66 @@ class _TodaySection extends StatelessWidget {
           Text(isBn ? 'আজকের রোজা' : "Today's Fasting",
               style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        const SizedBox(height: 12),
-        _TodayPrayerRow(
-          name: lang.roza, time: '', status: todayRoza, lang: lang,
-          onAdai: () => onSetRoza('prayed'),
-          onQaza: () => onSetRoza('missed'),
+        const SizedBox(height: 6),
+        _RozaRow(
+          name: lang.roza, status: todayRoza,
+          onTap: () => onSetRoza(todayRoza == 'prayed' ? 'clear' : 'prayed'),
         ),
       ]),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// আজকের রোজা — নামাজের মতো একটাই গোল বাটন।
+// ফাঁকা = এখনও চাপা হয়নি, সবুজ টিক = রেখেছি, লাল ক্রস = বাকি (কাযা)।
+// রমজানে দিন শেষে না চাপলে অটো লাল ক্রস বসে ও "রোজা বাকি" বাড়ে।
+class _RozaRow extends StatelessWidget {
+  final String name;
+  final String? status;
+  final VoidCallback onTap;
+
+  const _RozaRow({required this.name, required this.status, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = status == 'prayed';
+    final isMissed = status == 'missed';
+    final Color color = isDone
+        ? AppTheme.completed
+        : isMissed ? AppTheme.missed : AppTheme.textSecondary;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(children: [
+          Expanded(
+            child: Text(name,
+                style: TextStyle(
+                  color: isDone ? AppTheme.completed : isMissed ? AppTheme.missed : AppTheme.textPrimary,
+                  fontSize: 18, fontWeight: FontWeight.w400,
+                )),
+          ),
+          Container(
+            width: 30, height: 30,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: (isDone || isMissed) ? color : Colors.transparent,
+              border: Border.all(
+                color: (isDone || isMissed) ? color : color.withOpacity(0.6),
+                width: 2,
+              ),
+            ),
+            child: isDone
+                ? const Icon(Icons.check, color: Colors.white, size: 19)
+                : isMissed
+                    ? const Icon(Icons.close, color: Colors.white, size: 19)
+                    : null,
+          ),
+        ]),
+      ),
     );
   }
 }

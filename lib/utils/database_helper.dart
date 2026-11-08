@@ -104,6 +104,11 @@ class DatabaseHelper {
       conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  static Future<void> clearRozaStatus(String date) async {
+    final db = await database;
+    await db.delete('roza_records', where: 'date = ?', whereArgs: [date]);
+  }
+
   static Future<String?> getRozaStatus(String date) async {
     final db = await database;
     final result = await db.query('roza_records', where: 'date = ?', whereArgs: [date]);

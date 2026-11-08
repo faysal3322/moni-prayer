@@ -2352,16 +2352,17 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 13),
+                            const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 20),
                             const SizedBox(width: 3),
                             Flexible(
                               child: Text(
                                 locParts[0],
                                 style: const TextStyle(
                                   color: Color(0xFF80DEEA),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
                                 ),
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.right,
                               ),
@@ -2397,7 +2398,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(10),
@@ -2405,17 +2406,17 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               ),
               child: Row(
                 children: [
-                  Text(widget.weatherIcon, style: const TextStyle(fontSize: 13)),
-                  const SizedBox(width: 6),
+                  Text(widget.weatherIcon, style: const TextStyle(fontSize: 24)),
+                  const SizedBox(width: 10),
                   Flexible(
                     child: Text(
                       widget.weatherText.isEmpty
                           ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
                           : widget.weatherText,
                       style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,

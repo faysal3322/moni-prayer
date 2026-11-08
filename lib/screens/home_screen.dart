@@ -2352,17 +2352,16 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 20),
+                            const Icon(Icons.location_on, color: Color(0xFF80DEEA), size: 13),
                             const SizedBox(width: 3),
                             Flexible(
                               child: Text(
                                 locParts[0],
                                 style: const TextStyle(
                                   color: Color(0xFF80DEEA),
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.right,
                               ),
@@ -2398,7 +2397,7 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(10),
@@ -2406,17 +2405,17 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
               ),
               child: Row(
                 children: [
-                  Text(widget.weatherIcon, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(width: 10),
+                  Text(widget.weatherIcon, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       widget.weatherText.isEmpty
                           ? (isBn ? 'আবহাওয়া লোড হচ্ছে...' : 'Loading weather...')
                           : widget.weatherText,
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -2465,9 +2464,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       if (waqt != null) ...[
                         Text(
                           isBn ? 'ওয়াক্ত বাকি' : 'Time remaining',
-                          style: TextStyle(
-                            color: AppTheme.heroGold,
-                            fontSize: 15,
+                          style: const TextStyle(
+                            color: Color(0xFFFFEB3B),
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -2476,8 +2475,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                           _countdown(waqt['end'] as DateTime, now).isEmpty
                               ? '--:--:--'
                               : _countdown(waqt['end'] as DateTime, now),
-                          style: TextStyle(
-                            color: AppTheme.heroGold,
+                          style: const TextStyle(
+                            color: Color(0xFFFFEB3B),
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -2531,9 +2530,9 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                             ? DateHelper.toHijri(now, bangla: isBn)
                             : widget.hijriDate,
                         textAlign: TextAlign.right,
-                        style: TextStyle(
-                          color: AppTheme.heroGold,
-                          fontSize: 16,
+                        style: const TextStyle(
+                          color: Color(0xFFFFEB3B),
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

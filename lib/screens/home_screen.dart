@@ -2476,8 +2476,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                               ? '--:--:--'
                               : _countdown(waqt['end'] as DateTime, now),
                           style: const TextStyle(
-                            color: Color(0xFFFFEB3B),
-                            fontSize: 18,
+                            color: Color(0xFFFF80AB),
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
@@ -2542,8 +2542,8 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                         DateHelper.toBanglaWithSeason(now),
                         textAlign: TextAlign.right,
                         style: const TextStyle(
-                          color: Color(0xFF80DEEA),
-                          fontSize: 16,
+                          color: Color(0xFFFF80AB),
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

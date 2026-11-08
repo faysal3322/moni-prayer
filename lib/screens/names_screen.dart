@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/quran_audio_helper.dart';
+
+/// ৯৯ নাম স্ক্রিনে নিচে স্ক্রল করলে নিচের নেভিগেশন বার লুকিয়ে বাড়তি জায়গা
+/// দেওয়ার জন্য — HomeScreen এটা শোনে। ওপরে স্ক্রল করলে আবার দেখা যায়।
+final ValueNotifier<bool> namesNavHidden = ValueNotifier<bool>(false);
 
 class NamesScreen extends StatefulWidget {
   final AppLanguage lang;
@@ -595,7 +600,7 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
     if (attempt >= 4 || !_scrollController.hasClients) return;
     final pos = _scrollController.position;
     final total = pos.maxScrollExtent + pos.viewportDimension;
-    final estimate = (total / _groups.length) * groupIndex;
+    final estimate = (total / (_groups.length + 1)) * (groupIndex + 1);
     _scrollController.jumpTo(estimate.clamp(0.0, pos.maxScrollExtent));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _scrollToGroup(groupIndex, attempt: attempt + 1);
@@ -611,8 +616,138 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
     // (ব্যাকগ্রাউন্ডে, ঠিক কুরআন তেলাওয়াতের মতোই), এখান থেকে বের
     // হওয়া মাত্র বন্ধ হয়ে যাবে না।
     WidgetsBinding.instance.removeObserver(this);
+    namesNavHidden.value = false;
     _scrollController.dispose();
     super.dispose();
+  }
+
+  String _digits(int n) {
+    if (!widget.lang.isBn) return '$n';
+    const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return '$n'.split('').map((c) => bn[int.parse(c)]).join();
+  }
+
+  Future<void> _playBismillah() async {
+    await QuranAudioHelper.stop();
+    if (!mounted) return;
+    setState(() {
+      _isPlaying = true;
+      _isPlayingAll = false;
+      _playingGroupIndex = -1; // bismillah
+    });
+    final path = await _resolveAssetAudioPath('part_0');
+    if (!mounted || _playingGroupIndex != -1) return;
+    await QuranAudioHelper.playCustomAudio(
+      filePath: path,
+      title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
+    );
+  }
+
+  // স্ক্রলযোগ্য হেডার: বিসমিল্লাহ + হাদিস — এখন লিস্টের সাথেই স্ক্রল হয়ে
+  // সরে যায়, তাই অডিও চলার সময় নামের জন্য পুরো স্ক্রিন পাওয়া যায়।
+  Widget _buildHeader(bool isBn) {
+    final gold = AppTheme.gold;
+    Widget ornament() => Row(
+          children: [
+            Expanded(child: Container(height: 1, color: gold.withOpacity(0.35))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.auto_awesome, size: 14, color: gold.withOpacity(0.8)),
+            ),
+            Expanded(child: Container(height: 1, color: gold.withOpacity(0.35))),
+          ],
+        );
+
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _playBismillah,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.primary.withOpacity(0.45),
+                  AppTheme.primary.withOpacity(0.12),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: gold.withOpacity(0.35)),
+            ),
+            child: Column(
+              children: [
+                ornament(),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+                    style: TextStyle(
+                      fontSize: 30,
+                      color: gold,
+                      fontFamily: 'ScheherazadeNew',
+                      height: 1.8,
+                    ),
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _playingGroupIndex == -1 && _isPlaying
+                          ? Icons.volume_up
+                          : Icons.touch_app,
+                      size: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isBn ? 'শুনতে ট্যাপ করুন' : 'Tap to listen',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border(left: BorderSide(color: gold, width: 3)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.format_quote, color: gold.withOpacity(0.8), size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isBn
+                      ? 'রাসূল ﷺ বলেন: "আল্লাহর ৯৯টি নাম আছে, যে ব্যক্তি উক্ত নামগুলো মুখস্থ রাখবে সে জান্নাতে প্রবেশ করবে।" [তিরমিজী: ৩৫০৭]'
+                      : 'Prophet ﷺ said: "Allah has 99 names; whoever learns them will enter Paradise." [Tirmidhi: 3507]',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
+    );
   }
 
   @override
@@ -621,7 +756,25 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah'),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah'),
+            if (_isPlayingAll)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.volume_up, color: AppTheme.accent, size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    isBn ? 'সব নাম চলছে...' : 'Playing all names...',
+                    style: const TextStyle(color: AppTheme.accent, fontSize: 11),
+                  ),
+                ],
+              ),
+          ],
+        ),
         actions: [
           // Repeat অপশন: "বারবার (অসীম)" বা নির্দিষ্ট সংখ্যক বার (১–১০)
           IconButton(
@@ -645,82 +798,26 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
       ),
       body: Column(
         children: [
-          // Bismillah — tap করলে part_0 play হয়
-          GestureDetector(
-            onTap: () async {
-              await QuranAudioHelper.stop();
-              if (!mounted) return;
-              setState(() {
-                _isPlaying = true;
-                _isPlayingAll = false;
-                _playingGroupIndex = -1; // bismillah
-              });
-              final path = await _resolveAssetAudioPath('part_0');
-              if (!mounted || _playingGroupIndex != -1) return;
-              await QuranAudioHelper.playCustomAudio(
-                filePath: path,
-                title: widget.lang.isBn ? 'আল্লাহর ৯৯ নাম' : '99 Names of Allah',
-              );
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              color: AppTheme.primary.withOpacity(0.2),
-              child: Text(
-                'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
-                style: TextStyle(
-                  fontSize: 30,
-                  color: AppTheme.gold,
-                  fontFamily: 'ScheherazadeNew',
-                  height: 1.8,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-
-          // হাদিস
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            color: AppTheme.primary.withOpacity(0.1),
-            child: Text(
-              isBn
-                  ? 'রাসূল ﷺ বলেন: "আল্লাহর ৯৯টি নাম আছে, যে ব্যক্তি উক্ত নামগুলো মুখস্থ রাখবে সে জান্নাতে প্রবেশ করবে।" [তিরমিজী: ৩৫০৭]'
-                  : 'Prophet ﷺ said: "Allah has 99 names; whoever learns them will enter Paradise." [Tirmidhi: 3507]',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          // সব চালু indicator
-          if (_isPlayingAll)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              color: AppTheme.primary.withOpacity(0.3),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.volume_up, color: AppTheme.accent, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    isBn ? 'সব নাম চলছে...' : 'Playing all names...',
-                    style: const TextStyle(color: AppTheme.accent, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-
           // Names list
           Expanded(
-            child: ListView.builder(
+            child: NotificationListener<UserScrollNotification>(
+              onNotification: (n) {
+                if (n.metrics.axis != Axis.vertical) return false;
+                if (n.metrics.pixels <= 24 ||
+                    n.direction == ScrollDirection.forward) {
+                  if (namesNavHidden.value) namesNavHidden.value = false;
+                } else if (n.direction == ScrollDirection.reverse) {
+                  if (!namesNavHidden.value) namesNavHidden.value = true;
+                }
+                return false;
+              },
+              child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(12),
-              itemCount: _groups.length,
-              itemBuilder: (context, groupIndex) {
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+              itemCount: _groups.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return _buildHeader(isBn);
+                final groupIndex = index - 1;
                 final group = _groups[groupIndex];
                 final names = group['names'] as List<Map<String, dynamic>>;
                 final arabic = group['arabic'] as String;
@@ -746,6 +843,15 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
                         ? AppTheme.primary.withOpacity(0.3)
                         : AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: isGroupPlaying
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.gold.withOpacity(0.25),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
                     // ফিক্স: আগে এখানে AppTheme.accent (সবুজ, #4CAF50)
                     // ব্যবহার হতো — যেটা কার্ডের ব্যাকগ্রাউন্ড রঙের সাথে
                     // প্রায় মিশে যেত বলে চলমান নাম চেনার বর্ডারটা চোখেই
@@ -796,9 +902,27 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
                             horizontal: 12, vertical: 8),
                         child: Row(
                           children: [
+                            Container(
+                              width: 26,
+                              height: 26,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.gold.withOpacity(0.7)),
+                              ),
+                              child: Text(
+                                _digits(groupIndex + 1),
+                                style: TextStyle(
+                                  color: AppTheme.gold,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
                               isBn
-                                  ? '${names.length} টি নাম'
+                                  ? '${_digits(names.length)} টি নাম'
                                   : '${names.length} names',
                               style: TextStyle(
                                 color: AppTheme.textSecondary,
@@ -857,6 +981,7 @@ class _NamesScreenState extends State<NamesScreen> with WidgetsBindingObserver {
                   ),
                 );
               },
+            ),
             ),
           ),
         ],

@@ -158,7 +158,21 @@ class _HomeScreenState extends State<HomeScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         body: IndexedStack(index: _currentIndex, children: screens),
-        bottomNavigationBar: NavigationBar(
+        bottomNavigationBar: ValueListenableBuilder<bool>(
+          valueListenable: namesNavHidden,
+          builder: (context, hidden, child) {
+            // ৯৯ নাম ট্যাবে নিচে স্ক্রল করলে বার লুকিয়ে জায়গা বাড়ে
+            final hide = hidden && _currentIndex == 2;
+            return AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: hide
+                  ? const SizedBox(width: double.infinity, height: 0)
+                  : child,
+            );
+          },
+          child: NavigationBar(
           backgroundColor: AppTheme.surface,
           selectedIndex: _currentIndex,
           onDestinationSelected: (i) => setState(() => _currentIndex = i),
@@ -181,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 selectedIcon: const Icon(Icons.settings),
                 label: lang.settings),
           ],
+        ),
         ),
       ),
     );

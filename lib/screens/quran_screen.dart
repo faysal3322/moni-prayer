@@ -684,7 +684,7 @@ class _MyQuranTabState extends State<_MyQuranTab> {
                                 final mine = st.collectionId == id;
                                 final status = mine ? st.status : QuickPlayStatus.idle;
                                 if (status == QuickPlayStatus.loading) {
-                                  return const SizedBox(
+                                  return SizedBox(
                                     width: 48,
                                     height: 48,
                                     child: Center(

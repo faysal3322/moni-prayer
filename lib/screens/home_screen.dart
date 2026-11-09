@@ -245,6 +245,11 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   String _hijriDate = '';
   int _hijriMonthNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি মাস
   int _hijriDayNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি দিন
+  // "আজকের রোজা" কার্ডের (রমজান/শবে বরাত/শবে কদর) হিসাব — একই অবস্থায়
+  // প্রতি সেকেন্ডে আবার হিসাব না করতে ক্যাশ করা হয়।
+  int _hijriAdjust = 0;
+  String? _rozaInfoKey;
+  RozaCardInfo? _rozaInfo;
   Timer? _autoQazaTimer;
   Timer? _weatherTimer;
   int _alertRotationIndex = 0;
@@ -891,8 +896,10 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     final h = await DateHelper.toHijriWithUserAdjust(
         DateTime.now(), bangla: widget.lang.isBn);
     final md = await DateHelper.getHijriMonthDayWithUserAdjust(DateTime.now());
+    final adj = await DateHelper.getHijriAdjustValue();
     if (mounted) {
       setState(() {
+        _hijriAdjust = adj;
         _hijriDate = h;
         _hijriMonthNum = md['month'] ?? 0;
         _hijriDayNum = md['day'] ?? 0;
@@ -1050,6 +1057,26 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     }
   }
 
+  RozaCardInfo _rozaCardInfoFor(DateTime now) {
+    final pt = _prayerTimes;
+    final afterMaghrib = pt != null && now.isAfter(pt.maghrib);
+    final beforeFajr = pt != null && now.isBefore(pt.fajr);
+    final key = '${now.year}-${now.month}-${now.day}|$afterMaghrib|$beforeFajr|$_hijriAdjust';
+    if (_rozaInfo == null || _rozaInfoKey != key) {
+      _rozaInfo = DateHelper.rozaCardInfo(
+        now: now,
+        maghrib: pt?.maghrib,
+        fajr: pt?.fajr,
+        adjust: _hijriAdjust,
+      );
+      _rozaInfoKey = key;
+    }
+    return _rozaInfo!;
+  }
+
+  // হোম কার্ড থেকে রোজার বাটন সরানো হয়েছে, তাই এখন এটা আর ব্যবহার হয় না।
+  // (রোজার রেকর্ড ক্যালেন্ডার/দিনের স্ক্রিন থেকে রাখা যায়।)
+  // ignore: unused_element
   Future<void> _setRoza(String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
     if (status == 'clear') {
@@ -2033,12 +2060,15 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 12),
 
-            _TodaySection(
-              lang: lang, todayPrayers: _todayPrayers,
-              todayRoza: _todayRoza, prayerTimes: _prayerTimes,
-              onSetPrayer: _setPrayer, onSetRoza: _setRoza,
-            ),
-            const SizedBox(height: 16),
+            // রমজান / শবে বরাত / শবে কদরের তথ্য — দেখানোর মতো কিছু না থাকলে কার্ডই থাকে না
+            Builder(builder: (_) {
+              final rozaInfo = _rozaCardInfoFor(now);
+              if (rozaInfo.isEmpty) return const SizedBox(height: 4);
+              return Column(children: [
+                _TodaySection(lang: lang, info: rozaInfo),
+                const SizedBox(height: 16),
+              ]);
+            }),
 
             CategorySection(
               title: lang.isBn ? 'ক্যাটাগরি' : 'Categories',
@@ -3056,47 +3086,85 @@ class _CometBorderPainter extends CustomPainter {
 }
 
 // ═══════════════════════════════════════════
+// "আজকের রোজা" কার্ড:
+//  • রমজান মাসে টাইটেল হয় "১ রমজান", "২ রমজান" … (যেদিন যত তারিখ)
+//  • রমজানের ১০০ দিন আগে থেকে "রমজান শুরু হতে বাকি দিন …"
+//  • শবে বরাত ও শবে কদর শুরুর ১৫ দিন আগে থেকে কাউন্টডাউন; রাতে ক্রমিক নম্বরসহ নাম
 class _TodaySection extends StatelessWidget {
   final AppLanguage lang;
-  final Map<String, String> todayPrayers;
-  final String? todayRoza;
-  final PrayerTimes? prayerTimes;
-  final Function(String, String) onSetPrayer;
-  final Function(String) onSetRoza;
+  final RozaCardInfo info;
 
-  const _TodaySection({
-    required this.lang, required this.todayPrayers, required this.todayRoza,
-    required this.prayerTimes, required this.onSetPrayer, required this.onSetRoza,
-  });
+  const _TodaySection({required this.lang, required this.info});
 
-  String _prayerName(String key) {
-    switch (key) {
-      case 'fajr': return lang.fajr;
-      case 'dhuhr': return lang.dhuhr;
-      case 'asr': return lang.asr;
-      case 'maghrib': return lang.maghrib;
-      case 'isha': return lang.isha;
-      default: return key;
+  String _ordinalBn(int n) {
+    switch (n) {
+      case 1: return '১ম';
+      case 2: return '২য়';
+      case 3: return '৩য়';
+      case 4: return '৪র্থ';
+      case 5: return '৫ম';
+      default: return lang.toLocalNum(n);
     }
   }
 
-  String _prayerTime(String key) {
-    if (prayerTimes == null) return '';
-    switch (key) {
-      case 'fajr': return PrayerTimeHelper.formatTime(prayerTimes!.fajr);
-      case 'dhuhr': return PrayerTimeHelper.formatTime(prayerTimes!.dhuhr);
-      case 'asr': return PrayerTimeHelper.formatTime(prayerTimes!.asr);
-      case 'maghrib': return PrayerTimeHelper.formatTime(prayerTimes!.maghrib);
-      case 'isha': return PrayerTimeHelper.formatTime(prayerTimes!.isha);
-      default: return '';
+  String _ordinalEn(int n) {
+    switch (n) {
+      case 1: return '1st';
+      case 2: return '2nd';
+      case 3: return '3rd';
+      default: return '${n}th';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isBn = lang.isBn;
+    String n2s(int n) => lang.toLocalNum(n);
+
+    final String title = info.ramadanDay != null
+        ? (isBn ? '${n2s(info.ramadanDay!)} রমজান' : 'Ramadan ${info.ramadanDay}')
+        : (isBn ? 'আজকের রোজা' : "Today's Fasting");
+
+    // (লেখা, রং) — ওপর থেকে নিচে সাজানো
+    final List<MapEntry<String, Color>> lines = [];
+
+    if (info.daysToRamadan != null) {
+      lines.add(MapEntry(
+        isBn
+            ? 'রমজান শুরু হতে বাকি দিন ${n2s(info.daysToRamadan!)}'
+            : 'Days left until Ramadan: ${info.daysToRamadan}',
+        AppTheme.textPrimary,
+      ));
+    }
+
+    if (info.isBaratNight) {
+      lines.add(MapEntry(isBn ? 'শবে বরাত' : 'Shab-e-Barat', AppTheme.gold));
+    } else if (info.daysToBarat != null) {
+      lines.add(MapEntry(
+        isBn
+            ? 'শবে বরাত শুরু হতে বাকি দিন ${n2s(info.daysToBarat!)}'
+            : 'Days left until Shab-e-Barat: ${info.daysToBarat}',
+        AppTheme.textPrimary,
+      ));
+    }
+
+    if (info.qadrNightNumber != null) {
+      final n = info.qadrNightNumber!;
+      lines.add(MapEntry(
+        isBn ? '${_ordinalBn(n)} শবে কদর' : '${_ordinalEn(n)} Shab-e-Qadr',
+        AppTheme.gold,
+      ));
+    } else if (info.daysToQadr != null) {
+      lines.add(MapEntry(
+        isBn
+            ? 'শবে কদর শুরু হতে বাকি দিন ${n2s(info.daysToQadr!)}'
+            : 'Days left until Shab-e-Qadr: ${info.daysToQadr}',
+        AppTheme.textPrimary,
+      ));
+    }
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
@@ -3107,69 +3175,17 @@ class _TodaySection extends StatelessWidget {
         Row(children: [
           Icon(Icons.today, color: AppTheme.gold, size: 22),
           const SizedBox(width: 8),
-          Text(isBn ? 'আজকের রোজা' : "Today's Fasting",
+          Text(title,
               style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        const SizedBox(height: 6),
-        _RozaRow(
-          name: lang.roza, status: todayRoza,
-          onTap: () => onSetRoza(todayRoza == 'prayed' ? 'clear' : 'prayed'),
-        ),
+        if (lines.isNotEmpty) const SizedBox(height: 6),
+        for (final l in lines)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(l.key,
+                style: TextStyle(color: l.value, fontSize: 18, fontWeight: FontWeight.w400)),
+          ),
       ]),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════
-// আজকের রোজা — নামাজের মতো একটাই গোল বাটন।
-// ফাঁকা = এখনও চাপা হয়নি, সবুজ টিক = রেখেছি, লাল ক্রস = বাকি (কাযা)।
-// রমজানে দিন শেষে না চাপলে অটো লাল ক্রস বসে ও "রোজা বাকি" বাড়ে।
-class _RozaRow extends StatelessWidget {
-  final String name;
-  final String? status;
-  final VoidCallback onTap;
-
-  const _RozaRow({required this.name, required this.status, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDone = status == 'prayed';
-    final isMissed = status == 'missed';
-    final Color color = isDone
-        ? AppTheme.completed
-        : isMissed ? AppTheme.missed : AppTheme.textSecondary;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(children: [
-          Expanded(
-            child: Text(name,
-                style: TextStyle(
-                  color: isDone ? AppTheme.completed : isMissed ? AppTheme.missed : AppTheme.textPrimary,
-                  fontSize: 18, fontWeight: FontWeight.w400,
-                )),
-          ),
-          Container(
-            width: 30, height: 30,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: (isDone || isMissed) ? color : Colors.transparent,
-              border: Border.all(
-                color: (isDone || isMissed) ? color : color.withOpacity(0.6),
-                width: 2,
-              ),
-            ),
-            child: isDone
-                ? const Icon(Icons.check, color: Colors.white, size: 19)
-                : isMissed
-                    ? const Icon(Icons.close, color: Colors.white, size: 19)
-                    : null,
-          ),
-        ]),
-      ),
     );
   }
 }

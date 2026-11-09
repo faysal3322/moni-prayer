@@ -245,8 +245,9 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   String _hijriDate = '';
   int _hijriMonthNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি মাস
   int _hijriDayNum = 0; // DateHelper (hijri package + user adjust) থেকে সঠিক হিজরি দিন
-  // "আজকের রোজা" কার্ডের (রমজান/শবে বরাত/শবে কদর) হিসাব — একই অবস্থায়
-  // প্রতি সেকেন্ডে আবার হিসাব না করতে ক্যাশ করা হয়।
+  // "আজকের রোজা" কার্ডের (রমজান/শবে বরাত/শবে কদর/নফল রোজা) হিসাব। শাওয়াল ও
+  // আশুরার জন্য ডাটাবেস দেখতে হয় বলে হিসাবটা async; চাবি (তারিখ, মাগরিব/ফজর
+  // পার হওয়া, হিজরি অ্যাডজাস্ট, আজকের রোজার টিক) না বদলালে আবার হিসাব হয় না।
   int _hijriAdjust = 0;
   String? _rozaInfoKey;
   RozaCardInfo? _rozaInfo;
@@ -534,6 +535,10 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
                 'widget_d${i}_gregorian', DateHelper.formatGregorian(day, bangla: isBn));
             await HomeWidget.saveWidgetData('widget_d${i}_hijri',
                 await DateHelper.toHijriWithUserAdjust(day, bangla: isBn));
+            // মাগরিবের পর নতুন হিজরি দিন শুরু — উইজেট মাগরিবের পর এটা দেখায়
+            await HomeWidget.saveWidgetData('widget_d${i}_hijri_next',
+                await DateHelper.toHijriWithUserAdjust(
+                    DateTime(now.year, now.month, now.day + i + 1, 12), bangla: isBn));
             await HomeWidget.saveWidgetData(
                 'widget_d${i}_bangla_date', DateHelper.toBanglaWithSeason(day));
           }
@@ -893,8 +898,16 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   }
 
   Future<void> _loadHijri() async {
-    final h = await DateHelper.toHijriWithUserAdjust(
-        DateTime.now(), bangla: widget.lang.isBn);
+    // হিজরি দিন শুরু হয় সূর্যাস্তে (মাগরিবে): মাগরিবের পর থেকে পরের হিজরি
+    // তারিখ দেখানো হয়। (_hijriMonthNum/_hijriDayNum আগের মতো রাত ১২টায় বদলায় —
+    // কারণ নিচের এলার্টগুলোর শর্তে মাগরিবের পরের হিসাব আলাদাভাবে ধরা আছে।)
+    final nowH = DateTime.now();
+    final ptH = _prayerTimes;
+    final afterMaghribH = ptH != null && nowH.isAfter(ptH.maghrib);
+    final dispH = afterMaghribH
+        ? DateTime(nowH.year, nowH.month, nowH.day + 1, nowH.hour, nowH.minute)
+        : nowH;
+    final h = await DateHelper.toHijriWithUserAdjust(dispH, bangla: widget.lang.isBn);
     final md = await DateHelper.getHijriMonthDayWithUserAdjust(DateTime.now());
     final adj = await DateHelper.getHijriAdjustValue();
     if (mounted) {
@@ -1057,26 +1070,48 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
     }
   }
 
-  RozaCardInfo _rozaCardInfoFor(DateTime now) {
+  void _ensureRozaInfo(DateTime now) {
     final pt = _prayerTimes;
     final afterMaghrib = pt != null && now.isAfter(pt.maghrib);
     final beforeFajr = pt != null && now.isBefore(pt.fajr);
-    final key = '${now.year}-${now.month}-${now.day}|$afterMaghrib|$beforeFajr|$_hijriAdjust';
-    if (_rozaInfo == null || _rozaInfoKey != key) {
-      _rozaInfo = DateHelper.rozaCardInfo(
-        now: now,
-        maghrib: pt?.maghrib,
-        fajr: pt?.fajr,
-        adjust: _hijriAdjust,
-      );
-      _rozaInfoKey = key;
-    }
-    return _rozaInfo!;
+    final key = '${DateHelper.dateKey(now)}|${pt != null}|$afterMaghrib|$beforeFajr|'
+        '$_hijriAdjust|$_todayRoza';
+    if (_rozaInfoKey == key) return;
+    _rozaInfoKey = key;
+    Future.microtask(() => _computeRozaInfo(now, key));
   }
 
-  // হোম কার্ড থেকে রোজার বাটন সরানো হয়েছে, তাই এখন এটা আর ব্যবহার হয় না।
-  // (রোজার রেকর্ড ক্যালেন্ডার/দিনের স্ক্রিন থেকে রাখা যায়।)
-  // ignore: unused_element
+  Future<void> _computeRozaInfo(DateTime now, String key) async {
+    final pt = _prayerTimes;
+    var info = DateHelper.rozaCardInfo(
+      now: now, maghrib: pt?.maghrib, fajr: pt?.fajr, adjust: _hijriAdjust,
+    );
+    try {
+      int shawwalDone = 0;
+      int ashuraDone = 0;
+      if (info.hijriMonth == 10 && info.hijriDay >= 2) {
+        shawwalDone = await DatabaseHelper.countRozaPrayed(
+          DateHelper.hijriMonthDateKeys(info.fastDate,
+              adjust: _hijriAdjust, fromDay: 2, toDay: 30),
+        );
+      } else if (info.hijriMonth == 1 && info.hijriDay >= 9 && info.hijriDay <= 11) {
+        ashuraDone = await DatabaseHelper.countRozaPrayed(
+          DateHelper.hijriMonthDateKeys(info.fastDate,
+              adjust: _hijriAdjust, fromDay: 9, toDay: 11),
+        );
+      }
+      if (shawwalDone > 0 || ashuraDone > 0) {
+        info = DateHelper.rozaCardInfo(
+          now: now, maghrib: pt?.maghrib, fajr: pt?.fajr, adjust: _hijriAdjust,
+          shawwalDone: shawwalDone, ashuraDone: ashuraDone,
+        );
+      }
+    } catch (_) {}
+    if (mounted && _rozaInfoKey == key) {
+      setState(() => _rozaInfo = info);
+    }
+  }
+
   Future<void> _setRoza(String status) async {
     final dateKey = DateHelper.dateKey(DateTime.now());
     if (status == 'clear') {
@@ -2060,15 +2095,17 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 12),
 
-            // রমজান / শবে বরাত / শবে কদরের তথ্য — দেখানোর মতো কিছু না থাকলে কার্ডই থাকে না
+            // আজকের রোজা কার্ড (রমজান / বিশেষ নফল রোজা / শবে বরাত / শবে কদর)
             Builder(builder: (_) {
-              final rozaInfo = _rozaCardInfoFor(now);
-              if (rozaInfo.isEmpty) return const SizedBox(height: 4);
-              return Column(children: [
-                _TodaySection(lang: lang, info: rozaInfo),
-                const SizedBox(height: 16),
-              ]);
+              _ensureRozaInfo(now);
+              return _TodaySection(
+                lang: lang,
+                info: _rozaInfo,
+                status: _todayRoza,
+                onTap: () => _setRoza(_todayRoza == 'prayed' ? 'clear' : 'prayed'),
+              );
             }),
+            const SizedBox(height: 16),
 
             CategorySection(
               title: lang.isBn ? 'ক্যাটাগরি' : 'Categories',
@@ -3087,27 +3124,30 @@ class _CometBorderPainter extends CustomPainter {
 
 // ═══════════════════════════════════════════
 // "আজকের রোজা" কার্ড:
-//  • রমজান মাসে টাইটেল হয় "১ রমজান", "২ রমজান" … (যেদিন যত তারিখ)
-//  • রমজানের ১০০ দিন আগে থেকে "রমজান শুরু হতে বাকি দিন …"
-//  • শবে বরাত ও শবে কদর শুরুর ১৫ দিন আগে থেকে কাউন্টডাউন; রাতে ক্রমিক নম্বরসহ নাম
+//  • টাইটেল: রমজানে "১ রমজান", "২ রমজান"…; অন্য সময় বিশেষ নফল রোজা থাকলে তার
+//    নাম (আইয়ামে বীজ, সোম/বৃহস্পতি, শাওয়াল, আরাফা, আশুরা, জুলহিজ্জাহ, শা'বান);
+//    কিছুই না থাকলে "আজকের রোজা"
+//  • ডানে গোল বাটন: চাপলে সবুজ টিক (রেখেছি), আবার চাপলে খালি। রমজানে দিন শেষে না
+//    চাপলে অটো লাল ক্রস (আগের মতোই)। রমজানের বাইরে কিছু অটো বদলায় না।
+//  • নিচের লাইনে: অন্য লেবেল ও কাউন্টডাউন (রমজান ১০০ দিন, শবে বরাত/কদর ১৫ দিন)
 class _TodaySection extends StatelessWidget {
   final AppLanguage lang;
-  final RozaCardInfo info;
+  final RozaCardInfo? info;
+  final String? status;
+  final VoidCallback onTap;
 
-  const _TodaySection({required this.lang, required this.info});
+  const _TodaySection({
+    required this.lang, required this.info, required this.status, required this.onTap,
+  });
 
-  String _ordinalBn(int n) {
-    switch (n) {
-      case 1: return '১ম';
-      case 2: return '২য়';
-      case 3: return '৩য়';
-      case 4: return '৪র্থ';
-      case 5: return '৫ম';
-      default: return lang.toLocalNum(n);
+  String _ordinal(int n) {
+    if (lang.isBn) {
+      const bn = {
+        1: '১ম', 2: '২য়', 3: '৩য়', 4: '৪র্থ', 5: '৫ম',
+        6: '৬ষ্ঠ', 7: '৭ম', 8: '৮ম', 9: '৯ম',
+      };
+      return bn[n] ?? '${lang.toLocalNum(n)}ম';
     }
-  }
-
-  String _ordinalEn(int n) {
     switch (n) {
       case 1: return '1st';
       case 2: return '2nd';
@@ -3116,52 +3156,105 @@ class _TodaySection extends StatelessWidget {
     }
   }
 
+  String _labelText(RozaLabel l) {
+    final isBn = lang.isBn;
+    switch (l.kind) {
+      case 'arafah':
+        return isBn ? 'আরাফার দিনের রোজা' : 'Fast of Arafah';
+      case 'ashura':
+        return isBn ? 'আশুরার রোজা' : 'Fast of Ashura';
+      case 'shawwal':
+        return isBn ? 'শাওয়াল মাসের ${_ordinal(l.n)} রোজা' : '${_ordinal(l.n)} Shawwal fast';
+      case 'dhulhijjah':
+        return isBn ? 'জুলহিজ্জাহ রোজা ${_ordinal(l.n)}' : 'Dhul Hijjah fast ${_ordinal(l.n)}';
+      case 'beed':
+        return isBn ? 'আইয়ামে বীজের রোজা ${_ordinal(l.n)}' : 'Ayyam al-Beed fast ${_ordinal(l.n)}';
+      case 'shaban':
+        return isBn ? 'শা’বান মাসের রোজা' : "Sha'ban fast";
+      case 'monday':
+        return isBn ? 'সোমবারের রোজা' : 'Monday fast';
+      case 'thursday':
+        return isBn ? 'বৃহস্পতিবারের রোজা' : 'Thursday fast';
+      default:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBn = lang.isBn;
     String n2s(int n) => lang.toLocalNum(n);
+    final i = info;
 
-    final String title = info.ramadanDay != null
-        ? (isBn ? '${n2s(info.ramadanDay!)} রমজান' : 'Ramadan ${info.ramadanDay}')
-        : (isBn ? 'আজকের রোজা' : "Today's Fasting");
-
-    // (লেখা, রং) — ওপর থেকে নিচে সাজানো
-    final List<MapEntry<String, Color>> lines = [];
-
-    if (info.daysToRamadan != null) {
-      lines.add(MapEntry(
-        isBn
-            ? 'রমজান শুরু হতে বাকি দিন ${n2s(info.daysToRamadan!)}'
-            : 'Days left until Ramadan: ${info.daysToRamadan}',
-        AppTheme.textPrimary,
-      ));
+    // ── টাইটেল ──
+    String title = isBn ? 'আজকের রোজা' : "Today's Fasting";
+    if (i != null) {
+      if (i.ramadanDay != null) {
+        title = isBn ? '${n2s(i.ramadanDay!)} রমজান' : 'Ramadan ${i.ramadanDay}';
+      } else if (i.labels.isNotEmpty) {
+        title = _labelText(i.labels.first);
+      }
     }
 
-    if (info.isBaratNight) {
-      lines.add(MapEntry(isBn ? 'শবে বরাত' : 'Shab-e-Barat', AppTheme.gold));
-    } else if (info.daysToBarat != null) {
-      lines.add(MapEntry(
-        isBn
-            ? 'শবে বরাত শুরু হতে বাকি দিন ${n2s(info.daysToBarat!)}'
-            : 'Days left until Shab-e-Barat: ${info.daysToBarat}',
-        AppTheme.textPrimary,
-      ));
+    // ── নিচের লাইনগুলো: (লেখা, রং, সাইজ) ──
+    final List<List<dynamic>> lines = [];
+    if (i != null) {
+      // টাইটেলে যেটা বসেনি সেই বাকি রোজার লেবেল
+      if (i.ramadanDay == null) {
+        for (final l in i.labels.skip(1)) {
+          lines.add([_labelText(l), AppTheme.textPrimary, 18.0]);
+        }
+        if (i.labels.any((l) => l.kind == 'ashura')) {
+          lines.add([
+            isBn
+                ? '৯-১০ অথবা ১০-১১ মুহাররম — দুইটি রোজা রাখুন'
+                : 'Fast 9-10 or 10-11 Muharram (two days)',
+            AppTheme.textSecondary, 14.0,
+          ]);
+        }
+      }
+
+      if (i.daysToRamadan != null) {
+        lines.add([
+          isBn
+              ? 'রমজান শুরু হতে বাকি দিন ${n2s(i.daysToRamadan!)}'
+              : 'Days left until Ramadan: ${i.daysToRamadan}',
+          AppTheme.textPrimary, 18.0,
+        ]);
+      }
+
+      if (i.isBaratNight) {
+        lines.add([isBn ? 'শবে বরাত' : 'Shab-e-Barat', AppTheme.gold, 18.0]);
+      } else if (i.daysToBarat != null) {
+        lines.add([
+          isBn
+              ? 'শবে বরাত শুরু হতে বাকি দিন ${n2s(i.daysToBarat!)}'
+              : 'Days left until Shab-e-Barat: ${i.daysToBarat}',
+          AppTheme.textPrimary, 18.0,
+        ]);
+      }
+
+      if (i.qadrNightNumber != null) {
+        final q = i.qadrNightNumber!;
+        lines.add([
+          isBn ? '${_ordinal(q)} শবে কদর' : '${_ordinal(q)} Shab-e-Qadr',
+          AppTheme.gold, 18.0,
+        ]);
+      } else if (i.daysToQadr != null) {
+        lines.add([
+          isBn
+              ? 'শবে কদর শুরু হতে বাকি দিন ${n2s(i.daysToQadr!)}'
+              : 'Days left until Shab-e-Qadr: ${i.daysToQadr}',
+          AppTheme.textPrimary, 18.0,
+        ]);
+      }
     }
 
-    if (info.qadrNightNumber != null) {
-      final n = info.qadrNightNumber!;
-      lines.add(MapEntry(
-        isBn ? '${_ordinalBn(n)} শবে কদর' : '${_ordinalEn(n)} Shab-e-Qadr',
-        AppTheme.gold,
-      ));
-    } else if (info.daysToQadr != null) {
-      lines.add(MapEntry(
-        isBn
-            ? 'শবে কদর শুরু হতে বাকি দিন ${n2s(info.daysToQadr!)}'
-            : 'Days left until Shab-e-Qadr: ${info.daysToQadr}',
-        AppTheme.textPrimary,
-      ));
-    }
+    final isDone = status == 'prayed';
+    final isMissed = status == 'missed';
+    final Color circleColor = isDone
+        ? AppTheme.completed
+        : isMissed ? AppTheme.missed : AppTheme.textSecondary;
 
     return Container(
       width: double.infinity,
@@ -3172,18 +3265,45 @@ class _TodaySection extends StatelessWidget {
         border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.today, color: AppTheme.gold, size: 22),
-          const SizedBox(width: 8),
-          Text(title,
-              style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 16)),
-        ]),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Row(children: [
+            Icon(Icons.today, color: AppTheme.gold, size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(title,
+                  style: TextStyle(
+                      color: isDone ? AppTheme.completed : AppTheme.gold,
+                      fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 30, height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: (isDone || isMissed) ? circleColor : Colors.transparent,
+                border: Border.all(
+                  color: (isDone || isMissed) ? circleColor : circleColor.withOpacity(0.6),
+                  width: 2,
+                ),
+              ),
+              child: isDone
+                  ? const Icon(Icons.check, color: Colors.white, size: 19)
+                  : isMissed
+                      ? const Icon(Icons.close, color: Colors.white, size: 19)
+                      : null,
+            ),
+          ]),
+        ),
         if (lines.isNotEmpty) const SizedBox(height: 6),
         for (final l in lines)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(l.key,
-                style: TextStyle(color: l.value, fontSize: 18, fontWeight: FontWeight.w400)),
+            child: Text(l[0] as String,
+                style: TextStyle(
+                    color: l[1] as Color, fontSize: l[2] as double,
+                    fontWeight: FontWeight.w400)),
           ),
       ]),
     );

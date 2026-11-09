@@ -104,6 +104,18 @@ class DatabaseHelper {
       conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  // দেওয়া তারিখগুলোর মধ্যে কয়টায় রোজা রাখা (চিহ্নিত) হয়েছে — শাওয়ালের ছয় রোজা
+  // ও আশুরার রোজা গুনতে লাগে।
+  static Future<int> countRozaPrayed(List<String> dates) async {
+    if (dates.isEmpty) return 0;
+    final db = await database;
+    final placeholders = List.filled(dates.length, '?').join(',');
+    final r = await db.rawQuery(
+      "SELECT COUNT(*) as count FROM roza_records WHERE status = 'prayed' AND date IN ($placeholders)",
+      dates);
+    return Sqflite.firstIntValue(r) ?? 0;
+  }
+
   static Future<void> clearRozaStatus(String date) async {
     final db = await database;
     await db.delete('roza_records', where: 'date = ?', whereArgs: [date]);

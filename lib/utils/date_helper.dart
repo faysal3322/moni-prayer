@@ -2,9 +2,26 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'time_format_prefs.dart';
 
+/// কার্ডের টাইটেল/লাইনে দেখানোর একটা রোজার লেবেল।
+/// kind: arafah | ashura | shawwal | dhulhijjah | beed | shaban | monday | thursday
+/// n: ক্রমিক নম্বর (শাওয়াল/জুলহিজ্জাহ/আইয়ামে বীজের জন্য); বাকিগুলোতে ০।
+class RozaLabel {
+  final String kind;
+  final int n;
+  const RozaLabel(this.kind, [this.n = 0]);
+}
+
 /// হোমের "আজকের রোজা" কার্ডে কী কী দেখাবে — তার হিসাবের ফলাফল।
 class RozaCardInfo {
-  /// রমজান মাসে আজকের হিজরি তারিখ (১..৩০); রমজান না হলে null।
+  /// কার্ড যে রোজার দিনের কথা বলছে তার ইংরেজি তারিখ।
+  /// মাগরিবের আগে = আজ; মাগরিবের পর (নতুন হিজরি দিন শুরু) = আগামীকাল।
+  final DateTime fastDate;
+
+  /// ওই দিনের হিজরি মাস (১..১২) ও তারিখ।
+  final int hijriMonth;
+  final int hijriDay;
+
+  /// রমজান মাসে হিজরি তারিখ (১..৩০); রমজান না হলে null।
   final int? ramadanDay;
 
   /// রমজান শুরু হতে বাকি দিন (১..১০০); না দেখানোর হলে null।
@@ -22,23 +39,22 @@ class RozaCardInfo {
   /// পরের শবে কদর শুরু হতে বাকি দিন (১..১৫); না দেখানোর হলে null।
   final int? daysToQadr;
 
+  /// রমজানের বাইরের বিশেষ রোজার লেবেল — অগ্রাধিকার অনুযায়ী সাজানো।
+  /// প্রথমটা টাইটেলে বসে, বাকিগুলো নিচের লাইনে।
+  final List<RozaLabel> labels;
+
   const RozaCardInfo({
+    required this.fastDate,
+    required this.hijriMonth,
+    required this.hijriDay,
     this.ramadanDay,
     this.daysToRamadan,
     this.isBaratNight = false,
     this.daysToBarat,
     this.qadrNightNumber,
     this.daysToQadr,
+    this.labels = const [],
   });
-
-  /// কার্ডে দেখানোর মতো কিছুই না থাকলে true।
-  bool get isEmpty =>
-      ramadanDay == null &&
-      daysToRamadan == null &&
-      !isBaratNight &&
-      daysToBarat == null &&
-      qadrNightNumber == null &&
-      daysToQadr == null;
 }
 
 class DateHelper {
@@ -104,57 +120,85 @@ class DateHelper {
     return -1;
   }
 
+  /// একটা হিজরি মাসের নির্দিষ্ট তারিখগুলোর (fromDay..toDay) ইংরেজি তারিখ-কী
+  /// (yyyy-MM-dd) — [fastDate]-এর হিজরি মাস/বছরেই। [fastDate] নিজে বাদ।
+  /// শাওয়ালের ছয় রোজা ও আশুরার রোজা কয়টা রাখা হয়েছে গুনতে লাগে।
+  static List<String> hijriMonthDateKeys(
+    DateTime fastDate, {
+    required int adjust,
+    required int fromDay,
+    required int toDay,
+  }) {
+    final base = DateTime(fastDate.year, fastDate.month, fastDate.day);
+    final ref = _hijriOf(base, adjust);
+    final keys = <String>[];
+    for (int i = -40; i <= 40; i++) {
+      final d = DateTime(base.year, base.month, base.day + i);
+      if (i == 0) continue; // fastDate নিজে বাদ
+      final h = _hijriOf(d, adjust);
+      if (h.hYear == ref.hYear && h.hMonth == ref.hMonth &&
+          h.hDay >= fromDay && h.hDay <= toDay) {
+        keys.add(dateKey(d));
+      }
+    }
+    return keys;
+  }
+
   /// "আজকের রোজা" কার্ডের তথ্য হিসাব করে।
   ///
-  /// • রমজানের টাইটেল ও "রমজান শুরু হতে বাকি দিন" — হোমে দেখানো হিজরি তারিখ
-  ///   (রাত ১২টায় বদলায়) অনুযায়ী।
-  /// • শবে বরাত ও শবে কদরের রাত শুরু হয় মাগরিব থেকে, চলে ফজরের আগ পর্যন্ত।
-  ///   তাই এ দুটোর জন্য মাগরিবের পর "পরের হিজরি দিন" ধরা হয়
-  ///   (যেমন ২০ রমজানের মাগরিবের পর = ২১ রমজানের রাত = ১ম শবে কদর)।
+  /// হিজরি দিন শুরু হয় মাগরিবে। তাই মাগরিবের পর "পরের দিন" ধরে সব হিসাব হয়
+  /// (যেমন ১২ তারিখের মাগরিবের পর = ১৩ তারিখ শুরু = আইয়ামে বীজের ১ম রোজা)।
+  /// শবে বরাত/শবে কদরের রাত চলে মাগরিব থেকে ফজরের আগ পর্যন্ত।
+  ///
+  /// [shawwalDone] — এই শাওয়ালে (fastDate বাদে) ক'টা রোজা চিহ্নিত হয়েছে।
+  /// [ashuraDone]  — ৯/১০/১১ মুহাররমের (fastDate বাদে) ক'টা রোজা চিহ্নিত হয়েছে।
   static RozaCardInfo rozaCardInfo({
     required DateTime now,
     DateTime? maghrib,
     DateTime? fajr,
     int adjust = 0,
+    int shawwalDone = 0,
+    int ashuraDone = 0,
   }) {
     final today = DateTime(now.year, now.month, now.day);
-    final appH = _hijriOf(today, adjust);
 
     final afterMaghrib = maghrib != null && now.isAfter(maghrib);
     final beforeFajr = fajr != null && now.isBefore(fajr);
     final isNight = afterMaghrib || beforeFajr;
 
-    final effDate = afterMaghrib
+    // যে রোজার দিনের কথা কার্ড বলছে
+    final fastDate = afterMaghrib
         ? DateTime(today.year, today.month, today.day + 1)
         : today;
-    final effH = _hijriOf(effDate, adjust);
+    final hF = _hijriOf(fastDate, adjust);
+    final m = hF.hMonth;
+    final d = hF.hDay;
 
     // ── রমজান ──
     int? ramadanDay;
     int? daysToRamadan;
-    if (appH.hMonth == 9) {
-      ramadanDay = appH.hDay;
+    if (m == 9) {
+      ramadanDay = d;
     } else {
-      final r = _daysUntilHijri(today, 9, 1, adjust, 100);
+      final r = _daysUntilHijri(fastDate, 9, 1, adjust, 100);
       if (r >= 1 && r <= 100) daysToRamadan = r;
     }
 
     // ── শবে বরাত (১৫ শা'বানের রাত = ১৪ শা'বানের মাগরিব থেকে) ──
     bool isBaratNight = false;
     int? daysToBarat;
-    if (effH.hMonth == 8 && effH.hDay == 15) {
+    if (m == 8 && d == 15) {
       isBaratNight = isNight;
     } else {
-      final r = _daysUntilHijri(effDate, 8, 15, adjust, 15);
+      final r = _daysUntilHijri(fastDate, 8, 15, adjust, 15);
       if (r >= 1 && r <= 15) daysToBarat = r;
     }
 
     // ── শবে কদর (২১, ২৩, ২৫, ২৭, ২৯ রমজান শুরু হওয়ার রাত) ──
     int? qadrNightNumber;
     int? daysToQadr;
-    if (effH.hMonth == 9) {
+    if (m == 9) {
       const nights = [21, 23, 25, 27, 29];
-      final d = effH.hDay;
       final idx = nights.indexOf(d);
       if (idx >= 0 && isNight) {
         qadrNightNumber = idx + 1;
@@ -168,13 +212,39 @@ class DateHelper {
       }
     }
 
+    // ── রমজানের বাইরের বিশেষ রোজা ──
+    final labels = <RozaLabel>[];
+    if (m != 9) {
+      // নিষিদ্ধ দিন: ১ শাওয়াল (ঈদুল ফিতর) ও ১০-১৩ জুলহিজ্জাহ (ঈদুল আযহা ও তাশরীক)
+      final forbidden = (m == 10 && d == 1) || (m == 12 && d >= 10 && d <= 13);
+      if (!forbidden) {
+        if (m == 12 && d == 9) labels.add(const RozaLabel('arafah'));
+        if (m == 1 && d >= 9 && d <= 11 && ashuraDone < 2) {
+          labels.add(const RozaLabel('ashura'));
+        }
+        if (m == 10 && d >= 2 && shawwalDone < 6) {
+          labels.add(RozaLabel('shawwal', shawwalDone + 1));
+        }
+        if (m == 12 && d >= 1 && d <= 9) labels.add(RozaLabel('dhulhijjah', d));
+        if (d >= 13 && d <= 15) labels.add(RozaLabel('beed', d - 12));
+        // শা'বানের শেষ ২ দিন বাদ: রমজানের এক-দুই দিন আগে রোজা রাখতে নিষেধ এসেছে
+        if (m == 8 && d <= 28) labels.add(const RozaLabel('shaban'));
+        if (fastDate.weekday == DateTime.monday) labels.add(const RozaLabel('monday'));
+        if (fastDate.weekday == DateTime.thursday) labels.add(const RozaLabel('thursday'));
+      }
+    }
+
     return RozaCardInfo(
+      fastDate: fastDate,
+      hijriMonth: m,
+      hijriDay: d,
       ramadanDay: ramadanDay,
       daysToRamadan: daysToRamadan,
       isBaratNight: isBaratNight,
       daysToBarat: daysToBarat,
       qadrNightNumber: qadrNightNumber,
       daysToQadr: daysToQadr,
+      labels: labels,
     );
   }
 

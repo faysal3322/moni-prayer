@@ -2,6 +2,45 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'time_format_prefs.dart';
 
+/// হোমের "আজকের রোজা" কার্ডে কী কী দেখাবে — তার হিসাবের ফলাফল।
+class RozaCardInfo {
+  /// রমজান মাসে আজকের হিজরি তারিখ (১..৩০); রমজান না হলে null।
+  final int? ramadanDay;
+
+  /// রমজান শুরু হতে বাকি দিন (১..১০০); না দেখানোর হলে null।
+  final int? daysToRamadan;
+
+  /// এখন শবে বরাতের রাত চলছে কি না।
+  final bool isBaratNight;
+
+  /// শবে বরাত শুরু হতে বাকি দিন (১..১৫); না দেখানোর হলে null।
+  final int? daysToBarat;
+
+  /// এখন কততম শবে কদরের রাত চলছে (১..৫); না হলে null।
+  final int? qadrNightNumber;
+
+  /// পরের শবে কদর শুরু হতে বাকি দিন (১..১৫); না দেখানোর হলে null।
+  final int? daysToQadr;
+
+  const RozaCardInfo({
+    this.ramadanDay,
+    this.daysToRamadan,
+    this.isBaratNight = false,
+    this.daysToBarat,
+    this.qadrNightNumber,
+    this.daysToQadr,
+  });
+
+  /// কার্ডে দেখানোর মতো কিছুই না থাকলে true।
+  bool get isEmpty =>
+      ramadanDay == null &&
+      daysToRamadan == null &&
+      !isBaratNight &&
+      daysToBarat == null &&
+      qadrNightNumber == null &&
+      daysToQadr == null;
+}
+
 class DateHelper {
   static Future<int> _getHijriAdjust() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +83,99 @@ class DateHelper {
     final adjustedDate = date.add(Duration(days: totalAdjust));
     final h = HijriCalendar.fromDate(adjustedDate);
     return {'month': h.hMonth, 'day': h.hDay};
+  }
+
+  /// ব্যবহারকারীর সেট করা হিজরি অ্যাডজাস্ট (দিন)।
+  static Future<int> getHijriAdjustValue() => _getHijriAdjust();
+
+  // একটা ইংরেজি তারিখের হিজরি তারিখ — toHijri-এর মতোই (-১ + user adjust)।
+  static HijriCalendar _hijriOf(DateTime d, int adjust) {
+    return HijriCalendar.fromDate(DateTime(d.year, d.month, d.day - 1 + adjust, 12));
+  }
+
+  // from তারিখ থেকে শুরু করে (from সহ) কত দিন পরে হিজরি [month]/[day] আসবে।
+  // maxDays-এর মধ্যে না পেলে -1।
+  static int _daysUntilHijri(DateTime from, int month, int day, int adjust, int maxDays) {
+    final start = DateTime(from.year, from.month, from.day);
+    for (int i = 0; i <= maxDays; i++) {
+      final h = _hijriOf(DateTime(start.year, start.month, start.day + i), adjust);
+      if (h.hMonth == month && h.hDay == day) return i;
+    }
+    return -1;
+  }
+
+  /// "আজকের রোজা" কার্ডের তথ্য হিসাব করে।
+  ///
+  /// • রমজানের টাইটেল ও "রমজান শুরু হতে বাকি দিন" — হোমে দেখানো হিজরি তারিখ
+  ///   (রাত ১২টায় বদলায়) অনুযায়ী।
+  /// • শবে বরাত ও শবে কদরের রাত শুরু হয় মাগরিব থেকে, চলে ফজরের আগ পর্যন্ত।
+  ///   তাই এ দুটোর জন্য মাগরিবের পর "পরের হিজরি দিন" ধরা হয়
+  ///   (যেমন ২০ রমজানের মাগরিবের পর = ২১ রমজানের রাত = ১ম শবে কদর)।
+  static RozaCardInfo rozaCardInfo({
+    required DateTime now,
+    DateTime? maghrib,
+    DateTime? fajr,
+    int adjust = 0,
+  }) {
+    final today = DateTime(now.year, now.month, now.day);
+    final appH = _hijriOf(today, adjust);
+
+    final afterMaghrib = maghrib != null && now.isAfter(maghrib);
+    final beforeFajr = fajr != null && now.isBefore(fajr);
+    final isNight = afterMaghrib || beforeFajr;
+
+    final effDate = afterMaghrib
+        ? DateTime(today.year, today.month, today.day + 1)
+        : today;
+    final effH = _hijriOf(effDate, adjust);
+
+    // ── রমজান ──
+    int? ramadanDay;
+    int? daysToRamadan;
+    if (appH.hMonth == 9) {
+      ramadanDay = appH.hDay;
+    } else {
+      final r = _daysUntilHijri(today, 9, 1, adjust, 100);
+      if (r >= 1 && r <= 100) daysToRamadan = r;
+    }
+
+    // ── শবে বরাত (১৫ শা'বানের রাত = ১৪ শা'বানের মাগরিব থেকে) ──
+    bool isBaratNight = false;
+    int? daysToBarat;
+    if (effH.hMonth == 8 && effH.hDay == 15) {
+      isBaratNight = isNight;
+    } else {
+      final r = _daysUntilHijri(effDate, 8, 15, adjust, 15);
+      if (r >= 1 && r <= 15) daysToBarat = r;
+    }
+
+    // ── শবে কদর (২১, ২৩, ২৫, ২৭, ২৯ রমজান শুরু হওয়ার রাত) ──
+    int? qadrNightNumber;
+    int? daysToQadr;
+    if (effH.hMonth == 9) {
+      const nights = [21, 23, 25, 27, 29];
+      final d = effH.hDay;
+      final idx = nights.indexOf(d);
+      if (idx >= 0 && isNight) {
+        qadrNightNumber = idx + 1;
+      } else {
+        for (final n in nights) {
+          if (n > d) {
+            if (n - d <= 15) daysToQadr = n - d;
+            break;
+          }
+        }
+      }
+    }
+
+    return RozaCardInfo(
+      ramadanDay: ramadanDay,
+      daysToRamadan: daysToRamadan,
+      isBaratNight: isBaratNight,
+      daysToBarat: daysToBarat,
+      qadrNightNumber: qadrNightNumber,
+      daysToQadr: daysToQadr,
+    );
   }
 
   static String toBangla(DateTime date) {

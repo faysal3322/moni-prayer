@@ -591,9 +591,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
                     context, 1, launchIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                views.setOnClickPendingIntent(R.id.widget_root, pendingLaunch)
+                // শুধু ঘড়ি (সময় + AM/PM) চাপলে মূল অ্যাপ খুলবে;
+                // widget_root-এ আর ক্লিক সেট করা হয় না, তাই বাকি অংশে চাপলে কিছু হবে না।
                 views.setOnClickPendingIntent(R.id.widget_time, pendingLaunch)
                 views.setOnClickPendingIntent(R.id.widget_time_bn, pendingLaunch)
+                views.setOnClickPendingIntent(R.id.widget_ampm, pendingLaunch)
             }
         } catch (e: Exception) { }
 

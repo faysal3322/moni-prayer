@@ -668,6 +668,16 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         views.setTextBn(R.id.widget_sehri, timeText("widget_fajr_ms", "widget_sehri"))
         views.setTextBn(R.id.widget_iftar, timeText("widget_maghrib_ms", "widget_iftar"))
 
+        // হিজরি দিন শুরু হয় সূর্যাস্তে (মাগরিবে): মাগরিবের পর Dart-এর আগাম সেভ করা
+        // "পরের দিনের" হিজরি তারিখ দেখানো হয় (অ্যাপ বন্ধ থাকলেও)।
+        run {
+            val mgMs = ovTimes?.get("widget_maghrib_ms") ?: 0L
+            if (dIdx >= 0 && mgMs > 0L && now.timeInMillis >= mgMs) {
+                val nextHijri = prefs.getString("widget_d${dIdx}_hijri_next", null)
+                if (!nextHijri.isNullOrEmpty()) views.setTextBn(R.id.widget_hijri, nextHijri)
+            }
+        }
+
         // ══ দিন / রাত — মূল অ্যাপের ClockCard-এর _bottomTimeCol-এর সাথে
         // অভিন্ন সূত্র: দিন = সাহরি (ফজর) থেকে ইফতার (মাগরিব) পর্যন্ত
         // ব্যবধান; রাত = বাকি ২৪ ঘণ্টা। widget_fajr_ms/widget_maghrib_ms

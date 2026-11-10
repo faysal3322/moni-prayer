@@ -176,7 +176,7 @@
 
             <TextView
                 android:id="@+id/widget_waqt_name"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#5CFFA8"
@@ -185,6 +185,11 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="30sp"
+                android:maxLines="1"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="13sp"
+                android:autoSizeMaxTextSize="30sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 

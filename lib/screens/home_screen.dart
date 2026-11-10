@@ -2581,37 +2581,56 @@ class _ClockCardState extends State<_ClockCard> with SingleTickerProviderStateMi
                       ),
                       const SizedBox(height: 6),
                       // ইংরেজি তারিখ
-                      Text(
-                        DateHelper.formatGregorian(now, bangla: isBn),
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          color: AppTheme.heroText,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          DateHelper.formatGregorian(now, bangla: isBn),
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: AppTheme.heroText,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
                       // হিজরি তারিখ
-                      Text(
-                        widget.hijriDate.isEmpty
-                            ? DateHelper.toHijri(now, bangla: isBn)
-                            : widget.hijriDate,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          color: Color(0xFFFFEB3B),
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          widget.hijriDate.isEmpty
+                              ? DateHelper.toHijri(now, bangla: isBn)
+                              : widget.hijriDate,
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Color(0xFFFFEB3B),
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
                       // বাংলা তারিখ + ঋতু
-                      Text(
-                        DateHelper.toBanglaWithSeason(now),
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          color: Color(0xFFFF80AB),
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                      // স্ক্রিন ছোট হলে লেখা নিজে ছোট হয়ে এক লাইনে থাকবে, ভাঙবে না
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          DateHelper.toBanglaWithSeason(now),
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Color(0xFFFF80AB),
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

@@ -630,7 +630,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         // — উপরে ঘোষিত isBn/is24Hour ব্যবহার করে।
         val waqtInfo = computeWaqtInfo(prefs, now.timeInMillis, isBn, is24Hour)
         if (waqtInfo != null) {
-            views.setTextBn(R.id.widget_waqt_name, waqtInfo.name)
+            // "/"-এর পর লাইন ভাঙা বন্ধ (U+2060 শূন্য-প্রস্থের জোড়ক): "দুহা/চাশত" এক লাইনে থাকবে;
+            // আর স্পেসযুক্ত লম্বা নাম ("নিষিদ্ধ সময় (যাওয়াল)") স্পেসে ভেঙে দুই লাইনে যাবে।
+            views.setTextBn(R.id.widget_waqt_name, waqtInfo.name.replace("/", "/\u2060"))
             views.setTextBn(R.id.widget_waqt_range, waqtInfo.range)
             views.setTextBn(R.id.widget_waqt_remaining_label, if (isBn) "ওয়াক্ত বাকি" else "Time left")
             val diffMs = waqtInfo.endMs - now.timeInMillis

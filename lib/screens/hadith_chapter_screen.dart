@@ -52,7 +52,7 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
   String _plainText(HadithEntry h) {
     final b = StringBuffer()
       ..writeln('${widget.book.name} — ${_isBn ? 'হাদিস' : 'Hadith'}: ${widget.lang.toLocalNum(h.number)}')
-      ..writeln(_narratedBy(h))
+      ..writeln(h.narrator.trim().isEmpty ? '' : _narratedBy(h))
       ..writeln()
       ..writeln(h.paragraphs.join('\n\n'));
     return b.toString().trim();
@@ -314,11 +314,13 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            _narratedBy(h),
-            style: TextStyle(color: _green, fontSize: _fontSize, height: 1.6),
-          ),
-          const SizedBox(height: 12),
+          if (h.narrator.trim().isNotEmpty) ...[
+            Text(
+              _narratedBy(h),
+              style: TextStyle(color: _green, fontSize: _fontSize, height: 1.6),
+            ),
+            const SizedBox(height: 12),
+          ],
           for (int i = 0; i < h.paragraphs.length; i++)
             Padding(
               padding: EdgeInsets.only(bottom: i == h.paragraphs.length - 1 ? 0 : 10),

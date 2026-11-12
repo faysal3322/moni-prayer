@@ -41,6 +41,7 @@ flutter:
     - assets/fonts/
     - assets/audio/
     - assets/database/
+    - assets/hadith/bukhari/
   fonts:
     - family: ScheherazadeNew
       fonts:

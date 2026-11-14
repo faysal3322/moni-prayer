@@ -14,6 +14,7 @@ import 'package:flutter/services.dart' show rootBundle;
 ///   "hadiths": [
 ///     {
 ///       "number": 1,                       // হাদিস নম্বর
+///       "number_to": 2,                    // ঐচ্ছিক — দুই হাদিস একসাথে থাকলে শেষ নম্বর (১৯২৫ - ১৯২৬)
 ///       "narrator": "উমার ইবনুল খাত্তাব (রাঃ)",  // "থেকে বর্ণিত:" স্ক্রিন নিজে বসায়
 ///       "text": ["প্রথম অনুচ্ছেদ", "দ্বিতীয় অনুচ্ছেদ"],  // প্রতিটি অনুচ্ছেদ আলাদা
 ///       "footnote": "(৫৪, ২৫২৯ ...)",      // না থাকলে null
@@ -35,6 +36,9 @@ class HadithHeading {
 
 class HadithEntry {
   final int number;
+
+  /// দুটি হাদিস একসাথে একটি কার্ডে থাকলে শেষ হাদিসের নম্বর, নাহলে null
+  final int? numberTo;
   final String narrator;
   final List<String> paragraphs;
   final String? footnote;
@@ -43,6 +47,7 @@ class HadithEntry {
 
   const HadithEntry({
     required this.number,
+    this.numberTo,
     required this.narrator,
     required this.paragraphs,
     this.footnote,
@@ -55,6 +60,7 @@ class HadithEntry {
     final fn = (j['footnote'] as String?)?.trim();
     return HadithEntry(
       number: j['number'] as int,
+      numberTo: j['number_to'] as int?,
       narrator: (j['narrator'] as String?) ?? '',
       paragraphs: ((j['text'] as List?) ?? const []).map((e) => e.toString()).toList(),
       footnote: (fn == null || fn.isEmpty) ? null : fn,

@@ -8,6 +8,12 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import 'hadith_books_screen.dart' show HexBadge;
 
+/// হাদিস নম্বর দেখানোর লেবেল — দুই হাদিস একসাথে থাকলে "১৯২৫ - ১৯২৬"
+String _hadithNumLabel(AppLanguage lang, HadithEntry h) {
+  final from = lang.toLocalNum(h.number);
+  return h.numberTo == null ? from : '$from - ${lang.toLocalNum(h.numberTo!)}';
+}
+
 /// অধ্যায়ের ভেতরের পাতা — অধ্যায়-শিরোনাম কার্ড + হাদিসের কার্ড (শুধু বাংলা অনুবাদ)।
 /// হাদিসের ডেটা আসে lib/data/hadith_content.dart-এর মাধ্যমে assets/hadith/... JSON থেকে।
 class HadithChapterScreen extends StatefulWidget {
@@ -51,7 +57,7 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
   // ── শেয়ার / কপির টেক্সট ──
   String _plainText(HadithEntry h) {
     final b = StringBuffer()
-      ..writeln('${widget.book.name} — ${_isBn ? 'হাদিস' : 'Hadith'}: ${widget.lang.toLocalNum(h.number)}')
+      ..writeln('${widget.book.name} — ${_isBn ? 'হাদিস' : 'Hadith'}: ${_hadithNumLabel(widget.lang, h)}')
       ..writeln(h.narrator.trim().isEmpty ? '' : _narratedBy(h))
       ..writeln()
       ..writeln(h.paragraphs.join('\n\n'));
@@ -270,7 +276,7 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
                             fontSize: 19,
                             fontWeight: FontWeight.bold)),
                     Text(
-                      '${_isBn ? 'হাদিস' : 'Hadith'}: ${lang.toLocalNum(h.number)}',
+                      '${_isBn ? 'হাদিস' : 'Hadith'}: ${_hadithNumLabel(lang, h)}',
                       style: const TextStyle(
                           color: _green, fontSize: 16, fontWeight: FontWeight.bold),
                     ),

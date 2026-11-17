@@ -1991,6 +1991,15 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   /// হোমের ক্যাটাগরি গ্রিডের আইটেম। নতুন ক্যাটাগরি চাইলে এখানে একটা
   /// CategoryItem যোগ করুন। কোরআন ও ৯৯ নাম নিচের বারের ট্যাব খোলে,
   /// বাকিগুলো আলাদা পেজ হিসেবে খোলে (পেছনে তীর দিয়ে হোমে ফেরা যায়)।
+  void _comingSoon(AppLanguage lang) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(lang.isBn ? 'শীঘ্রই আসছে' : 'Coming soon'),
+        duration: const Duration(seconds: 1),
+      ));
+  }
+
   List<CategoryItem> _categoryItems(AppLanguage lang) {
     final isBn = lang.isBn;
     return [
@@ -2001,10 +2010,23 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         onTap: () => _openPage(NaflScreen(lang: lang)),
       ),
       CategoryItem(
-        label: isBn ? 'ক্যালেন্ডার' : 'Calendar',
-        icon: Icons.calendar_month,
-        gradient: const [Color(0xFF42A5F5), Color(0xFF1565C0)],
-        onTap: () => _openPage(CalendarScreen(lang: lang, onDataChanged: widget.onRefresh)),
+        label: isBn ? 'রোজা' : 'Fasting',
+        icon: Icons.nights_stay,
+        gradient: const [Color(0xFF5C6BC0), Color(0xFF283593)],
+        onTap: () => _openPage(RozaScreen(lang: lang)),
+      ),
+      // TODO: হজ্ব পেজ তৈরি হলে এখানে সেটি খুলুন
+      CategoryItem(
+        label: isBn ? 'হজ্ব' : 'Hajj',
+        icon: Icons.account_balance,
+        gradient: const [Color(0xFF8D6E63), Color(0xFF4E342E)],
+        onTap: () => _comingSoon(lang),
+      ),
+      CategoryItem(
+        label: isBn ? 'যাকাত' : 'Zakat',
+        icon: Icons.volunteer_activism,
+        gradient: const [Color(0xFFEC407A), Color(0xFFAD1457)],
+        onTap: () => _openPage(ZakatScreen(lang: lang)),
       ),
       CategoryItem(
         label: isBn ? 'কোরআন' : 'Quran',
@@ -2031,16 +2053,24 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         onTap: () => widget.onSelectTab(2),
       ),
       CategoryItem(
-        label: isBn ? 'যাকাত' : 'Zakat',
-        icon: Icons.volunteer_activism,
-        gradient: const [Color(0xFFEC407A), Color(0xFFAD1457)],
-        onTap: () => _openPage(ZakatScreen(lang: lang)),
+        label: isBn ? 'ক্যালেন্ডার' : 'Calendar',
+        icon: Icons.calendar_month,
+        gradient: const [Color(0xFF42A5F5), Color(0xFF1565C0)],
+        onTap: () => _openPage(CalendarScreen(lang: lang, onDataChanged: widget.onRefresh)),
       ),
+      // TODO: কিবলা পেজ তৈরি হলে এখানে সেটি খুলুন
       CategoryItem(
-        label: isBn ? 'রোজা' : 'Fasting',
-        icon: Icons.nights_stay,
-        gradient: const [Color(0xFF5C6BC0), Color(0xFF283593)],
-        onTap: () => _openPage(RozaScreen(lang: lang)),
+        label: isBn ? 'কিবলা' : 'Qibla',
+        icon: Icons.explore,
+        gradient: const [Color(0xFF26C6DA), Color(0xFF00838F)],
+        onTap: () => _comingSoon(lang),
+      ),
+      // TODO: মসজিদ (কাছের মসজিদ) পেজ তৈরি হলে এখানে সেটি খুলুন
+      CategoryItem(
+        label: isBn ? 'মসজিদ' : 'Mosque',
+        icon: Icons.place,
+        gradient: const [Color(0xFFEF5350), Color(0xFFC62828)],
+        onTap: () => _comingSoon(lang),
       ),
     ];
   }

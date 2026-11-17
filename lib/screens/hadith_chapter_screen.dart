@@ -6,6 +6,8 @@ import '../data/hadith_chapters_data.dart';
 import '../data/hadith_content.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import '../utils/hadith_prefs.dart';
+import '../widgets/anchored_list.dart';
 import 'hadith_books_screen.dart' show HexBadge;
 
 /// হাদিস নম্বর দেখানোর লেবেল — দুই হাদিস একসাথে থাকলে "১৯২৫ - ১৯২৬"
@@ -20,11 +22,15 @@ class HadithChapterScreen extends StatefulWidget {
   final HadithBook book;
   final HadithChapter chapter;
   final AppLanguage lang;
+
+  /// "সর্বশেষ পঠিত অবস্থান" থেকে খুললে — এই হাদিস নম্বরে সরাসরি চলে যাবে।
+  final int? jumpToNumber;
   const HadithChapterScreen({
     super.key,
     required this.book,
     required this.chapter,
     required this.lang,
+    this.jumpToNumber,
   });
 
   @override
@@ -40,10 +46,29 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
   late final Future<List<HadithEntry>?> _future;
   double _fontSize = 18;
 
+  // যে হাদিস (কার্ড) থেকে লিস্ট শুরু হবে — "সর্বশেষ পঠিত" থেকে এলে সেটির ইনডেক্স
+  int _startIndex = 0;
+
   @override
   void initState() {
     super.initState();
-    _future = HadithContent.load(widget.book.id, widget.chapter.number);
+    _future = HadithContent.load(widget.book.id, widget.chapter.number).then((items) {
+      if (items != null && items.isNotEmpty) {
+        final n = widget.jumpToNumber;
+        var idx = 0;
+        if (n != null) {
+          final f = items.indexWhere((h) =>
+              h.number == n ||
+              (h.numberTo != null && n >= h.number && n <= h.numberTo!));
+          if (f >= 0) idx = f;
+        }
+        _startIndex = idx;
+        // অধ্যায় খুললেই এটি "সর্বশেষ পঠিত" হিসেবে সেভ হয় (কোরআনের সূরার মতো)
+        HadithPrefs.setBooksLastRead(
+            widget.book.id, widget.chapter.number, items[idx].number);
+      }
+      return items;
+    });
   }
 
   @override
@@ -188,10 +213,16 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
               if (items == null) return _comingSoon();
               return Stack(
                 children: [
-                  ListView.builder(
+                  AnchoredList(
                     controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 40),
+                    startIndex: _startIndex,
+                    horizontalPadding: 14,
+                    topPadding: 16,
+                    bottomPadding: 40,
                     itemCount: items.length,
+                    // স্ক্রল থামলে উপরে দৃশ্যমান হাদিসটি "সর্বশেষ পঠিত" হিসেবে সেভ
+                    onTopIndexChanged: (i) => HadithPrefs.setBooksLastRead(
+                        widget.book.id, widget.chapter.number, items[i].number),
                     itemBuilder: (_, i) => Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -374,7 +405,7 @@ class _HadithChapterScreenState extends State<HadithChapterScreen> {
             children: [
               InkWell(
                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(28)),
-                onTap: () => _scroll.animateTo(0,
+                onTap: () => _scroll.animateTo(_scroll.position.minScrollExtent,
                     duration: const Duration(milliseconds: 400), curve: Curves.easeOut),
                 child: const Padding(
                   padding: EdgeInsets.fromLTRB(0, 12, 0, 4),

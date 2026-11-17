@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import '../data/hadith_data.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import '../utils/hadith_prefs.dart';
+import '../widgets/anchored_list.dart';
+import '../widgets/hadith_last_read_card.dart';
 
 /// বিষয়ভিত্তিক হাদিস স্ক্রিন — ডেটা আসে lib/data/hadith_data.dart থেকে।
-/// সার্চ বক্স + ক্যাটাগরি ফিল্টার + কার্ড লিস্ট। নতুন ডেটা যোগ করলে
-/// এই ফাইলে কিছু বদলাতে হবে না।
+/// সার্চ বক্স + "সর্বশেষ পঠিত অবস্থান" কার্ড + ক্যাটাগরি ফিল্টার + কার্ড লিস্ট।
+/// নতুন ডেটা যোগ করলে এই ফাইলে কিছু বদলাতে হবে না।
+/// কার্ডে ট্যাপ করলে লিস্ট সরাসরি ঐ হাদিসে চলে যায় (কোরআনের মতো)।
 class HadithSubjectScreen extends StatefulWidget {
   final AppLanguage lang;
   const HadithSubjectScreen({super.key, required this.lang});
@@ -18,6 +22,46 @@ class _HadithSubjectScreenState extends State<HadithSubjectScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _query = '';
   String? _category;
+
+  // সর্বশেষ পঠিত হাদিসের ইনডেক্স (kHadithList-এ) — না থাকলে null
+  int? _lastIndex;
+  // লিস্ট যে হাদিস থেকে শুরু হবে; _epoch বদলালে লিস্ট নতুন করে সেই জায়গায় সাজে
+  int _startIndex = 0;
+  int _epoch = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastRead();
+  }
+
+  Future<void> _loadLastRead() async {
+    final idx = await HadithPrefs.getTopicLastReadIndex(kHadithList);
+    if (mounted) setState(() => _lastIndex = idx);
+  }
+
+  void _jumpToLastRead() {
+    final idx = _lastIndex;
+    if (idx == null) return;
+    FocusScope.of(context).unfocus();
+    _searchCtrl.clear();
+    setState(() {
+      _query = '';
+      _category = null;
+      _startIndex = idx;
+      _epoch++;
+    });
+  }
+
+  // স্ক্রল থামলে উপরে দৃশ্যমান হাদিসটি "সর্বশেষ পঠিত" হিসেবে সেভ
+  void _onTopChanged(List<Hadith> items, int i) {
+    if (i < 0 || i >= items.length) return;
+    final h = items[i];
+    final full = kHadithList.indexOf(h);
+    final idx = full < 0 ? i : full;
+    HadithPrefs.setTopicLastRead(h, idx);
+    if (mounted) setState(() => _lastIndex = idx);
+  }
 
   @override
   void dispose() {
@@ -58,7 +102,10 @@ class _HadithSubjectScreenState extends State<HadithSubjectScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
               controller: _searchCtrl,
-              onChanged: (v) => setState(() => _query = v),
+              onChanged: (v) => setState(() {
+                _query = v;
+                _startIndex = 0;
+              }),
               style: TextStyle(color: AppTheme.textPrimary),
               decoration: InputDecoration(
                 hintText: isBn ? 'হাদিস খুঁজুন...' : 'Search hadith...',
@@ -78,6 +125,17 @@ class _HadithSubjectScreenState extends State<HadithSubjectScreen> {
               ),
             ),
           ),
+          // "সর্বশেষ পঠিত অবস্থান" — সার্চ/ফিল্টার চলাকালীন দেখানো হয় না
+          if (_lastIndex != null && _query.trim().isEmpty && _category == null)
+            Builder(builder: (_) {
+              final h = kHadithList[_lastIndex!];
+              return HadithLastReadCard(
+                isBn: isBn,
+                title: h.category.trim().isNotEmpty ? h.category.trim() : h.reference,
+                subtitle: h.bangla.replaceAll('\n', ' '),
+                onTap: _jumpToLastRead,
+              );
+            }),
           if (cats.length > 1)
             SizedBox(
               height: 44,
@@ -85,17 +143,30 @@ class _HadithSubjectScreenState extends State<HadithSubjectScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
-                  _chip(isBn ? 'সব' : 'All', _category == null, () => setState(() => _category = null)),
-                  for (final c in cats) _chip(c, _category == c, () => setState(() => _category = c)),
+                  _chip(isBn ? 'সব' : 'All', _category == null, () => setState(() {
+                        _category = null;
+                        _startIndex = 0;
+                      })),
+                  for (final c in cats)
+                    _chip(c, _category == c, () => setState(() {
+                          _category = c;
+                          _startIndex = 0;
+                        })),
                 ],
               ),
             ),
           Expanded(
             child: items.isEmpty
                 ? _emptyState(isBn)
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                : AnchoredList(
+                    // ফিল্টার/সার্চ বদলালে বা কার্ড থেকে জাম্প করলে লিস্ট নতুন করে সাজে
+                    key: ValueKey('$_epoch|$_category|$_query'),
+                    startIndex: _startIndex,
+                    horizontalPadding: 16,
+                    topPadding: 8,
+                    bottomPadding: 24,
                     itemCount: items.length,
+                    onTopIndexChanged: (i) => _onTopChanged(items, i),
                     itemBuilder: (_, i) => _HadithCard(hadith: items[i], isBn: isBn),
                   ),
           ),

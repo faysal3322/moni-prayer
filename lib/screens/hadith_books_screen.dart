@@ -1,32 +1,100 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../data/hadith_books_data.dart';
+import '../data/hadith_chapters_data.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
+import '../utils/hadith_prefs.dart';
+import '../widgets/hadith_last_read_card.dart';
 import 'hadith_book_detail_screen.dart';
+import 'hadith_chapter_screen.dart';
 
 /// হাদিসের বইয়ের তালিকা — ডেটা আসে lib/data/hadith_books_data.dart থেকে।
-class HadithBooksScreen extends StatelessWidget {
+/// সবার উপরে "সর্বশেষ পঠিত অবস্থান" কার্ড — ট্যাপ করলে সরাসরি ঐ বই-অধ্যায়ের
+/// ঐ হাদিসে চলে যায় (কোরআনের মতো)।
+class HadithBooksScreen extends StatefulWidget {
   final AppLanguage lang;
   const HadithBooksScreen({super.key, required this.lang});
 
   @override
+  State<HadithBooksScreen> createState() => _HadithBooksScreenState();
+}
+
+class _HadithBooksScreenState extends State<HadithBooksScreen> {
+  HadithBook? _lastBook;
+  HadithChapter? _lastChapter;
+  int? _lastNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastRead();
+  }
+
+  Future<void> _loadLastRead() async {
+    final lr = await HadithPrefs.getBooksLastRead();
+    if (!mounted) return;
+    if (lr == null) {
+      setState(() => _lastBook = null);
+      return;
+    }
+    final bookIdx = kHadithBooks.indexWhere((b) => b.id == lr['book']);
+    if (bookIdx < 0) {
+      setState(() => _lastBook = null);
+      return;
+    }
+    final book = kHadithBooks[bookIdx];
+    final chapters = kHadithChapters[book.id] ?? const <HadithChapter>[];
+    final chIdx = chapters.indexWhere((c) => c.number == lr['chapter']);
+    setState(() {
+      _lastBook = book;
+      _lastChapter = chIdx >= 0 ? chapters[chIdx] : null;
+      _lastNumber = lr['number'] as int;
+    });
+  }
+
+  // ফেরার পর কার্ড আপডেট — push await করে তারপর রিলোড
+  Future<void> _push(Widget page) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    if (mounted) _loadLastRead();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final lang = widget.lang;
     final isBn = lang.isBn;
+    final hasLast = _lastBook != null && _lastChapter != null && _lastNumber != null;
+    final extra = hasLast ? 1 : 0;
+
     return Scaffold(
       appBar: AppBar(title: Text(isBn ? 'হাদিসের বই' : 'Hadith Books')),
       body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        itemCount: kHadithBooks.length,
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+        itemCount: kHadithBooks.length + extra,
         itemBuilder: (_, i) {
-          final book = kHadithBooks[i];
-          return _BookCard(
-            book: book,
-            lang: lang,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => HadithBookDetailScreen(book: book, lang: lang),
-              ),
+          if (hasLast && i == 0) {
+            final book = _lastBook!;
+            final ch = _lastChapter!;
+            return HadithLastReadCard(
+              isBn: isBn,
+              title: '${book.name} (${lang.toLocalNum(_lastNumber!)})',
+              subtitle: ch.name,
+              trailing: HexBadge(text: book.badge, color: book.color, size: 42),
+              onTap: () => _push(HadithChapterScreen(
+                book: book,
+                chapter: ch,
+                lang: lang,
+                jumpToNumber: _lastNumber,
+              )),
+            );
+          }
+          final book = kHadithBooks[i - extra];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _BookCard(
+              book: book,
+              lang: lang,
+              onTap: () => _push(HadithBookDetailScreen(book: book, lang: lang)),
             ),
           );
         },

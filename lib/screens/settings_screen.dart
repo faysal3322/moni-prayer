@@ -293,6 +293,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Backup & Restore
+          _sectionTitle(isBn ? 'ব্যাকআপ ও রিস্টোর' : 'Backup & Restore'),
+          const SizedBox(height: 8),
+          Text(
+            isBn
+                ? 'আপনার সমস্ত ডেটা (নামাজ, রোজা, আমার কোরআন কালেকশন, কোরআন সেটিংস ও যাকাত হিসাব সহ) Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
+                : 'Save all your data (prayers, roza, My Quran collections, Quran settings, and Zakat records) as a JSON file in your Download folder, or restore from one.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: ElevatedButton.icon(
+              onPressed: _restore,
+              icon: const Icon(Icons.restore),
+              label: Text(lang.restore),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cardBg, foregroundColor: AppTheme.gold),
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: ElevatedButton.icon(
+              onPressed: _backup,
+              icon: const Icon(Icons.backup),
+              label: Text(lang.backup),
+            )),
+          ]),
+
+          const SizedBox(height: 24),
+
           // Hijri Adjust
           _sectionTitle(isBn ? 'হিজরি তারিখ সংশোধন' : 'Hijri Date Adjustment'),
           const SizedBox(height: 4),
@@ -333,35 +360,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
-          Divider(color: AppTheme.divider),
-          const SizedBox(height: 16),
-
-          // Backup & Restore
-          _sectionTitle(isBn ? 'ব্যাকআপ ও রিস্টোর' : 'Backup & Restore'),
-          const SizedBox(height: 8),
-          Text(
-            isBn
-                ? 'আপনার সমস্ত ডেটা (নামাজ, রোজা, আমার কোরআন কালেকশন, কোরআন সেটিংস ও যাকাত হিসাব সহ) Download ফোল্ডারে JSON ফাইলে সেভ করুন বা সেখান থেকে পুনরুদ্ধার করুন।'
-                : 'Save all your data (prayers, roza, My Quran collections, Quran settings, and Zakat records) as a JSON file in your Download folder, or restore from one.',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: ElevatedButton.icon(
-              onPressed: _backup,
-              icon: const Icon(Icons.backup),
-              label: Text(lang.backup),
-            )),
-            const SizedBox(width: 12),
-            Expanded(child: ElevatedButton.icon(
-              onPressed: _restore,
-              icon: const Icon(Icons.restore),
-              label: Text(lang.restore),
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cardBg, foregroundColor: AppTheme.gold),
-            )),
-          ]),
 
           const SizedBox(height: 32),
           Center(child: Text(

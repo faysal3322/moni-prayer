@@ -16,7 +16,8 @@ class CategoryItem {
   });
 }
 
-/// বড় আইকন + বড় নামসহ ক্যাটাগরি গ্রিড (৩ কলাম)।
+/// মর্ডান ক্যাটাগরি গ্রিড: একটাই নরম কার্ডের ভেতরে ৪ কলাম।
+/// আইকন ছোট ও হালকা রঙের ব্যাকগ্রাউন্ডে (ডুয়োটোন স্টাইল), নাম আগের সাইজেই (১৫, বোল্ড)।
 /// নতুন ক্যাটাগরি যোগ করতে শুধু [items] লিস্টে একটা [CategoryItem] বাড়ান।
 class CategorySection extends StatelessWidget {
   final String title;
@@ -53,18 +54,36 @@ class CategorySection extends StatelessWidget {
             ],
           ),
         ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          itemCount: items.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.9,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppTheme.divider),
+            boxShadow: AppTheme.isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
-          itemBuilder: (_, i) => _CategoryTile(item: items[i]),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: items.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 0,
+              mainAxisExtent: 98,
+            ),
+            itemBuilder: (_, i) => _CategoryTile(item: items[i]),
+          ),
         ),
       ],
     );
@@ -77,58 +96,58 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.cardBg,
-      borderRadius: BorderRadius.circular(20),
-      elevation: AppTheme.isDark ? 0 : 1.5,
-      shadowColor: Colors.black26,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: item.onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.divider),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: item.gradient,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: item.gradient.last.withOpacity(0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
+    final isDark = AppTheme.isDark;
+    final accent = isDark ? item.gradient.first : item.gradient.last;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: item.onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // ছোট, নরম রঙের স্কুইর্কল + গ্রেডিয়েন্ট আইকন
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    item.gradient.first.withOpacity(isDark ? 0.28 : 0.16),
+                    item.gradient.last.withOpacity(isDark ? 0.18 : 0.08),
                   ],
                 ),
-                child: Icon(item.icon, color: Colors.white, size: 34),
+                border: Border.all(color: accent.withOpacity(0.18)),
               ),
-              const SizedBox(height: 10),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (r) => LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [item.gradient.first, item.gradient.last],
+                ).createShader(r),
+                child: Icon(item.icon, color: Colors.white, size: 27),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // নামের সাইজ আগের মতোই (১৫); জায়গা কম হলে নিজে ছোট হয়ে এক লাইনে থাকবে
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

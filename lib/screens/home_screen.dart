@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     1: ScrollController(),
     2: ScrollController(),
     3: ScrollController(),
+    4: ScrollController(),
   };
 
   @override
@@ -129,8 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final lang = AppLanguage(_lang);
     final isBn = lang.isBn;
-    // নিচের ফিক্সড বার: ০ = হোম, ১ = কোরআন, ২ = ৯৯ নাম, ৩ = সেটিংস।
-    // বাকি সব অপশন (ক্যালেন্ডার, নামাজ, দোয়া, যাকাত, হাদিস) হোমের
+    // নিচের ফিক্সড বার: ০ = হোম, ১ = কোরআন, ২ = হাদিস, ৩ = ৯৯ নাম, ৪ = সেটিংস।
+    // বাকি সব অপশন (ক্যালেন্ডার, নামাজ, দোয়া, যাকাত ইত্যাদি) হোমের
     // "ক্যাটাগরি" গ্রিড থেকে খোলে।
     final screens = [
       _HomeTab(
@@ -144,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onSelectTab: (i) => setState(() => _currentIndex = i),
       ),
       QuranScreen(lang: lang),
+      HadithScreen(lang: lang),
       NamesScreen(lang: lang),
       SettingsScreen(
         lang: lang,
@@ -162,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
           valueListenable: namesNavHidden,
           builder: (context, hidden, child) {
             // ৯৯ নাম ট্যাবে নিচে স্ক্রল করলে বার লুকিয়ে জায়গা বাড়ে
-            final hide = hidden && _currentIndex == 2;
+            final hide = hidden && _currentIndex == 3;
             return AnimatedSize(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeInOut,
@@ -186,6 +188,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.menu_book_outlined),
                 selectedIcon: const Icon(Icons.menu_book),
                 label: isBn ? 'কোরআন' : 'Quran'),
+            NavigationDestination(
+                icon: const Icon(Icons.auto_stories_outlined),
+                selectedIcon: const Icon(Icons.auto_stories),
+                label: isBn ? 'হাদিস' : 'Hadith'),
             NavigationDestination(
                 icon: const Icon(Icons.star_outline),
                 selectedIcon: const Icon(Icons.star),
@@ -211,7 +217,7 @@ class _HomeTab extends StatefulWidget {
   final int rozaPending;
   final VoidCallback onRefresh;
   final ScrollController scrollController;
-  /// নিচের নেভিগেশন বারের ট্যাব বদলায় (০ হোম, ১ কোরআন, ২ ৯৯ নাম, ৩ সেটিংস)
+  /// নিচের নেভিগেশন বারের ট্যাব বদলায় (০ হোম, ১ কোরআন, ২ হাদিস, ৩ ৯৯ নাম, ৪ সেটিংস)
   final void Function(int index) onSelectTab;
 
   const _HomeTab({
@@ -1989,7 +1995,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
   }
 
   /// হোমের ক্যাটাগরি গ্রিডের আইটেম। নতুন ক্যাটাগরি চাইলে এখানে একটা
-  /// CategoryItem যোগ করুন। কোরআন ও ৯৯ নাম নিচের বারের ট্যাব খোলে,
+  /// CategoryItem যোগ করুন। কোরআন, হাদিস ও ৯৯ নাম নিচের বারের ট্যাব খোলে,
   /// বাকিগুলো আলাদা পেজ হিসেবে খোলে (পেছনে তীর দিয়ে হোমে ফেরা যায়)।
   void _comingSoon(AppLanguage lang) {
     ScaffoldMessenger.of(context)
@@ -2038,7 +2044,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         label: isBn ? 'হাদিস' : 'Hadith',
         icon: Icons.auto_stories,
         gradient: const [Color(0xFFFF8F00), Color(0xFFE65100)],
-        onTap: () => _openPage(HadithScreen(lang: lang)),
+        onTap: () => widget.onSelectTab(2),
       ),
       CategoryItem(
         label: isBn ? 'দোয়া' : 'Dua',
@@ -2050,7 +2056,7 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         label: isBn ? '৯৯ নাম' : '99 Names',
         icon: Icons.star,
         gradient: const [Color(0xFFFFCA28), Color(0xFFF9A825)],
-        onTap: () => widget.onSelectTab(2),
+        onTap: () => widget.onSelectTab(3),
       ),
       CategoryItem(
         label: isBn ? 'ক্যালেন্ডার' : 'Calendar',

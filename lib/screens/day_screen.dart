@@ -3,6 +3,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
 import '../utils/database_helper.dart';
+import '../utils/future_deed_guard.dart';
 
 class DayScreen extends StatefulWidget {
   final DateTime date;
@@ -33,6 +34,10 @@ class _DayScreenState extends State<DayScreen> {
 
   final List<String> _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
+  // আজকের ওয়াক্তের শুরুর সময় — আজকের যে নামাজের সময় এখনও হয়নি তা আগেভাগে
+  // আদায়/কাযা চিহ্নিত করা আটকাতে লাগে।
+  Map<String, DateTime>? _todayStarts;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +50,9 @@ class _DayScreenState extends State<DayScreen> {
     }
     _pageController = PageController(initialPage: _currentIndex);
     _loadAll();
+    FutureDeedGuard.todayPrayerStarts().then((v) {
+      if (mounted) setState(() => _todayStarts = v);
+    });
   }
 
   Future<void> _loadAll() async {
@@ -65,6 +73,25 @@ class _DayScreenState extends State<DayScreen> {
     }
   }
 
+  // নামাজের গোল বাটনে ট্যাপ: ভবিষ্যতের তারিখ বা আজকের যে ওয়াক্ত এখনও শুরু হয়নি
+  // তা চিহ্নিত করা যাবে না। (আগে ভুল করে চিহ্ন পড়ে গেলে সেটি সরানো যাবে।)
+  Future<void> _onPrayerTap(DateTime date, String prayer, String status) async {
+    final notYet = FutureDeedGuard.isFutureDay(date) ||
+        (FutureDeedGuard.isToday(date) &&
+            FutureDeedGuard.prayerNotStarted(_todayStarts, prayer));
+    if (notYet) {
+      final dateKey = DateHelper.dateKey(date);
+      if (_prayerStatusCache[dateKey]?[prayer] != null) {
+        await DatabaseHelper.clearPrayerStatus(dateKey, prayer);
+        await _loadDate(date);
+        widget.onDataChanged();
+      }
+      if (mounted) FutureDeedGuard.showWarning(context, widget.lang.isBn);
+      return;
+    }
+    await _setPrayerStatus(date, prayer, status);
+  }
+
   Future<void> _setPrayerStatus(DateTime date, String prayer, String status) async {
     final dateKey = DateHelper.dateKey(date);
     await DatabaseHelper.setPrayerStatus(dateKey, prayer, status);
@@ -73,6 +100,11 @@ class _DayScreenState extends State<DayScreen> {
   }
 
   Future<void> _setRozaStatus(DateTime date, String status) async {
+    // ভবিষ্যতের তারিখের রোজা আগে থেকে চিহ্নিত করা যাবে না
+    if (FutureDeedGuard.isFutureDay(date)) {
+      if (mounted) FutureDeedGuard.showWarning(context, widget.lang.isBn);
+      return;
+    }
     final dateKey = DateHelper.dateKey(date);
     // Toggle: if same status clicked again, remove it
     final current = _rozaStatusCache[dateKey];
@@ -113,7 +145,7 @@ class _DayScreenState extends State<DayScreen> {
         onPageChanged: (index) => setState(() => _currentIndex = index),
         itemBuilder: (context, index) {
           final date = _dates[index];
-          final isFuture = date.isAfter(DateTime.now());
+          final isFuture = FutureDeedGuard.isFutureDay(date);
           final dateKey = DateHelper.dateKey(date);
           final prayerStatuses = _prayerStatusCache[dateKey] ?? {};
           final rozaStatus = _rozaStatusCache[dateKey];
@@ -184,8 +216,8 @@ class _DayScreenState extends State<DayScreen> {
                 lang: widget.lang,
                 disabled: isFuture,
                 isRoza: false,
-                onPrayed: () => _setPrayerStatus(date, prayer, 'prayed'),
-                onMissed: () => _setPrayerStatus(date, prayer, 'missed'),
+                onPrayed: () => _onPrayerTap(date, prayer, 'prayed'),
+                onMissed: () => _onPrayerTap(date, prayer, 'missed'),
               )),
 
               const SizedBox(height: 20),

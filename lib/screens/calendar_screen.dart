@@ -4,6 +4,7 @@ import '../utils/app_theme.dart';
 import '../utils/app_language.dart';
 import '../utils/date_helper.dart';
 import '../utils/database_helper.dart';
+import '../utils/future_deed_guard.dart';
 import 'day_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -83,7 +84,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool get _isBulkMode => _selectedBulkPrayers.isNotEmpty || _bulkRoza;
 
   void _toggleDate(DateTime date) {
-    if (date.isAfter(DateTime.now())) return;
+    if (FutureDeedGuard.isFutureDay(date)) {
+      FutureDeedGuard.showWarning(context, widget.lang.isBn);
+      return;
+    }
     setState(() {
       final existing = _bulkSelectedDates.where((d) => isSameDay(d, date)).toList();
       if (existing.isNotEmpty) {
@@ -122,9 +126,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (confirmed != true) return;
 
+    // আজকের যে নামাজের সময় এখনও শুরু হয়নি সেটি কাযা চিহ্নিত করা যাবে না (বাদ যাবে)
+    final todayStarts = _bulkSelectedDates.any(FutureDeedGuard.isToday)
+        ? await FutureDeedGuard.todayPrayerStarts()
+        : null;
+    var skippedFuture = false;
+
     for (final date in _bulkSelectedDates) {
+      if (FutureDeedGuard.isFutureDay(date)) {
+        skippedFuture = true;
+        continue;
+      }
       final key = DateHelper.dateKey(date);
       for (final prayer in _selectedBulkPrayers) {
+        if (FutureDeedGuard.isToday(date) &&
+            FutureDeedGuard.prayerNotStarted(todayStarts, prayer)) {
+          skippedFuture = true;
+          continue;
+        }
         await DatabaseHelper.setPrayerStatus(key, prayer, 'missed');
       }
       if (_bulkRoza) await DatabaseHelper.setRozaStatus(key, 'missed');
@@ -140,7 +159,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _loadSummary();
     widget.onDataChanged();
 
-    if (mounted) {
+    if (mounted && skippedFuture) {
+      // ভবিষ্যতের কিছু আমল বাদ গেছে — বাকিগুলো সেভ হয়েছে
+      FutureDeedGuard.showWarning(context, widget.lang.isBn);
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(widget.lang.isBn ? 'কাযা সফলভাবে সেভ হয়েছে!' : 'Qaza saved successfully!'),
         backgroundColor: AppTheme.completed,
@@ -295,7 +317,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             return isSameDay(_selectedDay, day);
           },
           onDaySelected: (selected, focused) {
-            if (selected.isAfter(DateTime.now())) return;
+            // ভবিষ্যতের তারিখে ট্যাপ করলে খোলা যাবে না, বার্তা দেখাবে
+            if (FutureDeedGuard.isFutureDay(selected)) {
+              FutureDeedGuard.showWarning(context, widget.lang.isBn);
+              return;
+            }
             if (_isBulkMode) {
               _toggleDate(selected);
               setState(() => _focusedDay = focused);
@@ -365,7 +391,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               final isBulkSelected = _bulkSelectedDates.any((d) => isSameDay(d, day));
               return GestureDetector(
                 onLongPressStart: _isBulkMode ? (_) {
-                  if (!day.isAfter(DateTime.now()) &&
+                  if (!FutureDeedGuard.isFutureDay(day) &&
                       !_bulkSelectedDates.any((d) => isSameDay(d, day))) {
                     setState(() => _bulkSelectedDates.add(day));
                   }

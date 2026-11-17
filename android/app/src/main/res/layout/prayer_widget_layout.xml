@@ -185,9 +185,10 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="30sp"
-                android:maxLines="2"
+                android:maxLines="1"
+                android:singleLine="true"
                 android:autoSizeTextType="uniform"
-                android:autoSizeMinTextSize="20sp"
+                android:autoSizeMinTextSize="8sp"
                 android:autoSizeMaxTextSize="30sp"
                 android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
@@ -195,7 +196,7 @@
 
             <TextView
                 android:id="@+id/widget_waqt_range"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="-2dp"
                 android:text=""
@@ -205,13 +206,17 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="19sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="19sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
-                android:textStyle="bold"
-                android:singleLine="true" />
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_remaining_label"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:text=""
@@ -221,12 +226,17 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="18sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="18sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/widget_waqt_remaining_value"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:text=""
@@ -236,6 +246,11 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="21sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="21sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold" />
 
@@ -259,10 +274,13 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="30sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="30sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
-                android:singleLine="true"
-                android:ellipsize="end"
                 android:gravity="end" />
 
             <TextView
@@ -277,6 +295,11 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="18sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="18sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />
@@ -293,11 +316,14 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="18sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="18sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
-                android:gravity="end"
-                android:singleLine="true"
-                android:ellipsize="end" />
+                android:gravity="end" />
 
             <TextView
                 android:id="@+id/widget_bangla_date"
@@ -311,6 +337,11 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:textSize="18sp"
+                android:singleLine="true"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="18sp"
+                android:autoSizeStepGranularity="1sp"
                 android:fontFamily="@font/bangla_widget"
                 android:textStyle="bold"
                 android:gravity="end" />

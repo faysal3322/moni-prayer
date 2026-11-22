@@ -23,6 +23,7 @@ import 'roza_screen.dart';
 import 'dua_screen.dart';
 import 'quran_screen.dart';
 import 'zakat_screen.dart';
+import 'umrah_screen.dart';
 import 'hadith_screen.dart';
 import '../widgets/category_section.dart';
 
@@ -2027,6 +2028,12 @@ class _HomeTabState extends State<_HomeTab> with WidgetsBindingObserver {
         icon: Icons.account_balance,
         gradient: const [Color(0xFF8D6E63), Color(0xFF4E342E)],
         onTap: () => _comingSoon(lang),
+      ),
+      CategoryItem(
+        label: isBn ? 'ওমরাহ' : 'Umrah',
+        icon: Icons.view_in_ar,
+        gradient: const [Color(0xFF9CCC65), Color(0xFF558B2F)],
+        onTap: () => _openPage(UmrahScreen(lang: lang)),
       ),
       CategoryItem(
         label: isBn ? 'যাকাত' : 'Zakat',

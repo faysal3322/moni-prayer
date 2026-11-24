@@ -4,6 +4,8 @@ import '../data/umrah_data.dart';
 import '../utils/app_language.dart';
 import '../utils/app_theme.dart';
 import '../utils/umrah_progress.dart';
+import '../utils/umrah_audio_helper.dart';
+import '../widgets/umrah_audio_card.dart';
 import '../widgets/umrah_widgets.dart';
 
 /// একটি ধাপের পাতা: প্রতিটি কাজের আগে গোল টিক-বক্স। সব টিক হলে "পরের ধাপ" বাটন চালু হয়।
@@ -196,6 +198,15 @@ class _UmrahStepScreenState extends State<UmrahStepScreen> {
                         ],
                       ),
                     ),
+                    if (UmrahAudioHelper.enabledSteps.contains(widget.index + 1))
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: UmrahAudioCard(
+                          key: ValueKey('audio_${widget.index}'),
+                          stepNo: widget.index + 1,
+                          lang: widget.lang,
+                        ),
+                      ),
                     if (s.counter != UmrahCounter.none)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -412,7 +423,7 @@ class _UmrahStepScreenState extends State<UmrahStepScreen> {
   }
 
   Widget _bottomBar(UmrahStep s, bool done, bool ready, int checked, int total) {
-    final canGo = done || ready;
+    final canGo = done || ready || UmrahProgress.kUnlockAllSteps;
     final nextTitle =
         _isLast ? null : UmrahData.steps[widget.index + 1].title;
 

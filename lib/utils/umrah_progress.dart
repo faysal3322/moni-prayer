@@ -9,6 +9,10 @@ import '../data/umrah_data.dart';
 /// - [checks]    : টিক দেওয়া আইটেম ("stepId:index")
 /// - [tawaf]/[sai]: চক্কর গণনা (০–৭)
 class UmrahProgress extends ChangeNotifier {
+  /// ⚠️ সাময়িক: true থাকলে সব ধাপ খোলা (অডিও সংযোজনের কাজের জন্য)।
+  /// কাজ শেষে false করলেই আগের নিয়ম ফিরে আসবে — এক ধাপ শেষ না করলে পরের ধাপে যাওয়া যাবে না।
+  static const bool kUnlockAllSteps = true;
+
   UmrahProgress._();
   static final UmrahProgress instance = UmrahProgress._();
 
@@ -64,7 +68,7 @@ class UmrahProgress extends ChangeNotifier {
   // ── ধাপের অবস্থা ──
   bool isStepDone(int i) => i < current;
   bool isStepCurrent(int i) => i == current;
-  bool isStepLocked(int i) => i > current;
+  bool isStepLocked(int i) => !kUnlockAllSteps && i > current;
 
   bool isChecked(String stepId, int idx) => checks.contains('$stepId:$idx');
 

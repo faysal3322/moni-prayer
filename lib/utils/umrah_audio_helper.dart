@@ -9,6 +9,13 @@ import 'package:permission_handler/permission_handler.dart';
 ///   /storage/emulated/0/Music/Recitations/Umrah MP3/2 Putting on Ehram/*.mp3 ...
 /// ফোল্ডারের নামের শুরুর সংখ্যা = ধাপ নম্বর। অডিও অ্যাপের ভেতরে নেই,
 /// তাই অ্যাপের সাইজ বাড়ে না।
+/// একটি ফোল্ডারের অডিও-গুচ্ছ (যেমন "Round 1")। [title] null হলে ধাপের মূল ফোল্ডারের ফাইল।
+class UmrahAudioGroup {
+  final String? title;
+  final List<File> files;
+  const UmrahAudioGroup(this.title, this.files);
+}
+
 class UmrahAudioHelper {
   UmrahAudioHelper._();
 
@@ -52,6 +59,39 @@ class UmrahAudioHelper {
       }
     } catch (_) {}
     return null;
+  }
+
+  /// ধাপের অডিও — মূল ফোল্ডারের ফাইল + ভেতরের সাব-ফোল্ডার (Round 1, Round 2 …)
+  /// প্রতিটি আলাদা গুচ্ছ হিসেবে (ক্রম অনুযায়ী)।
+  static Future<List<UmrahAudioGroup>> groupsForStep(int stepNo) async {
+    final dir = await folderForStep(stepNo);
+    if (dir == null) return [];
+    final out = <UmrahAudioGroup>[];
+    await _collect(dir, null, out);
+    return out;
+  }
+
+  static Future<void> _collect(
+      Directory dir, String? title, List<UmrahAudioGroup> out) async {
+    final files = <File>[];
+    final subs = <Directory>[];
+    try {
+      await for (final e in dir.list(followLinks: false)) {
+        if (e is File) {
+          final low = e.path.toLowerCase();
+          if (_exts.any(low.endsWith)) files.add(e);
+        } else if (e is Directory) {
+          subs.add(e);
+        }
+      }
+    } catch (_) {}
+    files.sort((a, b) => _natural(a.path.split('/').last, b.path.split('/').last));
+    subs.sort((a, b) => _natural(a.path.split('/').last, b.path.split('/').last));
+    if (files.isNotEmpty) out.add(UmrahAudioGroup(title, files));
+    for (final d in subs) {
+      final name = d.path.split('/').last;
+      await _collect(d, title == null ? name : '$title › $name', out);
+    }
   }
 
   /// ধাপের অডিও ফাইল (নামের ক্রম অনুযায়ী)

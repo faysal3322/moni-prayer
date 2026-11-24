@@ -43,9 +43,12 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
   Duration _dur = Duration.zero;
   String? _error;
   final Set<String> _open = {}; // খোলা সেকশন (সব-সেকশন মোডে)
-  final Set<String> _collapsed = {}; // গুটানো সেকশন (চক্কর মোডে)
+  bool _cardOpen = false; // সাধারণ ধাপে পুরো অডিও তালিকা খোলা কি না (ডিফল্ট বন্ধ)
 
   bool get _bn => widget.lang.isBn;
+
+  /// সাব-ফোল্ডার ছাড়া সাধারণ ধাপ (সব ফাইল সরাসরি ধাপের ফোল্ডারে)
+  bool get _flat => _groups.isNotEmpty && _groups.every((g) => g.title == null);
   String _t(String bn, String en) => _bn ? bn : en;
 
   @override
@@ -184,7 +187,9 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _t('অডিও গাইড', 'Audio guide'),
+                  _flat
+                      ? '${_t('অডিও গাইড', 'Audio guide')}  (${widget.lang.toLocalNum(_files.length)})'
+                      : _t('অডিও গাইড', 'Audio guide'),
                   style: TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,
@@ -192,12 +197,28 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
                   ),
                 ),
               ),
-              IconButton(
-                tooltip: _t('আবার খুঁজুন', 'Refresh'),
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.refresh, size: 20, color: AppTheme.soft),
-                onPressed: () => _load(),
-              ),
+              if (!_loading && !_noPermission && _flat) ...[
+                // সব অডিও একটার পর একটা চালানোর বাটন
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _toggleGroup(0, _files.length),
+                  child: _playCircle(_current >= 0 && _playing),
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: () => setState(() => _cardOpen = !_cardOpen),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _arrow(_cardOpen),
+                  ),
+                ),
+              ] else
+                IconButton(
+                  tooltip: _t('আবার খুঁজুন', 'Refresh'),
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.refresh, size: 20, color: AppTheme.soft),
+                  onPressed: () => _load(),
+                ),
             ],
           ),
           if (_loading)
@@ -241,15 +262,14 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
       final rows = <Widget>[for (int i = from; i < end; i++) _row(i)];
 
       if (g.title == null) {
-        out.addAll(rows);
+        if (!_flat || _cardOpen) out.addAll(rows);
         continue;
       }
       final order = titled++;
       if (widget.activeGroup != null && order != widget.activeGroup) continue;
 
       final key = g.title!;
-      // চক্কর-ভিত্তিক হলে সেকশন শুরু থেকেই খোলা থাকবে
-      final open = _open.contains(key) || widget.activeGroup != null;
+      final open = _open.contains(key); // ডিফল্ট বন্ধ
       final groupPlaying = _current >= from && _current < end && _playing;
 
       out.add(
@@ -277,52 +297,18 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
                     InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: () => _toggleGroup(from, end),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: kUmrahGreen,
-                        ),
-                        child: Icon(
-                          groupPlaying ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _playCircle(groupPlaying),
                     ),
                     const SizedBox(width: 6),
-                    widget.activeGroup != null
-                        ? InkWell(
-                            onTap: () => setState(() {
-                              // চক্কর-ভিত্তিক সেকশনেও তালিকা লুকানো/দেখানো যাবে
-                              if (!_collapsed.remove(key)) _collapsed.add(key);
-                            }),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: AnimatedRotation(
-                                turns: _collapsed.contains(key) ? 0 : 0.5,
-                                duration: const Duration(milliseconds: 200),
-                                child: Icon(Icons.keyboard_arrow_down,
-                                    color: AppTheme.textPrimary),
-                              ),
-                            ),
-                          )
-                        : Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: AnimatedRotation(
-                              turns: open ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Icon(Icons.keyboard_arrow_down,
-                                  color: AppTheme.textPrimary),
-                            ),
-                          ),
+                    Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: _arrow(open),
+                    ),
                   ],
                 ),
               ),
             ),
-            if (widget.activeGroup != null
-                ? !_collapsed.contains(key)
-                : open)
+            if (open)
               ...rows,
           ],
         ),
@@ -330,6 +316,21 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
     }
     return out;
   }
+
+  Widget _playCircle(bool playing) => Container(
+        width: 40,
+        height: 40,
+        decoration:
+            const BoxDecoration(shape: BoxShape.circle, color: kUmrahGreen),
+        child: Icon(playing ? Icons.pause : Icons.play_arrow,
+            color: Colors.white),
+      );
+
+  Widget _arrow(bool open) => AnimatedRotation(
+        turns: open ? 0.5 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: Icon(Icons.keyboard_arrow_down, color: AppTheme.textPrimary),
+      );
 
   /// সেকশনের প্লে/পজ: সেকশনের অডিও চলছে হলে পজ/রিজিউম, নইলে প্রথমটি থেকে শুরু
   /// (একটি শেষ হলে পরেরটি নিজে চলে)।

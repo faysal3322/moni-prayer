@@ -25,7 +25,9 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
 
   bool _loading = true;
   bool _noPermission = false;
-  List<File> _files = [];
+  List<File> _files = []; // সব ফাইল (গুচ্ছ অনুযায়ী পরপর)
+  List<UmrahAudioGroup> _groups = [];
+  List<int> _groupEnd = []; // প্রতিটি ফাইল যে গুচ্ছে, তার শেষ ইনডেক্স (বাদে)
   int _current = -1;
   bool _playing = false;
   Duration _pos = Duration.zero;
@@ -76,10 +78,18 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
       });
       return;
     }
-    final files = await UmrahAudioHelper.filesForStep(widget.stepNo);
+    final groups = await UmrahAudioHelper.groupsForStep(widget.stepNo);
+    final files = <File>[];
+    final ends = <int>[];
+    for (final g in groups) {
+      files.addAll(g.files);
+      ends.addAll(List.filled(g.files.length, files.length));
+    }
     if (!mounted) return;
     setState(() {
       _noPermission = false;
+      _groups = groups;
+      _groupEnd = ends;
       _files = files;
       _loading = false;
     });
@@ -113,9 +123,9 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
     }
   }
 
-  /// একটি শেষ হলে পরেরটি নিজে থেকে চলবে
+  /// একটি শেষ হলে একই গুচ্ছের পরেরটি নিজে থেকে চলবে
   void _onCompleted() {
-    if (_current >= 0 && _current + 1 < _files.length) {
+    if (_current >= 0 && _current + 1 < _groupEnd[_current]) {
       _play(_current + 1);
     }
   }
@@ -181,9 +191,8 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
               'কোনো অডিও পাওয়া যায়নি। অডিও ফাইলগুলো Music › Recitations › Umrah MP3 › “${widget.stepNo} …” ফোল্ডারে রাখুন।',
               'No audio found. Put files in Music › Recitations › Umrah MP3 › "${widget.stepNo} …" folder.',
             ))
-          else ...[
-            for (int i = 0; i < _files.length; i++) _row(i),
-          ],
+          else
+            ..._buildGroups(),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -193,6 +202,44 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildGroups() {
+    final out = <Widget>[];
+    int start = 0;
+    for (final g in _groups) {
+      final from = start;
+      final rows = <Widget>[
+        for (int i = from; i < from + g.files.length; i++) _row(i),
+      ];
+      start += g.files.length;
+      if (g.title == null) {
+        out.addAll(rows);
+      } else {
+        final containsCurrent = _current >= from && _current < start;
+        out.add(
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: PageStorageKey('umrah_audio_${widget.stepNo}_${g.title}'),
+              initiallyExpanded: containsCurrent,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+              childrenPadding: const EdgeInsets.only(bottom: 4),
+              title: Text(
+                '${g.title}  (${widget.lang.toLocalNum(g.files.length)})',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              children: rows,
+            ),
+          ),
+        );
+      }
+    }
+    return out;
   }
 
   Widget _message(String text, {String? action, VoidCallback? onAction}) {

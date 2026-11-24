@@ -13,7 +13,16 @@ import 'umrah_widgets.dart';
 class UmrahAudioCard extends StatefulWidget {
   final int stepNo; // ১-ভিত্তিক ধাপ নম্বর
   final AppLanguage lang;
-  const UmrahAudioCard({super.key, required this.stepNo, required this.lang});
+
+  /// null হলে সব সেকশন দেখাবে। সংখ্যা দিলে (০-ভিত্তিক) শিরোনামওয়ালা সেকশনগুলোর
+  /// মধ্যে শুধু সেই ক্রমের সেকশনটি দেখাবে — যেমন ১ম চক্করে "Round 1"।
+  final int? activeGroup;
+  const UmrahAudioCard({
+    super.key,
+    required this.stepNo,
+    required this.lang,
+    this.activeGroup,
+  });
 
   @override
   State<UmrahAudioCard> createState() => _UmrahAudioCardState();
@@ -33,6 +42,8 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
   Duration _pos = Duration.zero;
   Duration _dur = Duration.zero;
   String? _error;
+  final Set<String> _open = {}; // খোলা সেকশন (সব-সেকশন মোডে)
+  final Set<String> _collapsed = {}; // গুটানো সেকশন (চক্কর মোডে)
 
   bool get _bn => widget.lang.isBn;
   String _t(String bn, String en) => _bn ? bn : en;
@@ -52,6 +63,21 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
       if (mounted) setState(() => _dur = d ?? Duration.zero);
     }));
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant UmrahAudioCard old) {
+    super.didUpdateWidget(old);
+    // চক্কর বদলালে আগের চক্করের অডিও থামিয়ে দিন
+    if (old.activeGroup != widget.activeGroup) {
+      _player.stop();
+      setState(() {
+        _current = -1;
+        _pos = Duration.zero;
+        _dur = Duration.zero;
+        _playing = false;
+      });
+    }
   }
 
   @override
@@ -207,39 +233,112 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
   List<Widget> _buildGroups() {
     final out = <Widget>[];
     int start = 0;
+    int titled = 0; // শিরোনামওয়ালা সেকশনের ক্রম
     for (final g in _groups) {
       final from = start;
-      final rows = <Widget>[
-        for (int i = from; i < from + g.files.length; i++) _row(i),
-      ];
       start += g.files.length;
+      final end = start;
+      final rows = <Widget>[for (int i = from; i < end; i++) _row(i)];
+
       if (g.title == null) {
         out.addAll(rows);
-      } else {
-        final containsCurrent = _current >= from && _current < start;
-        out.add(
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              key: PageStorageKey('umrah_audio_${widget.stepNo}_${g.title}'),
-              initiallyExpanded: containsCurrent,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-              childrenPadding: const EdgeInsets.only(bottom: 4),
-              title: Text(
-                '${g.title}  (${widget.lang.toLocalNum(g.files.length)})',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+        continue;
+      }
+      final order = titled++;
+      if (widget.activeGroup != null && order != widget.activeGroup) continue;
+
+      final key = g.title!;
+      // চক্কর-ভিত্তিক হলে সেকশন শুরু থেকেই খোলা থাকবে
+      final open = _open.contains(key) || widget.activeGroup != null;
+      final groupPlaying = _current >= from && _current < end && _playing;
+
+      out.add(
+        Column(
+          children: [
+            InkWell(
+              onTap: () => setState(() {
+                if (!_open.remove(key)) _open.add(key);
+              }),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${g.title}  (${widget.lang.toLocalNum(g.files.length)})',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    // সব অডিও একটার পর একটা চালানোর বাটন
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => _toggleGroup(from, end),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: kUmrahGreen,
+                        ),
+                        child: Icon(
+                          groupPlaying ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    widget.activeGroup != null
+                        ? InkWell(
+                            onTap: () => setState(() {
+                              // চক্কর-ভিত্তিক সেকশনেও তালিকা লুকানো/দেখানো যাবে
+                              if (!_collapsed.remove(key)) _collapsed.add(key);
+                            }),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: AnimatedRotation(
+                                turns: _collapsed.contains(key) ? 0 : 0.5,
+                                duration: const Duration(milliseconds: 200),
+                                child: Icon(Icons.keyboard_arrow_down,
+                                    color: AppTheme.textPrimary),
+                              ),
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: AnimatedRotation(
+                              turns: open ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(Icons.keyboard_arrow_down,
+                                  color: AppTheme.textPrimary),
+                            ),
+                          ),
+                  ],
                 ),
               ),
-              children: rows,
             ),
-          ),
-        );
-      }
+            if (widget.activeGroup != null
+                ? !_collapsed.contains(key)
+                : open)
+              ...rows,
+          ],
+        ),
+      );
     }
     return out;
+  }
+
+  /// সেকশনের প্লে/পজ: সেকশনের অডিও চলছে হলে পজ/রিজিউম, নইলে প্রথমটি থেকে শুরু
+  /// (একটি শেষ হলে পরেরটি নিজে চলে)।
+  void _toggleGroup(int from, int end) {
+    if (_current >= from && _current < end) {
+      _play(_current);
+    } else {
+      _play(from);
+    }
   }
 
   Widget _message(String text, {String? action, VoidCallback? onAction}) {

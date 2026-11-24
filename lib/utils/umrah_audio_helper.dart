@@ -14,9 +14,9 @@ class UmrahAudioHelper {
 
   static const String rootPath = '/storage/emulated/0/Music/Recitations/Umrah MP3';
 
-  /// যেসব ধাপে (ধাপ নম্বর) অডিও দেখাবে। নতুন ধাপের অডিও চালু করতে
-  /// শুধু এখানে নম্বর যোগ করুন, যেমন {1, 2, 3}।
-  static const Set<int> enabledSteps = {1};
+  /// যেসব ধাপে (ধাপ নম্বর) অডিও কার্ড খোঁজা হবে। ফোল্ডার না থাকলে বা খালি থাকলে
+  /// ওই ধাপে কার্ড দেখাবে না (যেমন ৬, ১০, ১৩ নম্বরে এখন ফোল্ডার নেই)।
+  static const Set<int> enabledSteps = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
 
   static const List<String> _exts = [
     '.mp3', '.m4a', '.aac', '.wav', '.ogg', '.opus', '.flac',

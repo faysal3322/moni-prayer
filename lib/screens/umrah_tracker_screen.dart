@@ -76,8 +76,9 @@ class UmrahTrackerScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: ListView(
-          padding: EdgeInsets.zero,
+        body: SingleChildScrollView(
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _sectionHeader(_t('বর্তমান অগ্রগতি', 'Current progress')),
             _p.allDone ? _doneCard() : _currentCard(context),
@@ -92,6 +93,7 @@ class UmrahTrackerScreen extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

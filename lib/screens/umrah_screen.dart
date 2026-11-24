@@ -59,8 +59,10 @@ class _UmrahScreenState extends State<UmrahScreen> {
         animation: _p,
         builder: (context, _) {
           final inProgress = _p.started && (_p.current > 0 || _p.checks.isNotEmpty);
-          return ListView(
+          return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _welcomeCard(),
               Row(
@@ -93,6 +95,7 @@ class _UmrahScreenState extends State<UmrahScreen> {
                   _t('ওমরাহর বিধান ও মীকাতসমূহ', 'Rulings and miqat points'),
                   () => _openResources(2)),
             ],
+            ),
           );
         },
       ),

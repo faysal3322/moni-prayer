@@ -174,9 +174,12 @@ class _UmrahStepScreenState extends State<UmrahStepScreen> {
           body: Column(
             children: [
               Expanded(
-                child: ListView(
+                // ListView নয়: ভিন্ন উচ্চতার বড় বড় অংশ থাকলে ListView-এর আনুমানিক
+                // দৈর্ঘ্য গণনায় ওপরে স্ক্রল আটকে যেত। এখানে সবটাই একসাথে মাপা হয়।
+                child: SingleChildScrollView(
                   controller: _scroll,
-                  padding: EdgeInsets.zero,
+                  child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (s.ihramBanner) _banner(),
                     Padding(
@@ -224,6 +227,7 @@ class _UmrahStepScreenState extends State<UmrahStepScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  ),
                 ),
               ),
               _bottomBar(s, done, ready, checked, total),

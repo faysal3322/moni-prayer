@@ -133,6 +133,10 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
 
   @override
   Widget build(BuildContext context) {
+    // ফোল্ডার না থাকলে/খালি হলে এই ধাপে কার্ডটি লুকানো থাকবে
+    if (!_loading && !_noPermission && _files.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return umrahBox(
       border: kUmrahGreen.withOpacity(0.5),
       child: Column(

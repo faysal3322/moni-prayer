@@ -205,6 +205,10 @@ class _UmrahStepScreenState extends State<UmrahStepScreen> {
                           key: ValueKey('audio_${widget.index}'),
                           stepNo: widget.index + 1,
                           lang: widget.lang,
+                          // তাওয়াফ/সাঈর ধাপে শুধু বর্তমান চক্করের অডিও (০ = ১ম চক্কর)
+                          activeGroup: s.counter == UmrahCounter.none
+                              ? null
+                              : _p.counterOf(s.counter).clamp(0, 6),
                         ),
                       ),
                     if (s.counter != UmrahCounter.none)

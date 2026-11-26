@@ -85,16 +85,32 @@ class UmrahAudioMeanings {
     en: 'O Allah, if it is not to be Hajj, then let it be Umrah. For Your sake, I place my hair, skin, flesh, blood, bones, marrow, nerves, marital relations, clothing, and perfume under the restrictions of Ihram, seeking Your countenance and the Hereafter.',
   );
 
+  // ───────────── ধাপ ৩: মীকাতে ইহরামে প্রবেশ ─────────────
+
+  static const _s3d1 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ إِنِّي أُرِيدُ الْعُمْرَةَ، فَيَسِّرْهَا لِي وَتَقَبَّلْهَا مِنِّي',
+    bn: 'হে আল্লাহ, আমি ওমরাহ করার ইচ্ছা করছি। আপনি তা আমার জন্য সহজ করে দিন এবং আমার পক্ষ থেকে কবুল করুন।',
+    en: 'O Allah, I intend to perform Umrah. Make it easy for me and accept it from me.',
+  );
+
+  static const _s3d2 = UmrahAudioMeaning(
+    arabic: 'لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ',
+    bn: 'আমি হাজির, হে আল্লাহ, আমি হাজির। আমি হাজির, আপনার কোনো শরিক নেই, আমি হাজির। নিশ্চয়ই সমস্ত প্রশংসা, নিয়ামত ও রাজত্ব আপনারই। আপনার কোনো শরিক নেই।',
+    en: 'Here I am, O Allah, here I am. Here I am; You have no partner, here I am. All praise, grace, and sovereignty belong to You. You have no partner.',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
     2: {22: _s2d1, 23: _s2d2, 27: _s2d3, 28: _s2d4, 29: _s2d5, 30: _s2d6},
+    3: {32: _s3d1, 34: _s3d2},
   };
 
   /// ধাপ নম্বর → ক্রম অনুযায়ী দোয়া (ফাইলের নাম না মিললে এটি কাজ করে)
   static const Map<int, List<UmrahAudioMeaning>> byStepOrder = {
     1: [_d1, _d2, _d3, _d4, _d5],
     2: [_s2d1, _s2d2, _s2d3, _s2d4, _s2d5, _s2d6],
+    3: [_s3d1, _s3d2],
   };
 
   static UmrahAudioMeaning? find(int stepNo, String fileName, int orderInStep) {

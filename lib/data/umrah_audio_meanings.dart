@@ -119,15 +119,83 @@ class UmrahAudioMeanings {
     en: 'Allah is The Greatest. Allah is The Greatest. There is no God except Allah.',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ১ ─────────────
+
+  static const _s5r1d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا اكْشِفْ عَنَّا الْعَذَابَ إِنَّا مُؤْمِنُونَ',
+    bn: 'হে আমাদের রব, আমাদের থেকে আযাব দূর করে দিন; নিশ্চয়ই আমরা ঈমানদার।',
+    en: 'Our Lord! Relieve us of the torment, for we do really believe.',
+  );
+
+  static const _s5r1d2 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ وَلَا تَجْعَلْ فِي قُلُوبِنَا غِلًّا لِلَّذِينَ آمَنُوا رَبَّنَا إِنَّكَ رَءُوفٌ رَحِيمٌ',
+    bn: 'হে আমাদের রব, আমাদের এবং ঈমানে আমাদের অগ্রগামী ভাইদের ক্ষমা করুন, আর মুমিনদের প্রতি আমাদের অন্তরে কোনো বিদ্বেষ রাখবেন না। হে আমাদের রব, নিশ্চয়ই আপনি পরম দয়ালু, অতি দয়াময়।',
+    en: 'Our Lord, forgive us and our brothers who preceded us in faith, and do not place in our hearts any resentment toward those who believe. Our Lord, You are truly Most Kind and Most Merciful.',
+  );
+
+  static const _s5r1d3 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا عَلَيْكَ تَوَكَّلْنَا وَإِلَيْكَ أَنَبْنَا وَإِلَيْكَ الْمَصِيرُ',
+    bn: 'হে আমাদের রব, আমরা আপনার ওপরই ভরসা করেছি, আপনারই অভিমুখী হয়েছি এবং আপনার কাছেই (আমাদের) প্রত্যাবর্তন।',
+    en: 'Our Lord, upon You we have relied, and to You we have returned, and to You is the destination.',
+  );
+
+  static const _s5r1d4 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا لَا تَجْعَلْنَا فِتْنَةً لِلَّذِينَ كَفَرُوا وَاغْفِرْ لَنَا رَبَّنَا إِنَّكَ أَنْتَ الْعَزِيزُ الْحَكِيمُ',
+    bn: 'হে আমাদের রব, আমাদেরকে কাফিরদের জন্য পরীক্ষার পাত্র বানাবেন না এবং আমাদের ক্ষমা করুন। হে আমাদের রব, নিশ্চয়ই আপনি পরাক্রমশালী, প্রজ্ঞাময়।',
+    en: 'Our Lord, make us not [objects of] torment for the disbelievers and forgive us, our Lord. Indeed, it is You who is the Exalted in Might, the Wise.',
+  );
+
+  static const _s5r1d5 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا أَتْمِمْ لَنَا نُورَنَا وَاغْفِرْ لَنَا إِنَّكَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+    bn: 'হে আমাদের রব, আমাদের জন্য আমাদের নূরকে পূর্ণ করে দিন এবং আমাদের ক্ষমা করুন। নিশ্চয়ই আপনি সব কিছুর ওপর ক্ষমতাবান।',
+    en: 'Our Lord! Perfect our light for us and forgive us our sins, for verily You have power over all things.',
+  );
+
+  static const _s5r1d6 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+    bn: 'হে আমাদের রব, আমাদেরকে দুনিয়াতে কল্যাণ দিন, আখিরাতেও কল্যাণ দিন এবং আমাদেরকে জাহান্নামের আযাব থেকে রক্ষা করুন।',
+    en: 'Our Lord, give us in this world (that which is) good and in the Hereafter (that which is) good and protect us from the punishment of the Fire',
+  );
+
+  static const _s5r1d7 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَاقَةِ وَمَوَاقِفِ الْخِزْيِ فِي الدُّنْيَا وَالْآخِرَةِ',
+    bn: 'হে আল্লাহ, আমি আপনার কাছে কুফর, দারিদ্র্য এবং দুনিয়া ও আখিরাতের লাঞ্ছনার স্থানসমূহ থেকে আশ্রয় চাই।',
+    en: 'O Allah, I take refuge in You from disbelief, poverty and from any humiliation in this world and the next',
+  );
+
+  static const _s5r1d8 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ قَنِّعْنِي بِمَا رَزَقْتَنِي، وَبَارِكْ لِي فِيهِ، وَاخْلُفْ عَلَيَّ كُلَّ غَائِبَةٍ لِي بِخَيْرٍ',
+    bn: 'হে আল্লাহ, আপনি আমাকে যা রিজিক দিয়েছেন তাতে আমাকে তৃপ্ত রাখুন, তাতে আমার জন্য বরকত দিন এবং আমার প্রতিটি অনুপস্থিত বা হারানো জিনিসের বিনিময়ে উত্তম কিছু দান করুন।',
+    en: 'O Allah, make me content with what You have provided, bless it for me, and replace every absent or lost thing of mine with something better.',
+  );
+
+  static const _s5r1d9 = UmrahAudioMeaning(
+    arabic: 'بِسْمِ اللهِ وَاللهُ أَكْبَرُ',
+    bn: 'আল্লাহর নামে (শুরু করছি) এবং আল্লাহ সবচেয়ে মহান।',
+    en: 'In the name of Allah and Allah is the Greatest',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
     2: {22: _s2d1, 23: _s2d2, 27: _s2d3, 28: _s2d4, 29: _s2d5, 30: _s2d6},
     3: {32: _s3d1, 34: _s3d2},
     4: {37: _s4d1, 39: _s4d2, 40: _s4d3},
+    5: {
+      45: _s5r1d1,
+      46: _s5r1d2,
+      47: _s5r1d3,
+      48: _s5r1d4,
+      49: _s5r1d5,
+      50: _s5r1d6,
+      51: _s5r1d7,
+      52: _s5r1d8,
+      53: _s5r1d9,
+    },
   };
 
   /// ধাপ নম্বর → ক্রম অনুযায়ী দোয়া (ফাইলের নাম না মিললে এটি কাজ করে)
+  /// (ধাপ ৫-এ একাধিক রাউন্ড থাকায় এখানে দেওয়া হয়নি; সেখানে শুধু sec নম্বর দিয়ে মেলে)
   static const Map<int, List<UmrahAudioMeaning>> byStepOrder = {
     1: [_d1, _d2, _d3, _d4, _d5],
     2: [_s2d1, _s2d2, _s2d3, _s2d4, _s2d5, _s2d6],

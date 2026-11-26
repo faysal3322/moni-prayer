@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../data/umrah_audio_meanings.dart';
 import '../utils/app_language.dart';
 import '../utils/app_theme.dart';
 import '../utils/umrah_audio_helper.dart';
@@ -358,6 +359,50 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
     );
   }
 
+  /// অডিওর নিচে আরবি দোয়া + ভাষা অনুযায়ী (বাংলা/ইংরেজি) অর্থ
+  Widget _meaning(int i) {
+    // এই ফাইলটি ধাপের কত নম্বর ফাইল (ধাপের সব গুচ্ছ ধরে)
+    final m = UmrahAudioMeanings.find(
+      widget.stepNo,
+      _files[i].path.split('/').last,
+      i,
+    );
+    if (m == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(height: 1, color: AppTheme.divider),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              m.arabic,
+              textAlign: TextAlign.right,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                fontFamily: 'ScheherazadeNew',
+                fontSize: 22,
+                height: 1.9,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _bn ? m.bn : m.en,
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _row(int i) {
     final active = _current == i;
     final playing = active && _playing;
@@ -411,6 +456,7 @@ class _UmrahAudioCardState extends State<UmrahAudioCard> {
               ),
             ),
           ),
+          _meaning(i),
           if (active)
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 12, 6),

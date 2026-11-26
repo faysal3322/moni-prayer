@@ -99,11 +99,32 @@ class UmrahAudioMeanings {
     en: 'Here I am, O Allah, here I am. Here I am; You have no partner, here I am. All praise, grace, and sovereignty belong to You. You have no partner.',
   );
 
+  // ───────────── ধাপ ৪: হারামে প্রবেশ ─────────────
+
+  static const _s4d1 = UmrahAudioMeaning(
+    arabic: 'أَعُوذُ بِاللهِ الْعَظِيمِ، وَبِوَجْهِهِ الْكَرِيمِ، وَسُلْطَانِهِ الْقَدِيمِ، مِنَ الشَّيْطَانِ الرَّجِيمِ',
+    bn: 'আমি মহান আল্লাহর কাছে, তাঁর সম্মানিত সত্তার কাছে এবং তাঁর চিরন্তন কর্তৃত্বের কাছে বিতাড়িত শয়তান থেকে আশ্রয় চাই।',
+    en: 'I seek refuge in Allah the Magnificent, in His noble countenance, and in His eternal authority from Satan the accursed.',
+  );
+
+  static const _s4d2 = UmrahAudioMeaning(
+    arabic: 'بِسْمِ اللهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
+    bn: 'আল্লাহর নামে (প্রবেশ করছি), আল্লাহর রাসূলের ওপর দরূদ ও সালাম বর্ষিত হোক। হে আল্লাহ, আমার জন্য আপনার রহমতের দরজাসমূহ খুলে দিন।',
+    en: 'In the name of Allah, and blessings and peace be upon the Messenger of Allah. O Allah, open for me the gates of Your mercy.',
+  );
+
+  static const _s4d3 = UmrahAudioMeaning(
+    arabic: 'اللهُ أَكْبَرُ - اللهُ أَكْبَرُ - لَا إِلَهَ إِلَّا اللهُ',
+    bn: 'আল্লাহ সবচেয়ে মহান। আল্লাহ সবচেয়ে মহান। আল্লাহ ছাড়া কোনো ইলাহ (উপাস্য) নেই।',
+    en: 'Allah is The Greatest. Allah is The Greatest. There is no God except Allah.',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
     2: {22: _s2d1, 23: _s2d2, 27: _s2d3, 28: _s2d4, 29: _s2d5, 30: _s2d6},
     3: {32: _s3d1, 34: _s3d2},
+    4: {37: _s4d1, 39: _s4d2, 40: _s4d3},
   };
 
   /// ধাপ নম্বর → ক্রম অনুযায়ী দোয়া (ফাইলের নাম না মিললে এটি কাজ করে)
@@ -111,6 +132,7 @@ class UmrahAudioMeanings {
     1: [_d1, _d2, _d3, _d4, _d5],
     2: [_s2d1, _s2d2, _s2d3, _s2d4, _s2d5, _s2d6],
     3: [_s3d1, _s3d2],
+    4: [_s4d1, _s4d2, _s4d3],
   };
 
   static UmrahAudioMeaning? find(int stepNo, String fileName, int orderInStep) {

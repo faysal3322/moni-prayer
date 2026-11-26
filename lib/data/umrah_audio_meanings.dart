@@ -175,6 +175,27 @@ class UmrahAudioMeanings {
     en: 'In the name of Allah and Allah is the Greatest',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ২ ─────────────
+  // (৪–৭ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই, তাই সেগুলোই ব্যবহার হয়েছে)
+
+  static const _s5r2d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا آتِنَا مِنْ لَدُنْكَ رَحْمَةً وَهَيِّئْ لَنَا مِنْ أَمْرِنَا رَشَدًا',
+    bn: 'হে আমাদের রব, আপনার পক্ষ থেকে আমাদের রহমত দান করুন এবং আমাদের কাজকর্মে সঠিক পথনির্দেশনার ব্যবস্থা করে দিন।',
+    en: 'Our Lord, grant us from Yourself mercy and prepare for us from our affair right guidance',
+  );
+
+  static const _s5r2d2 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا إِنَّكَ تَعْلَمُ مَا نُخْفِي وَمَا نُعْلِنُ وَمَا يَخْفَى عَلَى اللهِ مِنْ شَيْءٍ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ',
+    bn: 'হে আমাদের রব, আমরা যা গোপন করি এবং যা প্রকাশ করি, নিশ্চয়ই আপনি তা জানেন। আসমান ও জমিনের কোনো কিছুই আল্লাহর কাছে গোপন নেই।',
+    en: 'Our Lord! You truly know all that we may hide [in our hearts] as well as all that we bring into the open, for nothing whatever, be it on earth or in heaven, remains hidden from Allah',
+  );
+
+  static const _s5r2d3 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا',
+    bn: 'হে আমাদের রব, আমাদের স্ত্রী ও সন্তানদের পক্ষ থেকে আমাদের চোখের শীতলতা দান করুন এবং আমাদেরকে মুত্তাকীদের জন্য আদর্শ নেতা বানিয়ে দিন।',
+    en: 'Our Lord, grant us from among our wives and offspring comfort to our eyes and make us an example for the righteous.',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -191,6 +212,13 @@ class UmrahAudioMeanings {
       51: _s5r1d7,
       52: _s5r1d8,
       53: _s5r1d9,
+      54: _s5r2d1,
+      55: _s5r2d2,
+      56: _s5r2d3,
+      57: _s5r1d6,
+      58: _s5r1d7,
+      59: _s5r1d8,
+      60: _s5r1d9,
     },
   };
 

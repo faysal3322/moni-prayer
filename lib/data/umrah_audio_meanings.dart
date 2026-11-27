@@ -217,6 +217,35 @@ class UmrahAudioMeanings {
     en: 'Our Lord, do not place us with the wrongdoing people',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ৪ ─────────────
+  // (৫–৮ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই)
+
+  static const _s5r4d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا لَا تُؤَاخِذْنَا إِنْ نَسِينَا أَوْ أَخْطَأْنَا رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِنْ قَبْلِنَا رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا أَنْتَ مَوْلَانَا فَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ',
+    bn: 'হে আমাদের রব, আমরা যদি ভুলে যাই কিংবা ভুল করি, তবে আমাদের পাকড়াও করবেন না। হে আমাদের রব, আমাদের পূর্ববর্তীদের ওপর যেমন বোঝা চাপিয়েছিলেন, তেমন বোঝা আমাদের ওপর চাপাবেন না। হে আমাদের রব, যে বোঝা বহনের সামর্থ্য আমাদের নেই, তা আমাদের ওপর চাপাবেন না। আমাদের মার্জনা করুন, আমাদের ক্ষমা করুন এবং আমাদের প্রতি দয়া করুন। আপনিই আমাদের অভিভাবক; অতএব কাফির সম্প্রদায়ের বিরুদ্ধে আমাদের সাহায্য করুন।',
+    en: 'Our Lord, do not impose blame upon us if we have forgotten or erred. Our Lord, and lay not upon us a burden like that which You laid upon those before us. Our Lord, and burden us not with that which we have no ability to bear. And pardon us; and forgive us; and have mercy upon us. You are our protector, so give us victory over the disbelieving people',
+  );
+
+  static const _s5r4d2 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا اغْفِرْ لَنَا ذُنُوبَنَا وَإِسْرَافَنَا فِي أَمْرِنَا وَثَبِّتْ أَقْدَامَنَا وَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ',
+    bn: 'হে আমাদের রব, আমাদের গুনাহসমূহ এবং আমাদের কাজকর্মে সীমালঙ্ঘন ক্ষমা করুন, আমাদের পা দৃঢ় রাখুন এবং কাফির সম্প্রদায়ের বিরুদ্ধে আমাদের সাহায্য করুন।',
+    // দ্রষ্টব্য: অ্যাপের স্ক্রিনশটে এই আরবির নিচে "pour patience upon us..." (সূরা বাকারা ২:২৫০) লেখা ছিল,
+    // যা এই আরবির (সূরা আলে ইমরান ৩:১৪৭) অনুবাদ নয়। এখানে আরবির সঠিক ইংরেজি অর্থ দেওয়া হয়েছে।
+    en: 'Our Lord, forgive us our sins and our excesses in our affairs, make our feet firm, and grant us victory over the disbelieving people.',
+  );
+
+  static const _s5r4d3 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا فَاغْفِرْ لَنَا ذُنُوبَنَا وَكَفِّرْ عَنَّا سَيِّئَاتِنَا وَتَوَفَّنَا مَعَ الْأَبْرَارِ',
+    bn: 'হে আমাদের রব, আমাদের গুনাহসমূহ ক্ষমা করুন, আমাদের মন্দ কাজগুলো মুছে দিন এবং নেককারদের সঙ্গে আমাদের মৃত্যু দিন।',
+    en: 'Our Lord! Forgive us our sins and efface our bad deeds and take our souls in the company of the righteous.',
+  );
+
+  static const _s5r4d4 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا وَآتِنَا مَا وَعَدْتَنَا عَلَى رُسُلِكَ وَلَا تُخْزِنَا يَوْمَ الْقِيَامَةِ إِنَّكَ لَا تُخْلِفُ الْمِيعَادَ',
+    bn: 'হে আমাদের রব, আপনি আপনার রাসূলদের মাধ্যমে আমাদের যা দেওয়ার প্রতিশ্রুতি দিয়েছেন তা আমাদের দান করুন এবং কিয়ামতের দিন আমাদের লাঞ্ছিত করবেন না। নিশ্চয়ই আপনি প্রতিশ্রুতি ভঙ্গ করেন না।',
+    en: 'Our Lord! And grant us that which you have promised to us by Your messengers and save us from shame on the Day of Judgement. Verily You never fail to fulfill Your promise.',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -247,6 +276,14 @@ class UmrahAudioMeanings {
       66: _s5r1d7,
       67: _s5r1d8,
       68: _s5r1d9,
+      69: _s5r4d1,
+      70: _s5r4d2,
+      71: _s5r4d3,
+      72: _s5r4d4,
+      73: _s5r1d6,
+      74: _s5r1d7,
+      75: _s5r1d8,
+      76: _s5r1d9,
     },
   };
 

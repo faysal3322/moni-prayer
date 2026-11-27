@@ -196,6 +196,27 @@ class UmrahAudioMeanings {
     en: 'Our Lord, grant us from among our wives and offspring comfort to our eyes and make us an example for the righteous.',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ৩ ─────────────
+  // (৪–৭ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই; ফাইল sec64 এই রাউন্ডে নেই)
+
+  static const _s5r3d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ',
+    bn: 'হে আমাদের রব, আপনি আমাদের হিদায়াত দেওয়ার পর আমাদের অন্তরকে বক্র করে দেবেন না এবং আপনার পক্ষ থেকে আমাদের রহমত দান করুন। নিশ্চয়ই আপনি মহান দাতা।',
+    en: 'Our Lord! Let not our hearts deviate from the truth after You have guided us, and bestow upon us mercy from Your grace. Verily You are the Giver of bounties without measure',
+  );
+
+  static const _s5r3d2 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا ظَلَمْنَا أَنْفُسَنَا وَإِنْ لَمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ',
+    bn: 'হে আমাদের রব, আমরা নিজেদের ওপর জুলুম করেছি। আপনি যদি আমাদের ক্ষমা না করেন এবং আমাদের প্রতি দয়া না করেন, তবে আমরা অবশ্যই ক্ষতিগ্রস্তদের অন্তর্ভুক্ত হব।',
+    en: 'Our Lord! We have sinned against ourselves, and unless You grant us forgiveness and bestow Your mercy upon us, we shall most certainly be lost!',
+  );
+
+  static const _s5r3d3 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا لَا تَجْعَلْنَا مَعَ الْقَوْمِ الظَّالِمِينَ',
+    bn: 'হে আমাদের রব, আমাদেরকে জালিম সম্প্রদায়ের সঙ্গী করবেন না।',
+    en: 'Our Lord, do not place us with the wrongdoing people',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -219,6 +240,13 @@ class UmrahAudioMeanings {
       58: _s5r1d7,
       59: _s5r1d8,
       60: _s5r1d9,
+      61: _s5r3d1,
+      62: _s5r3d2,
+      63: _s5r3d3,
+      65: _s5r1d6,
+      66: _s5r1d7,
+      67: _s5r1d8,
+      68: _s5r1d9,
     },
   };
 

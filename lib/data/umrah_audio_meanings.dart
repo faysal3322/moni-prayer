@@ -300,6 +300,33 @@ class UmrahAudioMeanings {
     en: 'My Lord, You have given me authority and taught me something of the interpretation of dreams. O Originator of the heavens and earth, You are my Protector in this world and in the Hereafter. Cause me to die as a Muslim [submitting to You], and join me with the righteous.',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ৭ ─────────────
+  // (৫–৮ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই)
+
+  static const _s5r7d1 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا، وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدِكَ وَارْحَمْنِي إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ',
+    bn: 'হে আল্লাহ, আমি নিজের ওপর অনেক জুলুম করেছি, আর আপনি ছাড়া গুনাহ ক্ষমা করার কেউ নেই। তাই আপনার পক্ষ থেকে আমাকে ক্ষমা করুন এবং আমার প্রতি দয়া করুন। নিশ্চয়ই আপনি অতি ক্ষমাশীল, পরম দয়ালু।',
+    en: 'O Allah, I have greatly wronged myself and no one forgives sins but You. So, grant me forgiveness and have mercy on me. Surely, you are Forgiving, Merciful',
+  );
+
+  static const _s5r7d2 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلَّهُ، دِقَّهُ وَجِلَّهُ، وَأَوَّلَهُ وَآخِرَهُ، وَعَلَانِيَتَهُ وَسِرَّهُ',
+    bn: 'হে আল্লাহ, আমার সব গুনাহ ক্ষমা করে দিন, ছোট ও বড়, প্রথম ও শেষ, প্রকাশ্য ও গোপন।',
+    en: 'O Allah, forgive me all my sins, great and small, the first and the last, those that are apparent and those that are hidden',
+  );
+
+  static const _s5r7d3 = UmrahAudioMeaning(
+    arabic: 'اللَّهُمَّ اغْفِرْ لِي، وَارْحَمْنِي، وَاهْدِنِي، وَاجْبُرْنِي، وَعَافِنِي، وَارْزُقْنِي، وَارْفَعْنِي',
+    bn: 'হে আল্লাহ, আমাকে ক্ষমা করুন, আমার প্রতি দয়া করুন, আমাকে হিদায়াত দিন, আমার ঘাটতি পূরণ করে আমাকে সামলে নিন, আমাকে নিরাপদে ও সুস্থ রাখুন, আমাকে রিজিক দিন এবং আমাকে উচ্চ মর্যাদা দিন।',
+    en: 'O Allah forgive me, have mercy on me, guide me, support me, protect me, provide for me and elevate me.',
+  );
+
+  static const _s5r7d4 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا وَاجْعَلْنَا مُسْلِمَيْنِ لَكَ وَمِنْ ذُرِّيَّتِنَا أُمَّةً مُسْلِمَةً لَكَ وَأَرِنَا مَنَاسِكَنَا وَتُبْ عَلَيْنَا إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ',
+    bn: 'হে আমাদের রব, আমাদের দুজনকে আপনার অনুগত বানিয়ে দিন এবং আমাদের বংশধরদের মধ্য থেকে আপনার অনুগত একটি জাতি তৈরি করুন। আমাদেরকে ইবাদতের নিয়ম-পদ্ধতি দেখিয়ে দিন এবং আমাদের তাওবা কবুল করুন। নিশ্চয়ই আপনি তাওবা কবুলকারী, পরম দয়ালু।',
+    en: 'Our Lord! Make us submissive to You and make out of our descendants a community that submits itself to You, and show us the ways of Your worship, and turn to us in mercy. You are Much-Relenting, Most Compassionate',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -354,6 +381,14 @@ class UmrahAudioMeanings {
       90: _s5r1d7,
       91: _s5r1d8,
       92: _s5r1d9,
+      93: _s5r7d1,
+      94: _s5r7d2,
+      95: _s5r7d3,
+      96: _s5r7d4,
+      97: _s5r1d6,
+      98: _s5r1d7,
+      99: _s5r1d8,
+      100: _s5r1d9,
     },
   };
 

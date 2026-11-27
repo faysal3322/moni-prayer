@@ -246,6 +246,27 @@ class UmrahAudioMeanings {
     en: 'Our Lord! And grant us that which you have promised to us by Your messengers and save us from shame on the Day of Judgement. Verily You never fail to fulfill Your promise.',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ৫ ─────────────
+  // (৪–৭ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই)
+
+  static const _s5r5d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ',
+    bn: 'হে আমাদের রব, যেদিন হিসাব কায়েম হবে সেদিন আমাকে, আমার পিতামাতাকে এবং মুমিনদের ক্ষমা করে দিন।',
+    en: 'Our Lord! Forgive me and my parents and the believers on the Day when the reckoning will take place',
+  );
+
+  static const _s5r5d2 = UmrahAudioMeaning(
+    arabic: 'رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِمَنْ دَخَلَ بَيْتِيَ مُؤْمِنًا وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ وَلَا تَزِدِ الظَّالِمِينَ إِلَّا تَبَارًا',
+    bn: 'হে আমার রব, আমাকে, আমার পিতামাতাকে, যে মুমিন অবস্থায় আমার ঘরে প্রবেশ করে তাকে এবং সব মুমিন নারী-পুরুষকে ক্ষমা করুন। আর জালিমদের ধ্বংস ছাড়া আর কিছুই বাড়িয়ে দেবেন না।',
+    en: 'My Lord! forgive me and my parents and him who enters my house believing, and the believing men and the believing women; and do not increase the unjust in aught but destruction!',
+  );
+
+  static const _s5r5d3 = UmrahAudioMeaning(
+    arabic: 'رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَى وَالِدَيَّ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ وَأَصْلِحْ لِي فِي ذُرِّيَّتِي إِنِّي تُبْتُ إِلَيْكَ وَإِنِّي مِنَ الْمُسْلِمِينَ',
+    bn: 'হে আমার রব, আপনি আমাকে ও আমার পিতামাতাকে যে নিয়ামত দান করেছেন তার শুকরিয়া আদায় করার এবং আপনার পছন্দনীয় সৎকর্ম করার তাওফিক দিন। আমার জন্য আমার সন্তানদের সৎ বানিয়ে দিন। নিশ্চয়ই আমি আপনার কাছে তাওবা করলাম এবং আমি মুসলিমদের অন্তর্ভুক্ত।',
+    en: 'My Lord, enable me to be grateful for Your favor which You have bestowed upon me and upon my parents and to work righteousness of which You will approve and make righteous for me my offspring. Indeed, I have repented to You, and indeed, I am of the Muslims',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -284,6 +305,13 @@ class UmrahAudioMeanings {
       74: _s5r1d7,
       75: _s5r1d8,
       76: _s5r1d9,
+      77: _s5r5d1,
+      78: _s5r5d2,
+      79: _s5r5d3,
+      80: _s5r1d6,
+      81: _s5r1d7,
+      82: _s5r1d8,
+      83: _s5r1d9,
     },
   };
 

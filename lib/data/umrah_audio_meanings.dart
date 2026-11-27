@@ -267,6 +267,39 @@ class UmrahAudioMeanings {
     en: 'My Lord, enable me to be grateful for Your favor which You have bestowed upon me and upon my parents and to work righteousness of which You will approve and make righteous for me my offspring. Indeed, I have repented to You, and indeed, I am of the Muslims',
   );
 
+  // ───────────── ধাপ ৫: তাওয়াফের ৭ চক্কর — রাউন্ড ৬ ─────────────
+  // (৬–৯ নম্বর দোয়া রাউন্ড ১-এর ৬–৯ নম্বরের হুবহু একই)
+
+  static const _s5r6d1 = UmrahAudioMeaning(
+    arabic: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+    bn: 'হে আমাদের রব, আমাদেরকে দুনিয়াতে কল্যাণ দিন, আখিরাতেও কল্যাণ দিন এবং আমাদেরকে জাহান্নামের আযাব থেকে রক্ষা করুন।',
+    en: 'Our Lord, give us in this world [that which is] good and in the Hereafter [that which is] good and protect us from the punishment of the Fire',
+  );
+
+  static const _s5r6d2 = UmrahAudioMeaning(
+    arabic: 'أَنِّي مَسَّنِيَ الضُّرُّ وَأَنْتَ أَرْحَمُ الرَّاحِمِينَ',
+    bn: 'নিশ্চয়ই আমাকে দুঃখ-কষ্ট স্পর্শ করেছে, আর আপনি দয়াবানদের মধ্যে সর্বশ্রেষ্ঠ দয়াবান।',
+    en: 'Verily, distress has seized me, and You are the Most Merciful of all those who show mercy',
+  );
+
+  static const _s5r6d3 = UmrahAudioMeaning(
+    arabic: 'رَبِّ أَعُوذُ بِكَ مِنْ هَمَزَاتِ الشَّيَاطِينِ',
+    bn: 'হে আমার রব, আমি শয়তানদের প্ররোচনা থেকে আপনার কাছে আশ্রয় চাই।',
+    en: 'My Lord! I seek refuge in You from the temptations of the devils',
+  );
+
+  static const _s5r6d4 = UmrahAudioMeaning(
+    arabic: 'وَأَعُوذُ بِكَ رَبِّ أَنْ يَحْضُرُونِ',
+    bn: 'হে আমার রব, তারা আমার কাছে উপস্থিত হওয়া থেকেও আমি আপনার কাছে আশ্রয় চাই।',
+    en: 'I seek refuge with you, Lord, so that they may not come near me',
+  );
+
+  static const _s5r6d5 = UmrahAudioMeaning(
+    arabic: 'رَبِّ قَدْ آتَيْتَنِي مِنَ الْمُلْكِ وَعَلَّمْتَنِي مِنْ تَأْوِيلِ الْأَحَادِيثِ فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ أَنْتَ وَلِيِّي فِي الدُّنْيَا وَالْآخِرَةِ تَوَفَّنِي مُسْلِمًا وَأَلْحِقْنِي بِالصَّالِحِينَ',
+    bn: 'হে আমার রব, আপনি আমাকে রাজত্ব দান করেছেন এবং স্বপ্নের ব্যাখ্যা শিক্ষা দিয়েছেন। হে আসমান ও জমিনের স্রষ্টা, দুনিয়া ও আখিরাতে আপনিই আমার অভিভাবক। মুসলিম অবস্থায় আমার মৃত্যু দিন এবং আমাকে সৎকর্মশীলদের সঙ্গে মিলিত করুন।',
+    en: 'My Lord, You have given me authority and taught me something of the interpretation of dreams. O Originator of the heavens and earth, You are my Protector in this world and in the Hereafter. Cause me to die as a Muslim [submitting to You], and join me with the righteous.',
+  );
+
   /// ধাপ নম্বর → (ফাইলের sec নম্বর → দোয়া)
   static const Map<int, Map<int, UmrahAudioMeaning>> bySection = {
     1: {14: _d1, 15: _d2, 16: _d3, 19: _d4, 20: _d5},
@@ -312,6 +345,15 @@ class UmrahAudioMeanings {
       81: _s5r1d7,
       82: _s5r1d8,
       83: _s5r1d9,
+      84: _s5r6d1,
+      85: _s5r6d2,
+      86: _s5r6d3,
+      87: _s5r6d4,
+      88: _s5r6d5,
+      89: _s5r1d6,
+      90: _s5r1d7,
+      91: _s5r1d8,
+      92: _s5r1d9,
     },
   };
 
